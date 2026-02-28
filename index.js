@@ -281,11 +281,19 @@ async function main() {
   const targetDir = process.argv[2] || process.cwd();
   console.log(`Scanning repository: ${targetDir}`);
 
+  // Allow custom extensions via CLI: --exts=.go,.ts,.py
+  let extensionsFilter = ['js','jsx','ts','tsx','py','go','rs','java','c','cpp','h','hpp','rb','php','cs','swift','kt','m'];
+  const extArg = process.argv.find(arg => arg.startsWith('--exts='));
+  if (extArg) {
+      extensionsFilter = extArg.split('=')[1].split(',').map(e => e.replace('.', ''));
+  }
+
   // Get ignore rules
   const ig = await getIgnores(targetDir);
 
-  // Find all supported files (JS/TS and Python)
-  const allFiles = await fg(['**/*.{js,jsx,ts,tsx,py}'], { 
+  // Find all supported files
+  const globPattern = `**/*.{${extensionsFilter.join(',')}}`;
+  const allFiles = await fg([globPattern], { 
     cwd: targetDir, 
     absolute: true,
     dot: true
@@ -294,7 +302,7 @@ async function main() {
   // Filter based on ignore rules
   const targetFiles = allFiles.filter(f => !ig.ignores(path.relative(targetDir, f)));
   
-  console.log(`Found ${targetFiles.length} source files (.js/.ts/.py) to parse.`);
+  console.log(`Found ${targetFiles.length} source files to analyze.`);
 
   if (targetFiles.length === 0) {
     console.log("No valid files found to analyze.");
@@ -307,19 +315,26 @@ async function main() {
     // Only analyze files from the codebase (skip our own index.js if running locally)
     if (file.endsWith('index.js') && __dirname === targetDir) continue;
 
-    console.log(`Parsing AST: ${file}...`);
+    console.log(`Analyzing file structure: ${file}...`);
     const data = await extractStructure(file);
+    
     if (data && (data.classes.length > 0 || data.functions.length > 0 || data.exports.length > 0)) {
         structuralData.push({
-            // Simplify file path for the LLM prompt
             path: path.relative(targetDir, file),
             ...data
+        });
+    } else {
+        // Graceful Fallback for missing AST or empty extractions (LLM must read whole file)
+        structuralData.push({
+            path: path.relative(targetDir, file),
+            classes: [], functions: [], exports: [], imports: [],
+            note: "AST parsing unavailable. You MUST use view_file to extract features."
         });
     }
   }
 
   if (structuralData.length === 0) {
-      console.log("No structural data found after AST parsing.");
+      console.log("No valid structural data found.");
       return;
   }
 
