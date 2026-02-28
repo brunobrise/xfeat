@@ -81,24 +81,22 @@ async function extractStructure(filePath) {
 // 2. Semantic Analysis (Claude SDK)
 async function extractFeaturesWithClaude(structuralData) {
   const prompt = `
-  You are an expert software architect. Analyze the structural footprint of the following codebase modules to determine the product-level features it provides.
+  You are an expert software architect. Analyze the structural footprint of the following codebase module to determine the product-level features it provides.
 
-  Extract features based on patterns. Example: If you see classes like 'UserController' and functions like 'login' or 'register', output a feature like "User Authentication (Login/Registration)".
+  Extract features based on patterns. Example: If you see classes like 'UserController' and functions like 'login' or 'register', output a feature like "- **User Authentication**: Login/Registration".
   
-  Format your response as a clean Markdown list of high-level features.
+  Format your response as a clean Markdown list of high-level features. Do not include introductory text, just the bullet points.
 
   Structural Data:
   ${JSON.stringify(structuralData, null, 2)}
   `;
 
-  console.log('Sending data to Claude for feature extraction...');
-  
   try {
     const response = await anthropic.messages.create({
       model: 'claude-3-7-sonnet-20250219',
-      max_tokens: 2000,
+      max_tokens: 1000,
       temperature: 0.2,
-      system: "You are a technical analyst whose only job is to extract human-readable product features from codebase structural footprints. Be concise. Output only the markdown list.",
+      system: "You are a technical analyst whose only job is to extract human-readable product features from codebase structural footprints. Output ONLY a markdown list of features, no conversational filler.",
       messages: [{ role: 'user', content: prompt }]
     });
 
@@ -156,9 +154,6 @@ async function main() {
       return;
   }
 
-  // Chunking logic (simplified for POC - if codebase is massive, we would chunk `structuralData`)
-  // For now, we send everything in one shot if it's small enough.
-
   // 2. Extract semantics via Claude
   if (!process.env.ANTHROPIC_API_KEY) {
     console.error("\n❌ ERROR: ANTHROPIC_API_KEY environment variable is missing.");
@@ -168,11 +163,24 @@ async function main() {
     return;
   }
 
-  const featuresMd = await extractFeaturesWithClaude(structuralData);
-
-  // 3. Write output
+  // 3. Process feature by feature and stream to output
   const outputPath = path.join(process.cwd(), 'FEATURES.md');
-  await fs.writeFile(outputPath, featuresMd, 'utf8');
+  await fs.writeFile(outputPath, '# Codebase Features\n\n', 'utf8');
+  console.log(`\nInitializing feature extraction... Writing to ${outputPath}`);
+  
+  for (const data of structuralData) {
+    console.log(`[LLM] Extracting features from ${data.path}...`);
+    try {
+      const featuresMd = await extractFeaturesWithClaude(data);
+      if (featuresMd && featuresMd.trim().length > 0) {
+        let contentToAppend = `## ${data.path}\n${featuresMd}\n\n`;
+        await fs.appendFile(outputPath, contentToAppend, 'utf8');
+      }
+    } catch (e) {
+      console.error(`Failed to extract features for ${data.path}`, e);
+    }
+  }
+
   console.log(`\n✅ Feature extraction complete! Saved to ${outputPath}`);
 }
 
