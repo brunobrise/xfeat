@@ -24,21 +24,45 @@ async function getIgnores(targetDir) {
 }
 
 let parser;
-let jsLanguage;
-let pyLanguage;
-let tsLanguage;
+
+// Language Registry matches extensions to node modules (user can simply `npm install` to add AST support)
+const languageRegistry = {
+  '.js': 'tree-sitter-javascript/tree-sitter-javascript.wasm',
+  '.jsx': 'tree-sitter-javascript/tree-sitter-javascript.wasm',
+  '.ts': 'tree-sitter-typescript/tree-sitter-typescript.wasm',
+  '.tsx': 'tree-sitter-typescript/tree-sitter-typescript.wasm',
+  '.py': 'tree-sitter-python/tree-sitter-python.wasm',
+  '.go': 'tree-sitter-go/tree-sitter-go.wasm',
+  '.rs': 'tree-sitter-rust/tree-sitter-rust.wasm',
+  '.java': 'tree-sitter-java/tree-sitter-java.wasm',
+  '.c': 'tree-sitter-c/tree-sitter-c.wasm',
+  '.cpp': 'tree-sitter-cpp/tree-sitter-cpp.wasm',
+  '.rb': 'tree-sitter-ruby/tree-sitter-ruby.wasm',
+  '.php': 'tree-sitter-php/tree-sitter-php.wasm',
+  '.cs': 'tree-sitter-c-sharp/tree-sitter-c-sharp.wasm',
+  '.swift': 'tree-sitter-swift/tree-sitter-swift.wasm'
+};
+
+const loadedLanguages = {};
 
 async function initTreeSitter() {
   await Parser.init();
   parser = new Parser();
+}
+
+async function getLanguageForExtension(ext) {
+  if (loadedLanguages[ext]) return loadedLanguages[ext];
+  if (!languageRegistry[ext]) return null;
   
-  const jsWasmPath = require.resolve('tree-sitter-javascript/tree-sitter-javascript.wasm');
-  const pyWasmPath = require.resolve('tree-sitter-python/tree-sitter-python.wasm');
-  const tsWasmPath = require.resolve('tree-sitter-typescript/tree-sitter-typescript.wasm');
-  
-  jsLanguage = await Language.load(jsWasmPath);
-  pyLanguage = await Language.load(pyWasmPath);
-  tsLanguage = await Language.load(tsWasmPath);
+  try {
+      const wasmPath = require.resolve(languageRegistry[ext]);
+      const lang = await Language.load(wasmPath);
+      loadedLanguages[ext] = lang;
+      return lang;
+  } catch (err) {
+      // If the node module isn't installed, fail gracefully to LLM reading.
+      return null;
+  }
 }
 
 // 1. Structural Extraction (Tree-sitter)
@@ -47,15 +71,13 @@ async function extractStructure(filePath) {
     const code = await fs.readFile(filePath, 'utf8');
     const ext = path.extname(filePath);
 
-    if (ext === '.js' || ext === '.jsx') {
-      parser.setLanguage(jsLanguage);
-    } else if (ext === '.ts' || ext === '.tsx') {
-      parser.setLanguage(tsLanguage);
-    } else if (ext === '.py') {
-      parser.setLanguage(pyLanguage);
-    } else {
+    const lang = await getLanguageForExtension(ext);
+    if (!lang) {
+      // Fallback: No AST parser available, LLM will must read the entire file
       return null;
     }
+    
+    parser.setLanguage(lang);
 
     const structure = {
       file: filePath,
@@ -68,37 +90,43 @@ async function extractStructure(filePath) {
     const tree = parser.parse(code);
 
     function traverseNode(node) {
-      if (node.type === 'class_declaration' || node.type === 'class_definition') {
-        const nameNode = node.childForFieldName('name');
+      const type = node.type.toLowerCase();
+      
+      const isClass = type.includes('class') || type.includes('struct') || type.includes('interface');
+      const isFunction = type.includes('function') || type.includes('method') || type.includes('def_') || type === 'func_literal';
+      const isExport = type.includes('export');
+      const isImport = type.includes('import') || type.includes('use_') || type.includes('include');
+
+      if (isClass) {
+        const nameNode = node.childForFieldName('name') || node.children.find(c => c.type === 'identifier');
         if (nameNode) structure.classes.push(nameNode.text);
       }
       
-      if (
-          node.type === 'function_declaration' || 
-          node.type === 'function_definition' || 
-          node.type === 'method_definition'
-      ) {
-        const nameNode = node.childForFieldName('name');
+      if (isFunction) {
+        const nameNode = node.childForFieldName('name') || node.children.find(c => c.type === 'identifier');
         if (nameNode && !nameNode.text.startsWith('__')) {
             structure.functions.push(nameNode.text);
         }
       }
       
-      if (node.type === 'export_statement') {
+      if (isExport) {
           const decl = node.childForFieldName('declaration');
           if (decl && decl.childForFieldName('name')) {
               structure.exports.push(decl.childForFieldName('name').text);
+          } else {
+              const id = node.children.find(c => c.type === 'identifier');
+              if (id) structure.exports.push(id.text);
           }
       }
       
-      if (node.type === 'import_statement') {
-          const source = node.childForFieldName('source');
-          if (source) structure.imports.push(source.text);
-      }
-      
-      if (node.type === 'import_from_statement') {
-          const moduleName = node.childForFieldName('module_name');
-          if (moduleName) structure.imports.push(moduleName.text);
+      if (isImport) {
+          const source = node.childForFieldName('source') || node.childForFieldName('module_name');
+          if (source) {
+             structure.imports.push(source.text);
+          } else {
+             const stringNode = node.children.find(c => c.type.includes('string'));
+             if (stringNode) structure.imports.push(stringNode.text);
+          }
       }
 
       for (const child of node.namedChildren) {
@@ -363,4 +391,16 @@ async function main() {
   console.log(`\n✅ Codebase mapping complete! Saved to ${outputPath}`);
 }
 
-main().catch(console.error);
+if (require.main === module) {
+  main().catch(console.error);
+}
+
+module.exports = {
+  getIgnores,
+  initTreeSitter,
+  extractStructure,
+  extractFeaturesWithClaude,
+  extractComponentSummary,
+  extractGlobalArchitecture,
+  main
+};

@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "start": "node index.js",
     "dev": "nodemon index.js",
     "lint": "eslint .",
@@ -26,6 +26,7 @@
   },
   "devDependencies": {
     "eslint": "^10.0.2",
+    "jest": "^30.2.0",
     "nodemon": "^3.1.14",
     "prettier": "^3.8.1"
   }
