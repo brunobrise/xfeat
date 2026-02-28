@@ -2,14 +2,14 @@ const fs = require('fs/promises');
 const path = require('path');
 const fg = require('fast-glob');
 const ignore = require('ignore');
-const babel = require('@babel/parser');
 const traverse = require('@babel/traverse').default;
+const babel = require('@babel/parser');
 require('dotenv').config();
 const { Anthropic } = require('@anthropic-ai/sdk');
-
 const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || undefined,
-  authToken: process.env.ANTHROPIC_AUTH_TOKEN || undefined,
+  apiKey: process.env.ANTHROPIC_API_KEY || "",
+  authToken: process.env.ANTHROPIC_AUTH_TOKEN || "",
+  baseURL: process.env.ANTHROPIC_BASE_URL || undefined,
 });
 
 // Helper: Read and parse .gitignore
@@ -92,9 +92,17 @@ async function extractFeaturesWithClaude(structuralData) {
   ${JSON.stringify(structuralData, null, 2)}
   `;
 
+  const modelToUse = 
+    process.env.CLAUDE_CODE_SUBAGENT_MODEL ||
+    process.env.ANTHROPIC_MODEL || 
+    process.env.ANTHROPIC_DEFAULT_SONNET_MODEL || 
+    process.env.ANTHROPIC_DEFAULT_OPUS_MODEL ||
+    process.env.ANTHROPIC_DEFAULT_HAIKU_MODEL ||
+    'claude-3-7-sonnet-20250219';
+
   try {
     const response = await anthropic.messages.create({
-      model: 'claude-3-7-sonnet-20250219',
+      model: modelToUse,
       max_tokens: 1000,
       temperature: 0.2,
       system: "You are a technical analyst whose only job is to extract human-readable product features from codebase structural footprints. Output ONLY a markdown list of features, no conversational filler.",
