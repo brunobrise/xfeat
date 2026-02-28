@@ -93,6 +93,7 @@ The foundational Tree-sitter AST parser natively understands:
 - JavaScript (`.js`, `.jsx`)
 - TypeScript (`.ts`, `.tsx`)
 - Python (`.py`)
+- Rust (`.rs`)
 
 ## License
 
