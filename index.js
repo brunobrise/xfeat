@@ -501,6 +501,38 @@ async function main() {
     return;
   }
 
+  // --- CACHE INITIALIZATION ---
+  const folderName = path.basename(path.resolve(targetDir));
+  const outputPath = path.join(process.cwd(), `${folderName}-features.md`);
+  const cachePath = path.join(
+    process.cwd(),
+    `.extract-cache-${folderName}.json`,
+  );
+
+  const clearCacheArg = process.argv.includes("--clear-cache");
+  let cache = {
+    fileAnalyses: {},
+    componentSummaries: {},
+    globalArchitecture: null,
+  };
+
+  if (clearCacheArg) {
+    console.log("🧹 --clear-cache flag detected. Starting fresh.");
+  } else {
+    try {
+      const cacheData = await fs.readFile(cachePath, "utf8");
+      cache = JSON.parse(cacheData);
+      console.log(`♻️  Loaded existing cache from ${cachePath}`);
+    } catch (e) {
+      // If no cache file exists, it will naturally start fresh
+    }
+  }
+
+  // Helper to save cache atomically
+  const saveCache = async () => {
+    await fs.writeFile(cachePath, JSON.stringify(cache, null, 2), "utf8");
+  };
+
   // --- PIPELINE EXECUTION ---
 
   if (!process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_AUTH_TOKEN) {
@@ -510,9 +542,6 @@ async function main() {
     return;
   }
 
-  const folderName = path.basename(path.resolve(targetDir));
-  const outputPath = path.join(process.cwd(), `${folderName}-features.md`);
-
   const CONCURRENCY_LIMIT = parseInt(process.env.CONCURRENCY_LIMIT || "5", 10);
 
   console.log(`\n--- STAGE 1: Micro Analysis (File Level) ---`);
@@ -521,14 +550,26 @@ async function main() {
   const fileAnalysesRaw = await pMap(
     structuralData,
     async (data) => {
+      // Check cache first
+      if (cache.fileAnalyses[data.path]) {
+        console.log(`[File] Skipping ${data.path} (Already in cache)`);
+        return cache.fileAnalyses[data.path];
+      }
+
       console.log(`[File] Analyzing ${data.path}...`);
       try {
         const featuresMd = await extractFeaturesWithClaude(data, targetDir);
-        return {
+        const result = {
           path: data.path,
           dir: path.dirname(data.path),
           features: featuresMd,
         };
+
+        // Save to cache immediately
+        cache.fileAnalyses[data.path] = result;
+        await saveCache();
+
+        return result;
       } catch (e) {
         console.error(`Failed to analyze ${data.path}`, e);
         return null;
@@ -553,10 +594,21 @@ async function main() {
   await pMap(
     dirEntries,
     async ([dir, files]) => {
+      // Check cache first
+      if (cache.componentSummaries[dir]) {
+        console.log(`[Component] Skipping ${dir} (Already in cache)`);
+        componentSummaries[dir] = cache.componentSummaries[dir];
+        return;
+      }
+
       console.log(`[Component] Synthesizing ${dir} (${files.length} files)...`);
       try {
         const summary = await extractComponentSummary(dir, files);
         componentSummaries[dir] = summary;
+
+        // Save to cache immediately
+        cache.componentSummaries[dir] = summary;
+        await saveCache();
       } catch (e) {
         console.error(`Failed to synthesize component ${dir}`, e);
       }
@@ -565,9 +617,15 @@ async function main() {
   );
 
   console.log(`\n--- STAGE 3: Global Architecture Mapping ---`);
-  console.log(`[Global] Synthesizing final architecture...`);
-  const globalArchitecture =
-    await extractGlobalArchitecture(componentSummaries);
+  let globalArchitecture = cache.globalArchitecture;
+  if (globalArchitecture) {
+    console.log(`[Global] Skipping global architecture (Already in cache)`);
+  } else {
+    console.log(`[Global] Synthesizing final architecture...`);
+    globalArchitecture = await extractGlobalArchitecture(componentSummaries);
+    cache.globalArchitecture = globalArchitecture;
+    await saveCache();
+  }
 
   // --- FINAL ASSEMBLY ---
   console.log(`\nWriting final report to ${outputPath}...`);
