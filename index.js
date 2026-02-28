@@ -24,17 +24,11 @@ async function getIgnores(targetDir) {
   return ig;
 }
 
-// 1. Structural Extraction (AST Parsing for JS/TS)
+// 1. Structural Extraction (AST Parsing for JS/TS, Regex for Python)
 async function extractStructure(filePath) {
   try {
     const code = await fs.readFile(filePath, 'utf8');
-    
-    // Parse the code using Babel
-    const ast = babel.parse(code, {
-      sourceType: "module",
-      plugins: ["jsx", "typescript", "decorators-legacy", "exportDefaultFrom"],
-      filename: filePath
-    });
+    const ext = path.extname(filePath);
 
     const structure = {
       file: filePath,
@@ -43,6 +37,33 @@ async function extractStructure(filePath) {
       exports: [],
       imports: []
     };
+
+    if (ext === '.py') {
+      // Python Regex Heuristics
+      const classRegex = /^\s*class\s+([A-Za-z0-9_]+)/gm;
+      const defRegex = /^\s*(?:async\s+)?def\s+([A-Za-z0-9_]+)/gm;
+      const importRegex = /^\s*(?:import|from)\s+([A-Za-z0-9_\.]+)/gm;
+
+      let match;
+      while ((match = classRegex.exec(code)) !== null) structure.classes.push(match[1]);
+      while ((match = defRegex.exec(code)) !== null) {
+          // Ignore magic methods like __init__ to keep the list clean
+          if (!match[1].startsWith('__')) {
+            structure.functions.push(match[1]);
+          }
+      }
+      while ((match = importRegex.exec(code)) !== null) structure.imports.push(match[1]);
+      
+      return structure;
+    }
+
+    // Parse JS/TS code using Babel
+    const ast = babel.parse(code, {
+      sourceType: "module",
+      plugins: ["jsx", "typescript", "decorators-legacy", "exportDefaultFrom"],
+      filename: filePath
+    });
+
 
     // Traverse AST to pull out interesting structural bits
     traverse(ast, {
@@ -124,8 +145,8 @@ async function main() {
   // Get ignore rules
   const ig = await getIgnores(targetDir);
 
-  // Find all JS/TS/JSX/TSX files
-  const allFiles = await fg(['**/*.{js,jsx,ts,tsx}'], { 
+  // Find all supported files (JS/TS and Python)
+  const allFiles = await fg(['**/*.{js,jsx,ts,tsx,py}'], { 
     cwd: targetDir, 
     absolute: true,
     dot: true
@@ -134,7 +155,7 @@ async function main() {
   // Filter based on ignore rules
   const targetFiles = allFiles.filter(f => !ig.ignores(path.relative(targetDir, f)));
   
-  console.log(`Found ${targetFiles.length} JavaScript/TypeScript files to parse.`);
+  console.log(`Found ${targetFiles.length} source files (.js/.ts/.py) to parse.`);
 
   if (targetFiles.length === 0) {
     console.log("No valid files found to analyze.");
