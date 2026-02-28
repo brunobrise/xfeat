@@ -1,9 +1,9 @@
-# Code Features Extractor
+# xfeat
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-18.x-green.svg)](https://nodejs.org/)
 
-**Code Features Extractor** is an automated, AI-driven CLI engine that deeply analyzes your codebase to extract product-level features, component architectures, and global system scopes. By combining precise AST-based structural parsing (via `web-tree-sitter`) with the reasoning capabilities of Anthropic's Claude 3.7 Sonnet, this tool auto-generates comprehensive, human-readable documentation of what your code _actually_ does.
+**xfeat** is an automated, AI-driven CLI engine that deeply analyzes your codebase to extract product-level features, component architectures, and global system scopes. By combining precise AST-based structural parsing (via `web-tree-sitter`) with the reasoning capabilities of Anthropic's Claude 3.7 Sonnet, this tool auto-generates comprehensive, human-readable documentation of what your code _actually_ does.
 
 ## Key Features
 
@@ -37,8 +37,8 @@ The engine executes in an expanding 3-stage pipeline:
 Ensure you have [Node.js](https://nodejs.org/) installed, then clone the repository and install dependencies:
 
 ```bash
-git clone https://github.com/brunobrise/code-features-extract.git
-cd code-features-extract
+git clone https://github.com/brunobrise/code-features-extract.git xfeat
+cd xfeat
 npm install
 ```
 
@@ -63,13 +63,13 @@ You can scan the immediate working directory, or pass a relative/absolute path t
 ### Scan Current Directory
 
 ```bash
-npm start
+npx xfeat
 ```
 
 ### Scan Remote Directory Path
 
 ```bash
-node index.js /path/to/your/custom/project
+npx xfeat /path/to/your/custom/project
 ```
 
 ### Development Tooling
