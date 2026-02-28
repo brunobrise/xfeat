@@ -100,14 +100,16 @@ async function extractStructure(filePath) {
   }
 }
 
-// 2. Semantic Analysis (Claude SDK)
-async function extractFeaturesWithClaude(structuralData) {
+// 2. Semantic Analysis (Claude SDK) with Agent Loop
+async function extractFeaturesWithClaude(structuralData, targetDir) {
+  const fullPath = path.join(targetDir, structuralData.path);
   const prompt = `
-  You are an expert software architect. Analyze the structural footprint of the following codebase module to determine the product-level features it provides.
+  You are an expert software architect. Analyze the provided codebase module and determine all the exhaustive product-level features it provides.
 
-  Extract features based on patterns. Example: If you see classes like 'UserController' and functions like 'login' or 'register', output a feature like "- **User Authentication**: Login/Registration".
+  You are provided with the structural footprint (classes, functions, exports). 
+  CRITICAL INSTRUCTION: You are an agent equipped with a 'view_file' tool. If the structural data is not enough to confidently extract EXHAUSTIVE, detailed features, you MUST call the 'view_file' tool to read the raw source code of the file. Do not guess; read the code if needed.
   
-  Format your response as a clean Markdown list of high-level features. Do not include introductory text, just the bullet points.
+  Format your final response as a clean Markdown list of high-level features. Do not include introductory text, just the bullet points.
 
   Structural Data:
   ${JSON.stringify(structuralData, null, 2)}
@@ -121,16 +123,63 @@ async function extractFeaturesWithClaude(structuralData) {
     process.env.ANTHROPIC_DEFAULT_HAIKU_MODEL ||
     'claude-3-7-sonnet-20250219';
 
-  try {
-    const response = await anthropic.messages.create({
-      model: modelToUse,
-      max_tokens: 1000,
-      temperature: 0.2,
-      system: "You are a technical analyst whose only job is to extract human-readable product features from codebase structural footprints. Output ONLY a markdown list of features, no conversational filler.",
-      messages: [{ role: 'user', content: prompt }]
-    });
+  const tools = [
+    {
+      name: "view_file",
+      description: "Reads the raw content of the file being analyzed.",
+      input_schema: {
+        type: "object",
+        properties: {
+          reason: { type: "string", description: "Why you need to read the file" }
+        },
+        required: ["reason"]
+      }
+    }
+  ];
 
-    return response.content[0].text;
+  let messages = [{ role: 'user', content: prompt }];
+
+  try {
+    for (let turns = 0; turns < 5; turns++) {
+      const response = await anthropic.messages.create({
+        model: modelToUse,
+        max_tokens: 1500,
+        temperature: 0.2,
+        system: "You are a technical analyst extracting product features. Use your tools to read code if the structure isn't descriptive enough. When done, output ONLY a markdown list of features.",
+        messages: messages,
+        tools: tools
+      });
+
+      if (response.stop_reason === 'tool_use') {
+        console.log(`  -> [Agent] Claude requested tool use: view_file`);
+        messages.push({ role: 'assistant', content: response.content });
+        
+        const toolResults = [];
+        for (const block of response.content) {
+          if (block.type === 'tool_use' && block.name === 'view_file') {
+            try {
+              const content = await fs.readFile(fullPath, 'utf8');
+              toolResults.push({
+                type: "tool_result",
+                tool_use_id: block.id,
+                content: content
+              });
+            } catch (err) {
+              toolResults.push({
+                type: "tool_result",
+                tool_use_id: block.id,
+                content: "Error reading file: " + err.message,
+                is_error: true
+              });
+            }
+          }
+        }
+        messages.push({ role: 'user', content: toolResults });
+      } else {
+        return response.content.find(c => c.type === 'text')?.text || '';
+      }
+    }
+    return "Error: Agent looped too many times without returning features.";
   } catch (err) {
     console.error("Error calling Anthropic API:", err.message);
     throw err;
@@ -201,7 +250,7 @@ async function main() {
   for (const data of structuralData) {
     console.log(`[LLM] Extracting features from ${data.path}...`);
     try {
-      const featuresMd = await extractFeaturesWithClaude(data);
+      const featuresMd = await extractFeaturesWithClaude(data, targetDir);
       if (featuresMd && featuresMd.trim().length > 0) {
         let contentToAppend = `## ${data.path}\n${featuresMd}\n\n`;
         await fs.appendFile(outputPath, contentToAppend, 'utf8');
