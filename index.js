@@ -4,7 +4,7 @@ const fg = require('fast-glob');
 const ignore = require('ignore');
 const traverse = require('@babel/traverse').default;
 const babel = require('@babel/parser');
-require('dotenv').config();
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 const { Anthropic } = require('@anthropic-ai/sdk');
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || "",
