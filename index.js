@@ -4,7 +4,7 @@ const path = require("path");
 const fg = require("fast-glob");
 const ignore = require("ignore");
 const { Parser, Language } = require("web-tree-sitter");
-require("dotenv").config({ path: path.join(__dirname, ".env") });
+require("dotenv").config({ path: path.join(process.cwd(), ".env") });
 const { Anthropic } = require("@anthropic-ai/sdk");
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || "",
@@ -427,7 +427,7 @@ async function extractGlobalArchitecture(componentSummaries) {
 
 // Main Runner
 async function main() {
-  require("dotenv").config({ path: path.join(__dirname, ".env") });
+  require("dotenv").config({ path: path.join(process.cwd(), ".env") });
 
   await initTreeSitter();
   const targetDir = process.argv[2] || process.cwd();
