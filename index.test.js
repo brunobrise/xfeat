@@ -69,8 +69,8 @@ def py_function():
       const ig = await getIgnores(testDir);
 
       // Defaults
-      expect(ig.ignores("node_modules")).toBe(true);
-      expect(ig.ignores(".git")).toBe(true);
+      expect(ig.ignores("node_modules/test.js")).toBe(true);
+      expect(ig.ignores(".git/config")).toBe(true);
 
       // Custom rules
       expect(ig.ignores("ignored_folder/file.js")).toBe(true);
@@ -86,8 +86,8 @@ def py_function():
       await fs.mkdir(emptyDir, { recursive: true });
 
       const ig = await getIgnores(emptyDir);
-      expect(ig.ignores("node_modules")).toBe(true);
-      expect(ig.ignores(".git")).toBe(true);
+      expect(ig.ignores("node_modules/test.js")).toBe(true);
+      expect(ig.ignores(".git/config")).toBe(true);
       expect(ig.ignores("test.log")).toBe(false); // custom rule should be false
 
       await fs.rm(emptyDir, { recursive: true, force: true });
