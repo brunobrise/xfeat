@@ -2,8 +2,7 @@ const fs = require('fs/promises');
 const path = require('path');
 const fg = require('fast-glob');
 const ignore = require('ignore');
-const traverse = require('@babel/traverse').default;
-const babel = require('@babel/parser');
+const { Parser, Language } = require('web-tree-sitter');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 const { Anthropic } = require('@anthropic-ai/sdk');
 const anthropic = new Anthropic({
@@ -24,11 +23,39 @@ async function getIgnores(targetDir) {
   return ig;
 }
 
-// 1. Structural Extraction (AST Parsing for JS/TS, Regex for Python)
+let parser;
+let jsLanguage;
+let pyLanguage;
+let tsLanguage;
+
+async function initTreeSitter() {
+  await Parser.init();
+  parser = new Parser();
+  
+  const jsWasmPath = require.resolve('tree-sitter-javascript/tree-sitter-javascript.wasm');
+  const pyWasmPath = require.resolve('tree-sitter-python/tree-sitter-python.wasm');
+  const tsWasmPath = require.resolve('tree-sitter-typescript/tree-sitter-typescript.wasm');
+  
+  jsLanguage = await Language.load(jsWasmPath);
+  pyLanguage = await Language.load(pyWasmPath);
+  tsLanguage = await Language.load(tsWasmPath);
+}
+
+// 1. Structural Extraction (Tree-sitter)
 async function extractStructure(filePath) {
   try {
     const code = await fs.readFile(filePath, 'utf8');
     const ext = path.extname(filePath);
+
+    if (ext === '.js' || ext === '.jsx') {
+      parser.setLanguage(jsLanguage);
+    } else if (ext === '.ts' || ext === '.tsx') {
+      parser.setLanguage(tsLanguage);
+    } else if (ext === '.py') {
+      parser.setLanguage(pyLanguage);
+    } else {
+      return null;
+    }
 
     const structure = {
       file: filePath,
@@ -38,60 +65,53 @@ async function extractStructure(filePath) {
       imports: []
     };
 
-    if (ext === '.py') {
-      // Python Regex Heuristics
-      const classRegex = /^\s*class\s+([A-Za-z0-9_]+)/gm;
-      const defRegex = /^\s*(?:async\s+)?def\s+([A-Za-z0-9_]+)/gm;
-      const importRegex = /^\s*(?:import|from)\s+([A-Za-z0-9_\.]+)/gm;
+    const tree = parser.parse(code);
 
-      let match;
-      while ((match = classRegex.exec(code)) !== null) structure.classes.push(match[1]);
-      while ((match = defRegex.exec(code)) !== null) {
-          // Ignore magic methods like __init__ to keep the list clean
-          if (!match[1].startsWith('__')) {
-            structure.functions.push(match[1]);
+    function traverseNode(node) {
+      if (node.type === 'class_declaration' || node.type === 'class_definition') {
+        const nameNode = node.childForFieldName('name');
+        if (nameNode) structure.classes.push(nameNode.text);
+      }
+      
+      if (
+          node.type === 'function_declaration' || 
+          node.type === 'function_definition' || 
+          node.type === 'method_definition'
+      ) {
+        const nameNode = node.childForFieldName('name');
+        if (nameNode && !nameNode.text.startsWith('__')) {
+            structure.functions.push(nameNode.text);
+        }
+      }
+      
+      if (node.type === 'export_statement') {
+          const decl = node.childForFieldName('declaration');
+          if (decl && decl.childForFieldName('name')) {
+              structure.exports.push(decl.childForFieldName('name').text);
           }
       }
-      while ((match = importRegex.exec(code)) !== null) structure.imports.push(match[1]);
       
-      return structure;
+      if (node.type === 'import_statement') {
+          const source = node.childForFieldName('source');
+          if (source) structure.imports.push(source.text);
+      }
+      
+      if (node.type === 'import_from_statement') {
+          const moduleName = node.childForFieldName('module_name');
+          if (moduleName) structure.imports.push(moduleName.text);
+      }
+
+      for (const child of node.namedChildren) {
+        traverseNode(child);
+      }
     }
 
-    // Parse JS/TS code using Babel
-    const ast = babel.parse(code, {
-      sourceType: "module",
-      plugins: ["jsx", "typescript", "decorators-legacy", "exportDefaultFrom"],
-      filename: filePath
-    });
+    traverseNode(tree.rootNode);
 
-
-    // Traverse AST to pull out interesting structural bits
-    traverse(ast, {
-      ClassDeclaration(path) {
-        if (path.node.id) {
-          structure.classes.push(path.node.id.name);
-        }
-      },
-      FunctionDeclaration(path) {
-        if (path.node.id) {
-          structure.functions.push(path.node.id.name);
-        }
-      },
-      ExportNamedDeclaration(path) {
-        if (path.node.declaration) {
-           if (path.node.declaration.declarations) {
-               path.node.declaration.declarations.forEach(d => {
-                   if (d.id && d.id.name) structure.exports.push(d.id.name);
-               });
-           } else if (path.node.declaration.id) {
-               structure.exports.push(path.node.declaration.id.name);
-           }
-        }
-      },
-      ImportDeclaration(path) {
-        structure.imports.push(path.node.source.value);
-      }
-    });
+    structure.classes = [...new Set(structure.classes)];
+    structure.functions = [...new Set(structure.functions)];
+    structure.exports = [...new Set(structure.exports)];
+    structure.imports = [...new Set(structure.imports)];
 
     return structure;
   } catch (err) {
@@ -227,6 +247,9 @@ async function extractGlobalArchitecture(componentSummaries) {
 
 // Main Runner
 async function main() {
+  require('dotenv').config({ path: path.join(__dirname, '.env') });
+  
+  await initTreeSitter();
   const targetDir = process.argv[2] || process.cwd();
   console.log(`Scanning repository: ${targetDir}`);
 
