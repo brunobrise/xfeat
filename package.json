@@ -8,7 +8,19 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "pre-commit": "npx lint-staged && npm test && npm audit --audit-level=critical && npm run build",
+    "build": "echo 'No build step required for this Node.js script'",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
   },
   "keywords": [],
   "author": "",
@@ -26,7 +38,9 @@
   },
   "devDependencies": {
     "eslint": "^10.0.2",
+    "husky": "^9.1.7",
     "jest": "^30.2.0",
+    "lint-staged": "^16.3.0",
     "nodemon": "^3.1.14",
     "prettier": "^3.8.1"
   }
