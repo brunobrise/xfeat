@@ -100,47 +100,38 @@ async function extractStructure(filePath) {
   }
 }
 
-// 2. Semantic Analysis (Claude SDK) with Agent Loop
+// --- LLM Stages ---
+
+// Stage 1: File-Level (Micro)
 async function extractFeaturesWithClaude(structuralData, targetDir) {
   const fullPath = path.join(targetDir, structuralData.path);
   const prompt = `
-  You are an expert software architect. Analyze the provided codebase module and determine all the exhaustive product-level features it provides.
+  You are an expert software architect. Analyze the provided codebase module and determine its exhaustive product-level features.
 
   You are provided with the structural footprint (classes, functions, exports). 
-  CRITICAL INSTRUCTION: You are an agent equipped with a 'view_file' tool. If the structural data is not enough to confidently extract EXHAUSTIVE, detailed features, you MUST call the 'view_file' tool to read the raw source code of the file. Do not guess; read the code if needed.
+  CRITICAL INSTRUCTION: You are an agent equipped with a 'view_file' tool. If the structural data is not enough to confidently extract EXHAUSTIVE, detailed features, you MUST call the 'view_file' tool to read the raw source code of the file. Do not guess.
   
   Format your final response using the following structure:
-  1. A brief 1-2 sentence overview of what this module does and its purpose within the broader codebase.
+  1. A brief 1-2 sentence overview of what this module does.
   2. A clean Markdown list of high-level features (use bullet points).
-  3. If the module involves complex logic, state changes, or cross-component interactions (like a server, an API, or a process flow), output a brief contextual setup sentence followed by a relevant **Mermaid.js diagram** (e.g., Sequence Diagram, State Diagram, or C4 Context Diagram) to visualize how the features work. Wrap the diagram in a \`\`\`mermaid block. If the file is just simple helpers or constants, you can skip the diagram.
 
   Structural Data:
   ${JSON.stringify(structuralData, null, 2)}
   `;
 
-  const modelToUse = 
-    process.env.CLAUDE_CODE_SUBAGENT_MODEL ||
-    process.env.ANTHROPIC_MODEL || 
-    process.env.ANTHROPIC_DEFAULT_SONNET_MODEL || 
-    process.env.ANTHROPIC_DEFAULT_OPUS_MODEL ||
-    process.env.ANTHROPIC_DEFAULT_HAIKU_MODEL ||
-    'claude-3-7-sonnet-20250219';
-
-  const tools = [
-    {
-      name: "view_file",
-      description: "Reads the raw content of the file being analyzed.",
-      input_schema: {
-        type: "object",
-        properties: {
-          reason: { type: "string", description: "Why you need to read the file" }
-        },
-        required: ["reason"]
-      }
+  const tools = [{
+    name: "view_file",
+    description: "Reads the raw content of the file being analyzed.",
+    input_schema: {
+      type: "object",
+      properties: { reason: { type: "string" } },
+      required: ["reason"]
     }
-  ];
+  }];
 
   let messages = [{ role: 'user', content: prompt }];
+
+  const modelToUse = process.env.CLAUDE_CODE_SUBAGENT_MODEL || process.env.ANTHROPIC_MODEL || 'claude-3-7-sonnet-20250219';
 
   try {
     for (let turns = 0; turns < 5; turns++) {
@@ -148,32 +139,21 @@ async function extractFeaturesWithClaude(structuralData, targetDir) {
         model: modelToUse,
         max_tokens: 1500,
         temperature: 0.2,
-        system: "You are a technical analyst extracting product features. Use your tools to read code if the structure isn't descriptive enough. When done, output ONLY a markdown list of features.",
+        system: "You are a technical analyst extracting product features. Use your tools to read code if the structure isn't descriptive enough. Output ONLY the overview and markdown list of features.",
         messages: messages,
         tools: tools
       });
 
       if (response.stop_reason === 'tool_use') {
-        console.log(`  -> [Agent] Claude requested tool use: view_file`);
         messages.push({ role: 'assistant', content: response.content });
-        
         const toolResults = [];
         for (const block of response.content) {
           if (block.type === 'tool_use' && block.name === 'view_file') {
             try {
               const content = await fs.readFile(fullPath, 'utf8');
-              toolResults.push({
-                type: "tool_result",
-                tool_use_id: block.id,
-                content: content
-              });
+              toolResults.push({ type: "tool_result", tool_use_id: block.id, content: content });
             } catch (err) {
-              toolResults.push({
-                type: "tool_result",
-                tool_use_id: block.id,
-                content: "Error reading file: " + err.message,
-                is_error: true
-              });
+              toolResults.push({ type: "tool_result", tool_use_id: block.id, content: "Error: " + err.message, is_error: true });
             }
           }
         }
@@ -182,11 +162,67 @@ async function extractFeaturesWithClaude(structuralData, targetDir) {
         return response.content.find(c => c.type === 'text')?.text || '';
       }
     }
-    return "Error: Agent looped too many times without returning features.";
+    return "Error: Agent looped too many times.";
   } catch (err) {
     console.error("Error calling Anthropic API:", err.message);
     throw err;
   }
+}
+
+// Stage 2: Component-Level (Macro)
+async function extractComponentSummary(dirName, fileSummaries) {
+  const prompt = `
+  You are an expert software architect. You are looking at a specific directory/component of a codebase: \`${dirName}\`
+  
+  Below are the granular feature summaries for the individual files inside this directory.
+  Your job is to synthesize these file-level details into a high-level **Component Summary**. 
+
+  1. What is the overarching purpose of this component?
+  2. What are the core macro-features it provides to the broader system?
+  3. Generate a relevant Mermaid.js diagram (e.g., C4 Context, Sequence, or State) showing how the files in this component interact or what flow they represent.
+
+  File Summaries:
+  ${fileSummaries.map(f => `### File: ${f.path}\n${f.features}`).join('\n\n')}
+  `;
+
+  const modelToUse = process.env.CLAUDE_CODE_SUBAGENT_MODEL || process.env.ANTHROPIC_MODEL || 'claude-3-7-sonnet-20250219';
+
+  const response = await anthropic.messages.create({
+    model: modelToUse,
+    max_tokens: 2000,
+    temperature: 0.2,
+    system: "You are a Lead Software Architect. Synthesize low-level file features into a cohesive high-level component summary with a Mermaid diagram.",
+    messages: [{ role: 'user', content: prompt }]
+  });
+
+  return response.content[0].text;
+}
+
+// Stage 3: Global Overview
+async function extractGlobalArchitecture(componentSummaries) {
+    const prompt = `
+    You are an expert software architect. You have analyzed various components of a codebase.
+    Synthesize the following component summaries into a **Global Architecture Overview** for the entire repository.
+  
+    1. Write an Executive Summary of what the entire codebase does.
+    2. Outline the major pillars/domains of the application.
+    3. Generate a high-level Mermaid.js Architecture Diagram showing how the main components interact.
+  
+    Component Summaries:
+    ${Object.entries(componentSummaries).map(([dir, summary]) => `### Component: ${dir}\n${summary}`).join('\n\n')}
+    `;
+  
+    const modelToUse = process.env.CLAUDE_CODE_SUBAGENT_MODEL || process.env.ANTHROPIC_MODEL || 'claude-3-7-sonnet-20250219';
+  
+    const response = await anthropic.messages.create({
+      model: modelToUse,
+      max_tokens: 2500,
+      temperature: 0.2,
+      system: "You are a Chief Software Architect. Produce a master architecture and feature document based on component analyses.",
+      messages: [{ role: 'user', content: prompt }]
+    });
+  
+    return response.content[0].text;
 }
 
 // Main Runner
@@ -236,34 +272,72 @@ async function main() {
       return;
   }
 
-  // 2. Extract semantics via Claude
+  // --- PIPELINE EXECUTION --- 
+
   if (!process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_AUTH_TOKEN) {
     console.error("\n❌ ERROR: Missing ANTHROPIC_API_KEY or ANTHROPIC_AUTH_TOKEN environment variable.");
-    console.log("Please create a .env file with your Anthropic credentials to run the semantic extraction step.");
-    console.log("\nHere is the Structural Footprint that *would* be sent to Claude:\n");
-    console.log(JSON.stringify(structuralData, null, 2));
     return;
   }
 
-  // 3. Process feature by feature and stream to output
   const outputPath = path.join(process.cwd(), 'FEATURES.md');
-  await fs.writeFile(outputPath, '# Codebase Features\n\n', 'utf8');
-  console.log(`\nInitializing feature extraction... Writing to ${outputPath}`);
-  
+  const fileAnalyses = [];
+
+  console.log(`\n--- STAGE 1: Micro Analysis (File Level) ---`);
   for (const data of structuralData) {
-    console.log(`[LLM] Extracting features from ${data.path}...`);
+    console.log(`[File] Analyzing ${data.path}...`);
     try {
       const featuresMd = await extractFeaturesWithClaude(data, targetDir);
-      if (featuresMd && featuresMd.trim().length > 0) {
-        let contentToAppend = `## ${data.path}\n${featuresMd}\n\n`;
-        await fs.appendFile(outputPath, contentToAppend, 'utf8');
-      }
+      fileAnalyses.push({
+          path: data.path,
+          dir: path.dirname(data.path),
+          features: featuresMd
+      });
     } catch (e) {
-      console.error(`Failed to extract features for ${data.path}`, e);
+      console.error(`Failed to analyze ${data.path}`, e);
     }
   }
 
-  console.log(`\n✅ Feature extraction complete! Saved to ${outputPath}`);
+  console.log(`\n--- STAGE 2: Macro Analysis (Component Level) ---`);
+  // Group files by directory
+  const directories = {};
+  for (const file of fileAnalyses) {
+      if (!directories[file.dir]) directories[file.dir] = [];
+      directories[file.dir].push(file);
+  }
+
+  const componentSummaries = {};
+  for (const [dir, files] of Object.entries(directories)) {
+      console.log(`[Component] Synthesizing ${dir} (${files.length} files)...`);
+      try {
+          const summary = await extractComponentSummary(dir, files);
+          componentSummaries[dir] = summary;
+      } catch (e) {
+          console.error(`Failed to synthesize component ${dir}`, e);
+      }
+  }
+
+  console.log(`\n--- STAGE 3: Global Architecture Mapping ---`);
+  console.log(`[Global] Synthesizing final architecture...`);
+  const globalArchitecture = await extractGlobalArchitecture(componentSummaries);
+
+  // --- FINAL ASSEMBLY ---
+  console.log(`\nWriting final report to ${outputPath}...`);
+  
+  let finalDocument = `# Codebase Architecture & Feature Map\n\n`;
+  finalDocument += `${globalArchitecture}\n\n`;
+  finalDocument += `---\n\n## Component Breakdown\n\n`;
+  
+  for (const [dir, summary] of Object.entries(componentSummaries)) {
+      finalDocument += `### Directory: \`${dir}\`\n${summary}\n\n`;
+  }
+
+  finalDocument += `---\n\n## File-Level Details\n\n`;
+  for (const file of fileAnalyses) {
+      finalDocument += `#### \`${file.path}\`\n${file.features}\n\n`;
+  }
+
+  await fs.writeFile(outputPath, finalDocument, 'utf8');
+  console.log(`\n✅ Codebase mapping complete! Saved to ${outputPath}`);
 }
 
 main().catch(console.error);
