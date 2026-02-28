@@ -1,9 +1,9 @@
-# xfeat
+# @brunobrise/xfeat
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-18.x-green.svg)](https://nodejs.org/)
 
-**xfeat** is an automated, AI-driven CLI engine that deeply analyzes your codebase to extract product-level features, component architectures, and global system scopes. By combining precise AST-based structural parsing (via `web-tree-sitter`) with the reasoning capabilities of Anthropic's Claude 3.7 Sonnet, this tool auto-generates comprehensive, human-readable documentation of what your code _actually_ does.
+**@brunobrise/xfeat** is an automated, AI-driven CLI engine that deeply analyzes your codebase to extract product-level features, component architectures, and global system scopes. By combining precise AST-based structural parsing (via `web-tree-sitter`) with the reasoning capabilities of Anthropic's Claude 3.7 Sonnet, this tool auto-generates comprehensive, human-readable documentation of what your code _actually_ does.
 
 ## Key Features
 
@@ -34,12 +34,10 @@ The engine executes in an expanding 3-stage pipeline:
 
 ## Installation
 
-Ensure you have [Node.js](https://nodejs.org/) installed, then clone the repository and install dependencies:
+You can run `@brunobrise/xfeat` directly via `npx` without installing it globally:
 
 ```bash
-git clone https://github.com/brunobrise/code-features-extract.git xfeat
-cd xfeat
-npm install
+npx @brunobrise/xfeat
 ```
 
 ## Configuration
@@ -63,13 +61,13 @@ You can scan the immediate working directory, or pass a relative/absolute path t
 ### Scan Current Directory
 
 ```bash
-npx xfeat
+npx @brunobrise/xfeat
 ```
 
 ### Scan Remote Directory Path
 
 ```bash
-npx xfeat /path/to/your/custom/project
+npx @brunobrise/xfeat /path/to/your/custom/project
 ```
 
 ### Development Tooling
