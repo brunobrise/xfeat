@@ -1,7 +1,10 @@
 {
-  "name": "xfeat",
+  "name": "@brunobrise/xfeat",
   "version": "1.0.0",
   "description": "",
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "index.js",
   "bin": {
     "xfeat": "./index.js"
