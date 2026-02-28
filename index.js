@@ -4,6 +4,7 @@ const path = require("path");
 const fg = require("fast-glob");
 const ignore = require("ignore");
 const { Parser, Language } = require("web-tree-sitter");
+const { Listr } = require("listr2");
 require("dotenv").config({ path: path.join(process.cwd(), ".env") });
 const { Anthropic } = require("@anthropic-ai/sdk");
 const anthropic = new Anthropic({
@@ -587,43 +588,6 @@ async function main() {
     return;
   }
 
-  // 1. Extract structural data
-  const structuralData = [];
-  for (const file of targetFiles) {
-    // Only analyze files from the codebase (skip our own index.js if running locally)
-    if (file.endsWith("index.js") && __dirname === targetDir) continue;
-
-    console.log(`Analyzing file structure: ${file}...`);
-    const data = await extractStructure(file);
-
-    if (
-      data &&
-      (data.classes.length > 0 ||
-        data.functions.length > 0 ||
-        data.exports.length > 0)
-    ) {
-      structuralData.push({
-        path: path.relative(targetDir, file),
-        ...data,
-      });
-    } else {
-      // Graceful Fallback for missing AST or empty extractions (LLM must read whole file)
-      structuralData.push({
-        path: path.relative(targetDir, file),
-        classes: [],
-        functions: [],
-        exports: [],
-        imports: [],
-        note: "AST parsing unavailable. You MUST use view_file to extract features.",
-      });
-    }
-  }
-
-  if (structuralData.length === 0) {
-    console.log("No valid structural data found.");
-    return;
-  }
-
   // --- CACHE INITIALIZATION ---
   const folderName = path.basename(path.resolve(targetDir));
   const outputPath = path.join(process.cwd(), `${folderName}-features.md`);
@@ -656,8 +620,6 @@ async function main() {
     await fs.writeFile(cachePath, JSON.stringify(cache, null, 2), "utf8");
   };
 
-  // --- PIPELINE EXECUTION ---
-
   if (!process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_AUTH_TOKEN) {
     console.error(
       "\n❌ ERROR: Missing ANTHROPIC_API_KEY or ANTHROPIC_AUTH_TOKEN environment variable.",
@@ -667,107 +629,192 @@ async function main() {
 
   const CONCURRENCY_LIMIT = parseInt(process.env.CONCURRENCY_LIMIT || "5", 10);
 
-  console.log(`\n--- STAGE 1: Micro Analysis (File Level) ---`);
-  console.log(`Using concurrency limit: ${CONCURRENCY_LIMIT}`);
+  const tasks = new Listr(
+    [
+      {
+        title: "Analyzing File Structure",
+        task: async (ctx, task) => {
+          const structuralData = [];
+          let completed = 0;
+          const total = targetFiles.length;
 
-  const fileAnalysesRaw = await pMap(
-    structuralData,
-    async (data) => {
-      // Check cache first
-      if (cache.fileAnalyses[data.path]) {
-        console.log(`[File] Skipping ${data.path} (Already in cache)`);
-        return cache.fileAnalyses[data.path];
-      }
+          for (const file of targetFiles) {
+            if (file.endsWith("index.js") && __dirname === targetDir) {
+              completed++;
+              continue;
+            }
 
-      console.log(`[File] Analyzing ${data.path}...`);
-      try {
-        const featuresMd = await extractFeaturesWithClaude(data, targetDir);
-        const result = {
-          path: data.path,
-          dir: path.dirname(data.path),
-          features: featuresMd,
-        };
+            task.output = `${path.relative(targetDir, file)} (${completed}/${total})`;
+            const data = await extractStructure(file);
 
-        // Save to cache immediately
-        cache.fileAnalyses[data.path] = result;
-        await saveCache();
+            if (
+              data &&
+              (data.classes.length > 0 ||
+                data.functions.length > 0 ||
+                data.exports.length > 0)
+            ) {
+              structuralData.push({
+                path: path.relative(targetDir, file),
+                ...data,
+              });
+            } else {
+              structuralData.push({
+                path: path.relative(targetDir, file),
+                classes: [],
+                functions: [],
+                exports: [],
+                imports: [],
+                note: "AST parsing unavailable. You MUST use view_file to extract features.",
+              });
+            }
+            completed++;
+          }
 
-        return result;
-      } catch (e) {
-        console.error(`Failed to analyze ${data.path}`, e);
-        return null;
-      }
+          if (structuralData.length === 0) {
+            throw new Error("No valid structural data found.");
+          }
+          ctx.structuralData = structuralData;
+        },
+      },
+      {
+        title: "STAGE 1: Micro Analysis (File Level)",
+        task: async (ctx, task) => {
+          let completed = 0;
+          const total = ctx.structuralData.length;
+          task.output = `Completed 0/${total} files`;
+
+          const fileAnalysesRaw = await pMap(
+            ctx.structuralData,
+            async (data) => {
+              if (cache.fileAnalyses[data.path]) {
+                completed++;
+                task.output = `Completed ${completed}/${total} files`;
+                return cache.fileAnalyses[data.path];
+              }
+
+              try {
+                const featuresMd = await extractFeaturesWithClaude(
+                  data,
+                  targetDir,
+                );
+                const result = {
+                  path: data.path,
+                  dir: path.dirname(data.path),
+                  features: featuresMd,
+                };
+
+                // Save to cache immediately
+                cache.fileAnalyses[data.path] = result;
+                await saveCache();
+
+                completed++;
+                task.output = `Completed ${completed}/${total} files`;
+                return result;
+              } catch (e) {
+                completed++;
+                task.output = `Failed to analyze ${data.path}`;
+                return null;
+              }
+            },
+            CONCURRENCY_LIMIT,
+          );
+
+          ctx.fileAnalyses = fileAnalysesRaw.filter(Boolean);
+        },
+        options: { bottomBar: Infinity },
+      },
+      {
+        title: "STAGE 2: Macro Analysis (Component Level)",
+        task: async (ctx, task) => {
+          const directories = {};
+          for (const file of ctx.fileAnalyses) {
+            if (!directories[file.dir]) directories[file.dir] = [];
+            directories[file.dir].push(file);
+          }
+
+          const componentSummaries = {};
+          const dirEntries = Object.entries(directories);
+          let completed = 0;
+          const total = dirEntries.length;
+          task.output = `Completed 0/${total} components`;
+
+          await pMap(
+            dirEntries,
+            async ([dir, files]) => {
+              if (cache.componentSummaries[dir]) {
+                componentSummaries[dir] = cache.componentSummaries[dir];
+                completed++;
+                task.output = `Completed ${completed}/${total} components`;
+                return;
+              }
+
+              try {
+                const summary = await extractComponentSummary(dir, files);
+                componentSummaries[dir] = summary;
+
+                cache.componentSummaries[dir] = summary;
+                await saveCache();
+
+                completed++;
+                task.output = `Completed ${completed}/${total} components`;
+              } catch (e) {
+                completed++;
+                task.output = `Failed to synthesize component ${dir}`;
+              }
+            },
+            CONCURRENCY_LIMIT,
+          );
+          ctx.componentSummaries = componentSummaries;
+        },
+        options: { bottomBar: Infinity },
+      },
+      {
+        title: "STAGE 3: Global Architecture Mapping",
+        task: async (ctx, task) => {
+          let globalArchitecture = cache.globalArchitecture;
+          if (!globalArchitecture) {
+            globalArchitecture = await extractGlobalArchitecture(
+              ctx.componentSummaries,
+            );
+            cache.globalArchitecture = globalArchitecture;
+            await saveCache();
+          }
+          ctx.globalArchitecture = globalArchitecture;
+        },
+      },
+      {
+        title: "Final Assembly",
+        task: async (ctx, task) => {
+          let finalDocument = `# Codebase Architecture & Feature Map\n\n`;
+          finalDocument += `${ctx.globalArchitecture}\n\n`;
+          finalDocument += `---\n\n## Component Breakdown\n\n`;
+
+          for (const [dir, summary] of Object.entries(ctx.componentSummaries)) {
+            finalDocument += `### Directory: \`${dir}\`\n${summary}\n\n`;
+          }
+
+          finalDocument += `---\n\n## File-Level Details\n\n`;
+          for (const file of ctx.fileAnalyses) {
+            finalDocument += `#### \`${file.path}\`\n${file.features}\n\n`;
+          }
+
+          await fs.writeFile(outputPath, finalDocument, "utf8");
+          task.title = `Codebase mapping complete! Saved to ${outputPath}`;
+        },
+      },
+    ],
+    {
+      rendererOptions: {
+        collapseSubtasks: false,
+      },
     },
-    CONCURRENCY_LIMIT,
   );
 
-  const fileAnalyses = fileAnalysesRaw.filter(Boolean);
-
-  console.log(`\n--- STAGE 2: Macro Analysis (Component Level) ---`);
-  // Group files by directory
-  const directories = {};
-  for (const file of fileAnalyses) {
-    if (!directories[file.dir]) directories[file.dir] = [];
-    directories[file.dir].push(file);
+  try {
+    await tasks.run();
+  } catch (err) {
+    console.error("An error occurred during execution:", err.message);
   }
-
-  const componentSummaries = {};
-  const dirEntries = Object.entries(directories);
-
-  await pMap(
-    dirEntries,
-    async ([dir, files]) => {
-      // Check cache first
-      if (cache.componentSummaries[dir]) {
-        console.log(`[Component] Skipping ${dir} (Already in cache)`);
-        componentSummaries[dir] = cache.componentSummaries[dir];
-        return;
-      }
-
-      console.log(`[Component] Synthesizing ${dir} (${files.length} files)...`);
-      try {
-        const summary = await extractComponentSummary(dir, files);
-        componentSummaries[dir] = summary;
-
-        // Save to cache immediately
-        cache.componentSummaries[dir] = summary;
-        await saveCache();
-      } catch (e) {
-        console.error(`Failed to synthesize component ${dir}`, e);
-      }
-    },
-    CONCURRENCY_LIMIT,
-  );
-
-  console.log(`\n--- STAGE 3: Global Architecture Mapping ---`);
-  let globalArchitecture = cache.globalArchitecture;
-  if (globalArchitecture) {
-    console.log(`[Global] Skipping global architecture (Already in cache)`);
-  } else {
-    console.log(`[Global] Synthesizing final architecture...`);
-    globalArchitecture = await extractGlobalArchitecture(componentSummaries);
-    cache.globalArchitecture = globalArchitecture;
-    await saveCache();
-  }
-
-  // --- FINAL ASSEMBLY ---
-  console.log(`\nWriting final report to ${outputPath}...`);
-
-  let finalDocument = `# Codebase Architecture & Feature Map\n\n`;
-  finalDocument += `${globalArchitecture}\n\n`;
-  finalDocument += `---\n\n## Component Breakdown\n\n`;
-
-  for (const [dir, summary] of Object.entries(componentSummaries)) {
-    finalDocument += `### Directory: \`${dir}\`\n${summary}\n\n`;
-  }
-
-  finalDocument += `---\n\n## File-Level Details\n\n`;
-  for (const file of fileAnalyses) {
-    finalDocument += `#### \`${file.path}\`\n${file.features}\n\n`;
-  }
-
-  await fs.writeFile(outputPath, finalDocument, "utf8");
-  console.log(`\n✅ Codebase mapping complete! Saved to ${outputPath}`);
 }
 
 if (require.main === module) {
