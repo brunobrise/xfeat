@@ -721,7 +721,6 @@ async function main() {
 
           ctx.fileAnalyses = fileAnalysesRaw.filter(Boolean);
         },
-        options: { bottomBar: Infinity },
       },
       {
         title: "STAGE 2: Macro Analysis (Component Level)",
@@ -766,7 +765,6 @@ async function main() {
           );
           ctx.componentSummaries = componentSummaries;
         },
-        options: { bottomBar: Infinity },
       },
       {
         title: "STAGE 3: Global Architecture Mapping",
