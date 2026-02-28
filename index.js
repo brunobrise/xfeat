@@ -16,6 +16,16 @@ const anthropic = new Anthropic({
 async function getIgnores(targetDir) {
   const ig = ignore().add([
     "node_modules",
+    "bower_components",
+    "vendor",
+    "venv",
+    ".venv",
+    "env",
+    "__pycache__",
+    ".tox",
+    "target",
+    "packages",
+    ".gradle",
     ".git",
     "dist",
     "build",
