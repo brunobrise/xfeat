@@ -9,6 +9,7 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || "",
   authToken: process.env.ANTHROPIC_AUTH_TOKEN || "",
   baseURL: process.env.ANTHROPIC_BASE_URL || undefined,
+  maxRetries: 5, // built-in exponential backoff for limits
 });
 
 // Helper: Read and parse .gitignore
@@ -233,15 +234,37 @@ async function extractFeaturesWithClaude(structuralData, targetDir) {
 
   try {
     for (let turns = 0; turns < 5; turns++) {
-      const response = await anthropic.messages.create({
-        model: modelToUse,
-        max_tokens: 1500,
-        temperature: 0.2,
-        system:
-          "You are a technical analyst extracting product features. Use your tools to read code if the structure isn't descriptive enough. Output ONLY the overview and markdown list of features.",
-        messages: messages,
-        tools: tools,
-      });
+      let response;
+      let attempt = 0;
+      const explicitMaxRetries = 3;
+      while (attempt <= explicitMaxRetries) {
+        try {
+          response = await anthropic.messages.create({
+            model: modelToUse,
+            max_tokens: 1500,
+            temperature: 0.2,
+            system:
+              "You are a technical analyst extracting product features. Use your tools to read code if the structure isn't descriptive enough. Output ONLY the overview and markdown list of features.",
+            messages: messages,
+            tools: tools,
+          });
+          break;
+        } catch (err) {
+          if (err.status === 429 && attempt < explicitMaxRetries) {
+            attempt++;
+            const delay = Math.min(
+              Math.pow(2, attempt) * 2000 + Math.random() * 1000,
+              30000,
+            );
+            console.warn(
+              `\n⚠️  [File: ${structuralData.path}] API Rate Limit hit (429). Retrying in ${Math.round(delay / 1000)}s... (Attempt ${attempt}/${explicitMaxRetries})`,
+            );
+            await new Promise((res) => setTimeout(res, delay));
+          } else {
+            throw err;
+          }
+        }
+      }
 
       if (response.stop_reason === "tool_use") {
         messages.push({ role: "assistant", content: response.content });
@@ -298,16 +321,35 @@ async function extractComponentSummary(dirName, fileSummaries) {
     process.env.ANTHROPIC_MODEL ||
     "claude-3-7-sonnet-20250219";
 
-  const response = await anthropic.messages.create({
-    model: modelToUse,
-    max_tokens: 2000,
-    temperature: 0.2,
-    system:
-      "You are a Lead Software Architect. Synthesize low-level file features into a cohesive high-level component summary with a Mermaid diagram.",
-    messages: [{ role: "user", content: prompt }],
-  });
-
-  return response.content[0].text;
+  let attempt = 0;
+  const explicitMaxRetries = 3;
+  while (attempt <= explicitMaxRetries) {
+    try {
+      const response = await anthropic.messages.create({
+        model: modelToUse,
+        max_tokens: 2000,
+        temperature: 0.2,
+        system:
+          "You are a Lead Software Architect. Synthesize low-level file features into a cohesive high-level component summary with a Mermaid diagram.",
+        messages: [{ role: "user", content: prompt }],
+      });
+      return response.content[0].text;
+    } catch (err) {
+      if (err.status === 429 && attempt < explicitMaxRetries) {
+        attempt++;
+        const delay = Math.min(
+          Math.pow(2, attempt) * 2000 + Math.random() * 1000,
+          30000,
+        );
+        console.warn(
+          `\n⚠️  [Component: ${dirName}] API Rate Limit hit (429). Retrying in ${Math.round(delay / 1000)}s... (Attempt ${attempt}/${explicitMaxRetries})`,
+        );
+        await new Promise((res) => setTimeout(res, delay));
+      } else {
+        throw err;
+      }
+    }
+  }
 }
 
 // Stage 3: Global Overview
@@ -331,16 +373,35 @@ async function extractGlobalArchitecture(componentSummaries) {
     process.env.ANTHROPIC_MODEL ||
     "claude-3-7-sonnet-20250219";
 
-  const response = await anthropic.messages.create({
-    model: modelToUse,
-    max_tokens: 2500,
-    temperature: 0.2,
-    system:
-      "You are a Chief Software Architect. Produce a master architecture and feature document based on component analyses.",
-    messages: [{ role: "user", content: prompt }],
-  });
-
-  return response.content[0].text;
+  let attempt = 0;
+  const explicitMaxRetries = 3;
+  while (attempt <= explicitMaxRetries) {
+    try {
+      const response = await anthropic.messages.create({
+        model: modelToUse,
+        max_tokens: 2500,
+        temperature: 0.2,
+        system:
+          "You are a Chief Software Architect. Produce a master architecture and feature document based on component analyses.",
+        messages: [{ role: "user", content: prompt }],
+      });
+      return response.content[0].text;
+    } catch (err) {
+      if (err.status === 429 && attempt < explicitMaxRetries) {
+        attempt++;
+        const delay = Math.min(
+          Math.pow(2, attempt) * 2000 + Math.random() * 1000,
+          30000,
+        );
+        console.warn(
+          `\n⚠️  [Global Architecture] API Rate Limit hit (429). Retrying in ${Math.round(delay / 1000)}s... (Attempt ${attempt}/${explicitMaxRetries})`,
+        );
+        await new Promise((res) => setTimeout(res, delay));
+      } else {
+        throw err;
+      }
+    }
+  }
 }
 
 // Main Runner
