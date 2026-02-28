@@ -35,7 +35,6 @@ async function getIgnores(targetDir) {
 
 let parser;
 
-// Language Registry matches extensions to node modules (user can simply `npm install` to add AST support)
 const languageRegistry = {
   ".js": "tree-sitter-javascript/tree-sitter-javascript.wasm",
   ".jsx": "tree-sitter-javascript/tree-sitter-javascript.wasm",
@@ -46,11 +45,22 @@ const languageRegistry = {
   ".rs": "tree-sitter-rust/tree-sitter-rust.wasm",
   ".java": "tree-sitter-java/tree-sitter-java.wasm",
   ".c": "tree-sitter-c/tree-sitter-c.wasm",
+  ".h": "tree-sitter-c/tree-sitter-c.wasm",
   ".cpp": "tree-sitter-cpp/tree-sitter-cpp.wasm",
+  ".hpp": "tree-sitter-cpp/tree-sitter-cpp.wasm",
   ".rb": "tree-sitter-ruby/tree-sitter-ruby.wasm",
   ".php": "tree-sitter-php/tree-sitter-php.wasm",
   ".cs": "tree-sitter-c-sharp/tree-sitter-c-sharp.wasm",
   ".swift": "tree-sitter-swift/tree-sitter-swift.wasm",
+  ".sh": "tree-sitter-bash/tree-sitter-bash.wasm",
+  ".bash": "tree-sitter-bash/tree-sitter-bash.wasm",
+  ".json": "tree-sitter-json/tree-sitter-json.wasm",
+  ".yaml": "tree-sitter-yaml/tree-sitter-yaml.wasm",
+  ".yml": "tree-sitter-yaml/tree-sitter-yaml.wasm",
+  ".toml": "tree-sitter-toml/tree-sitter-toml.wasm",
+  ".html": "tree-sitter-html/tree-sitter-html.wasm",
+  ".css": "tree-sitter-css/tree-sitter-css.wasm",
+  ".sql": "tree-sitter-sql/tree-sitter-sql.wasm",
 };
 
 const loadedLanguages = {};
@@ -414,6 +424,7 @@ async function main() {
 
   // Allow custom extensions via CLI: --exts=.go,.ts,.py
   let extensionsFilter = [
+    // Core languages
     "js",
     "jsx",
     "ts",
@@ -432,25 +443,126 @@ async function main() {
     "swift",
     "kt",
     "m",
+
+    // Shell & Scripts
+    "sh",
+    "bash",
+    "zsh",
+    "bat",
+    "ps1",
+    "cmd",
+    "awk",
+    "sed",
+
+    // Web & UI
+    "html",
+    "htm",
+    "css",
+    "scss",
+    "sass",
+    "less",
+    "vue",
+    "svelte",
+    "astro",
+    "twig",
+    "ejs",
+    "pug",
+
+    // Configuration & Data
+    "json",
+    "json5",
+    "yaml",
+    "yml",
+    "toml",
+    "ini",
+    "env",
+    "xml",
+    "csv",
+    "tsv",
+
+    // Data & Query
+    "sql",
+    "graphql",
+    "gql",
+    "prisma",
+
+    // Documentation
+    "md",
+    "mdx",
+    "txt",
+
+    // Infrastructure & DevOps
+    "tf",
+    "tfvars",
+    "hcl",
+    "bicep",
+
+    // Other popular languages
+    "dart",
+    "scala",
+    "groovy",
+    "lua",
+    "perl",
+    "pl",
+    "pm",
+    "r",
+    "hs",
+    "elm",
+    "clj",
+    "erl",
+    "ex",
+    "exs",
+    "fs",
+    "fsi",
+    "fsx",
+    "vb",
+    "vbs",
   ];
+
+  let fileBasenames = [
+    "Dockerfile",
+    "Makefile",
+    "docker-compose.yml",
+    "docker-compose.yaml",
+    ".gitignore",
+    ".dockerignore",
+    ".eslintignore",
+    ".prettierignore",
+  ];
+
   const extArg = process.argv.find((arg) => arg.startsWith("--exts="));
   if (extArg) {
     extensionsFilter = extArg
       .split("=")[1]
       .split(",")
       .map((e) => e.replace(".", ""));
+    fileBasenames = []; // Only use extensions if explicitly provided
   }
 
   // Get ignore rules
   const ig = await getIgnores(targetDir);
 
   // Find all supported files
-  const globPattern = `**/*.{${extensionsFilter.join(",")}}`;
-  const allFiles = await fg([globPattern], {
-    cwd: targetDir,
-    absolute: true,
-    dot: true,
-  });
+  let allFiles = [];
+  if (extArg) {
+    const globPattern = `**/*.{${extensionsFilter.join(",")}}`;
+    allFiles = await fg([globPattern], {
+      cwd: targetDir,
+      absolute: true,
+      dot: true,
+    });
+  } else {
+    // Generate glob pattern for extensions
+    const globPatternExts = `**/*.{${extensionsFilter.join(",")}}`;
+    // Generate glob patterns for specific standard filenames
+    const filenamePatterns = fileBasenames.map((name) => `**/${name}`);
+
+    allFiles = await fg([globPatternExts, ...filenamePatterns], {
+      cwd: targetDir,
+      absolute: true,
+      dot: true,
+    });
+  }
 
   // Filter based on ignore rules
   const targetFiles = allFiles.filter(
