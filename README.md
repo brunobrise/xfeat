@@ -53,7 +53,7 @@ ANTHROPIC_API_KEY="sk-ant-..."
 # Optional Environment Overrides
 ANTHROPIC_AUTH_TOKEN=""
 ANTHROPIC_BASE_URL=""
-CLAUDE_CODE_SUBAGENT_MODEL="claude-3-7-sonnet-20250219"
+CLAUDE_CODE_SUBAGENT_MODEL="claude-sonnet-4-6"
 ```
 
 ## Usage

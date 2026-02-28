@@ -143,3 +143,7 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Extract Caching
+.extract-cache-*.json
+
