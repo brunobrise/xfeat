@@ -8,7 +8,8 @@ require('dotenv').config();
 const { Anthropic } = require('@anthropic-ai/sdk');
 
 const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
+  apiKey: process.env.ANTHROPIC_API_KEY || undefined,
+  authToken: process.env.ANTHROPIC_AUTH_TOKEN || undefined,
 });
 
 // Helper: Read and parse .gitignore
@@ -155,9 +156,9 @@ async function main() {
   }
 
   // 2. Extract semantics via Claude
-  if (!process.env.ANTHROPIC_API_KEY) {
-    console.error("\n❌ ERROR: ANTHROPIC_API_KEY environment variable is missing.");
-    console.log("Please create a .env file with your Anthropic key to run the semantic extraction step.");
+  if (!process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_AUTH_TOKEN) {
+    console.error("\n❌ ERROR: Missing ANTHROPIC_API_KEY or ANTHROPIC_AUTH_TOKEN environment variable.");
+    console.log("Please create a .env file with your Anthropic credentials to run the semantic extraction step.");
     console.log("\nHere is the Structural Footprint that *would* be sent to Claude:\n");
     console.log(JSON.stringify(structuralData, null, 2));
     return;
