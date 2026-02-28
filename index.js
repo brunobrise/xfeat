@@ -2,7 +2,7 @@ const fs = require('fs/promises');
 const path = require('path');
 const fg = require('fast-glob');
 const ignore = require('ignore');
-const babel = require('@babel/core');
+const babel = require('@babel/parser');
 const traverse = require('@babel/traverse').default;
 require('dotenv').config();
 const { Anthropic } = require('@anthropic-ai/sdk');
