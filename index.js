@@ -109,7 +109,11 @@ async function extractFeaturesWithClaude(structuralData, targetDir) {
   You are provided with the structural footprint (classes, functions, exports). 
   CRITICAL INSTRUCTION: You are an agent equipped with a 'view_file' tool. If the structural data is not enough to confidently extract EXHAUSTIVE, detailed features, you MUST call the 'view_file' tool to read the raw source code of the file. Do not guess; read the code if needed.
   
-  Format your final response as a clean Markdown list of high-level features. Do not include introductory text, just the bullet points.
+  Format your final response using the following structure:
+  1. A clean Markdown list of high-level features (use bullet points).
+  2. If the module involves complex logic, state changes, or cross-component interactions (like a server, an API, or a process flow), output a relevant **Mermaid.js diagram** (e.g., Sequence Diagram, State Diagram, or C4 Context Diagram) to visualize how the features work. Wrap the diagram in a \`\`\`mermaid block. If the file is just simple helpers or constants, you can skip the diagram.
+
+  Do not include introductory text. Just the bullet points and the optional diagram.
 
   Structural Data:
   ${JSON.stringify(structuralData, null, 2)}
