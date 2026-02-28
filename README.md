@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-18.x-green.svg)](https://nodejs.org/)
 
-**@brunobrise/xfeat** is an automated, AI-driven CLI engine that deeply analyzes your codebase to extract product-level features, component architectures, and global system scopes. By combining precise AST-based structural parsing (via `web-tree-sitter`) with the reasoning capabilities of Anthropic's Claude 3.7 Sonnet, this tool auto-generates comprehensive, human-readable documentation of what your code _actually_ does.
+**@brunobrise/xfeat** is an automated, AI-driven CLI engine that deeply analyzes your codebase to extract product-level features, component architectures, and global system scopes. By combining precise AST-based structural parsing (via `web-tree-sitter`) with the reasoning capabilities of Anthropic's Claude Sonnet 4.6, this tool auto-generates comprehensive, human-readable documentation of what your code _actually_ does.
 
 ## Key Features
 
