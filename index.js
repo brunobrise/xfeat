@@ -51,6 +51,17 @@ async function getIgnores(targetDir) {
   } catch (err) {
     // No .gitignore found, proceed with defaults
   }
+
+  try {
+    const xfeatignoreContent = await fs.readFile(
+      path.join(targetDir, ".xfeatignore"),
+      "utf8",
+    );
+    ig.add(xfeatignoreContent);
+  } catch (err) {
+    // No .xfeatignore found, silently continue
+  }
+
   return ig;
 }
 
