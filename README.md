@@ -100,6 +100,7 @@ The foundational Tree-sitter AST parser natively understands:
 - Rust (`.rs`)
 - Go (`.go`)
 - Java (`.java`)
+- PHP (`.php`)
 
 ## License
 

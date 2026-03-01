@@ -184,7 +184,8 @@ async function extractStructure(filePath) {
         const nameNode =
           node.childForFieldName("name") ||
           node.children.find((c) => c.type === "identifier") ||
-          node.children.find((c) => c.type === "type_identifier");
+          node.children.find((c) => c.type === "type_identifier") ||
+          node.children.find((c) => c.type === "name");
         if (nameNode) {
           structure.classes.push(nameNode.text);
           if (ext === ".go" && /^[A-Z]/.test(nameNode.text)) {
@@ -197,13 +198,17 @@ async function extractStructure(filePath) {
           ) {
             structure.exports.push(nameNode.text);
           }
+          if (ext === ".php") {
+            structure.exports.push(nameNode.text);
+          }
         }
       }
 
       if (isFunction) {
         const nameNode =
           node.childForFieldName("name") ||
-          node.children.find((c) => c.type === "identifier");
+          node.children.find((c) => c.type === "identifier") ||
+          node.children.find((c) => c.type === "name");
         if (nameNode && !nameNode.text.startsWith("__")) {
           structure.functions.push(nameNode.text);
           if (ext === ".go" && /^[A-Z]/.test(nameNode.text)) {
@@ -211,6 +216,14 @@ async function extractStructure(filePath) {
           }
           if (ext === ".java" && node.text.includes("public ")) {
             structure.exports.push(nameNode.text);
+          }
+          if (ext === ".php") {
+            const isPrivateOrProtected = node.children.some(
+              (c) =>
+                c.type === "visibility_modifier" &&
+                (c.text === "private" || c.text === "protected"),
+            );
+            if (!isPrivateOrProtected) structure.exports.push(nameNode.text);
           }
         }
       }
@@ -225,7 +238,7 @@ async function extractStructure(filePath) {
         }
       }
 
-      if (isImport) {
+      if (isImport || type === "namespace_use_declaration") {
         const source =
           node.childForFieldName("source") ||
           node.childForFieldName("module_name");
@@ -243,6 +256,11 @@ async function extractStructure(filePath) {
               (c) => c.type === "scoped_identifier",
             );
             if (scopedId) structure.imports.push(scopedId.text);
+            // For PHP: use Exception; the child might be namespace_use_clause
+            const useClause = node.children.find(
+              (c) => c.type === "namespace_use_clause",
+            );
+            if (useClause) structure.imports.push(useClause.text);
           }
         }
       }

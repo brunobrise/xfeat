@@ -75,6 +75,22 @@ def py_function():
       `,
     );
 
+    await fs.writeFile(
+      path.join(testDir, "sample.php"),
+      `<?php
+      namespace App\\MyNamespace;
+      use Exception;
+      class MyPhpClass {
+          public function phpMethod() {}
+          protected function protectedMethod() {}
+      }
+      interface MyPhpInterface {
+          public function interfaceMethod();
+      }
+      function phpFunction() {}
+      `,
+    );
+
     await fs.writeFile(path.join(testDir, "unsupported.txt"), "Hello world");
 
     // Initialize TreeSitter before testing extraction
@@ -182,6 +198,29 @@ def py_function():
       expect(structure.exports).toContain("MyInterface");
       expect(structure.exports).toContain("javaMethod");
       expect(structure.imports).toContain("java.util.List");
+    });
+
+    it("should extract AST structure for PHP files", async () => {
+      const phpFilePath = path.join(testDir, "sample.php");
+      const structure = await extractStructure(phpFilePath);
+
+      expect(structure).not.toBeNull();
+      expect(structure.file).toBe(phpFilePath);
+      expect(structure.classes).toContain("MyPhpClass");
+      expect(structure.classes).toContain("MyPhpInterface");
+      expect(structure.functions).toContain("phpMethod");
+      expect(structure.functions).toContain("protectedMethod");
+      expect(structure.functions).toContain("interfaceMethod");
+      expect(structure.functions).toContain("phpFunction");
+
+      expect(structure.exports).toContain("MyPhpClass");
+      expect(structure.exports).toContain("MyPhpInterface");
+      expect(structure.exports).toContain("phpMethod");
+      expect(structure.exports).toContain("interfaceMethod");
+      expect(structure.exports).toContain("phpFunction");
+      expect(structure.exports).not.toContain("protectedMethod");
+
+      expect(structure.imports).toContain("Exception");
     });
 
     it("should return null for unsupported file extensions", async () => {
