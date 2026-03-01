@@ -64,6 +64,17 @@ def py_function():
       `,
     );
 
+    await fs.writeFile(
+      path.join(testDir, "sample.java"),
+      `
+      import java.util.List;
+      public class MyJavaClass {
+          public void javaMethod() {}
+      }
+      public interface MyInterface {}
+      `,
+    );
+
     await fs.writeFile(path.join(testDir, "unsupported.txt"), "Hello world");
 
     // Initialize TreeSitter before testing extraction
@@ -156,6 +167,21 @@ def py_function():
       expect(structure.exports).toContain("GoMethod");
       expect(structure.exports).toContain("GoFunction");
       expect(structure.imports).toContain('"fmt"');
+    });
+
+    it("should extract AST structure for Java files", async () => {
+      const javaFilePath = path.join(testDir, "sample.java");
+      const structure = await extractStructure(javaFilePath);
+
+      expect(structure).not.toBeNull();
+      expect(structure.file).toBe(javaFilePath);
+      expect(structure.classes).toContain("MyJavaClass");
+      expect(structure.classes).toContain("MyInterface");
+      expect(structure.functions).toContain("javaMethod");
+      expect(structure.exports).toContain("MyJavaClass");
+      expect(structure.exports).toContain("MyInterface");
+      expect(structure.exports).toContain("javaMethod");
+      expect(structure.imports).toContain("java.util.List");
     });
 
     it("should return null for unsupported file extensions", async () => {

@@ -166,7 +166,9 @@ async function extractStructure(filePath) {
         type.includes("class") ||
         type.includes("struct") ||
         type.includes("interface") ||
-        type === "type_spec";
+        type === "type_spec" ||
+        type === "class_declaration" ||
+        type === "interface_declaration";
       const isFunction =
         type.includes("function") ||
         type.includes("method") ||
@@ -188,6 +190,13 @@ async function extractStructure(filePath) {
           if (ext === ".go" && /^[A-Z]/.test(nameNode.text)) {
             structure.exports.push(nameNode.text);
           }
+          if (
+            ext === ".java" &&
+            (node.text.includes("public class") ||
+              node.text.includes("public interface"))
+          ) {
+            structure.exports.push(nameNode.text);
+          }
         }
       }
 
@@ -198,6 +207,9 @@ async function extractStructure(filePath) {
         if (nameNode && !nameNode.text.startsWith("__")) {
           structure.functions.push(nameNode.text);
           if (ext === ".go" && /^[A-Z]/.test(nameNode.text)) {
+            structure.exports.push(nameNode.text);
+          }
+          if (ext === ".java" && node.text.includes("public ")) {
             structure.exports.push(nameNode.text);
           }
         }
@@ -223,7 +235,15 @@ async function extractStructure(filePath) {
           const stringNode = node.children.find((c) =>
             c.type.includes("string"),
           );
-          if (stringNode) structure.imports.push(stringNode.text);
+          if (stringNode) {
+            structure.imports.push(stringNode.text);
+          } else {
+            // For Java: import java.util.List; the child might be a scoped_identifier
+            const scopedId = node.children.find(
+              (c) => c.type === "scoped_identifier",
+            );
+            if (scopedId) structure.imports.push(scopedId.text);
+          }
         }
       }
 

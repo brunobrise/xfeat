@@ -99,6 +99,7 @@ The foundational Tree-sitter AST parser natively understands:
 - Python (`.py`)
 - Rust (`.rs`)
 - Go (`.go`)
+- Java (`.java`)
 
 ## License
 
