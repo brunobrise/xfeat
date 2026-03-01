@@ -1,6 +1,6 @@
 {
   "name": "@brunobrise/xfeat",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Automated AI-driven CLI for codebase analysis and feature extraction.",
   "publishConfig": {
     "access": "public"
