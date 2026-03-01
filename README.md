@@ -11,11 +11,15 @@
 - **Agentic Source Code Reading:** Rather than guessing based off function identifiers, the AI utilizes a specialized `view_file` tool to selectively dive into the raw source code wherever AST context is insufficient.
 - **Automated Mermaid Diagrams:** Visually maps out how files interact at macro and global architecture levels.
 - **Structured Markdown Deliverables:** Produces a neat, hierarchical `FEATURES.md` report encompassing everything from the executive summary to granular file logic.
-- **Smart Directory Traversal:** Adheres to your local `.gitignore` rules to avoid processing build artifacts and generic dependencies.
+- **Smart Directory Traversal:** Adheres to your local `.gitignore` and optional custom `.xfeatignore` rules to avoid processing build artifacts and generic dependencies.
 
 ## How It Works
 
-The engine executes in an expanding 3-stage pipeline:
+The engine executes in an expanding 4-stage pipeline:
+
+0. **AI Pre-filtering (Stage 0):**
+   - Interactively requests permission to AI-filter the target files.
+   - Cleans the file list by intelligently removing trivial boilerplate, config files, and UI assets dynamically, saving time and tokens.
 
 1. **Micro Analysis (File-Level):**
    - Identifies granular structural signatures across source files.
