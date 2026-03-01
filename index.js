@@ -342,6 +342,7 @@ async function extractComponentSummary(dirName, fileSummaries) {
   1. What is the overarching purpose of this component?
   2. What are the core macro-features it provides to the broader system?
   3. Generate a relevant Mermaid.js diagram (e.g., C4 Context, Sequence, or State) showing how the files in this component interact or what flow they represent.
+  CRITICAL INSTRUCTION: When creating Mermaid diagrams, you MUST wrap node labels in double quotes if they contain any special characters (like parentheses, brackets, or strange punctuation). For example, use \`NodeID["Text with (parentheses)"]\` instead of \`NodeID[Text with (parentheses)]\`.
 
   File Summaries:
   ${fileSummaries.map((f) => `### File: ${f.path}\n${f.features}`).join("\n\n")}
@@ -392,6 +393,7 @@ async function extractGlobalArchitecture(componentSummaries) {
     1. Write an Executive Summary of what the entire codebase does.
     2. Outline the major pillars/domains of the application.
     3. Generate a high-level Mermaid.js Architecture Diagram showing how the main components interact.
+    CRITICAL INSTRUCTION: When creating Mermaid diagrams, you MUST wrap node labels in double quotes if they contain any special characters (like parentheses, brackets, or strange punctuation). For example, use \`NodeID["Text with (parentheses)"]\` instead of \`NodeID[Text with (parentheses)]\`.
   
     Component Summaries:
     ${Object.entries(componentSummaries)

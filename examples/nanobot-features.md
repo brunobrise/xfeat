@@ -755,7 +755,7 @@ flowchart TB
         end
 
         subgraph ProviderLayer["LLM Provider Registry"]
-            PR[Provider Router<br/>(LiteLLM)]
+            PR["Provider Router<br/>(LiteLLM)"]
         end
 
         subgraph Security["Security Layer"]
