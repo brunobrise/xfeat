@@ -227,6 +227,111 @@ async function extractStructure(filePath) {
 
 // --- LLM Stages ---
 
+// Stage 0: AI File Pre-filtering
+async function prefilterFilesWithClaude(filePaths, targetDir) {
+  const CHUNK_SIZE = 1000;
+  const chunks = [];
+  for (let i = 0; i < filePaths.length; i += CHUNK_SIZE) {
+    chunks.push({
+      index: Math.floor(i / CHUNK_SIZE),
+      files: filePaths.slice(i, i + CHUNK_SIZE),
+    });
+  }
+
+  const modelToUse =
+    process.env.CLAUDE_CODE_SUBAGENT_MODEL ||
+    process.env.ANTHROPIC_MODEL ||
+    "claude-3-7-sonnet-20250219";
+
+  const CONCURRENCY_LIMIT = parseInt(process.env.CONCURRENCY_LIMIT || "5", 10);
+
+  const chunkResults = await pMap(
+    chunks,
+    async (chunk) => {
+      const relativePaths = chunk.files.map((f) => path.relative(targetDir, f));
+
+      const prompt = `
+      You are an expert software architect. You are given a list of file paths from a codebase.
+      Your task is to filter this list by identifying and EXCLUDING any boilerplate, trivial configuration, auto-generated files, lock files, empty files, non-functional UI assets, or generic/non-core test files that would not contribute meaningfully to a high-level architectural summary of the core system.
+      
+      Return ONLY a raw JSON array of strings containing the file paths that should be KEPT. 
+      Do not include any explanations, markdown formatting, or backticks. Just the raw JSON array.
+      
+      File paths (Chunk ${chunk.index + 1} of ${chunks.length}):
+      ${JSON.stringify(relativePaths, null, 2)}
+      `;
+
+      let attempt = 0;
+      const explicitMaxRetries = 2;
+      let chunkKeptFiles = chunk.files; // Default to keeping all if it fails
+
+      while (attempt <= explicitMaxRetries) {
+        try {
+          const response = await anthropic.messages.create({
+            model: modelToUse,
+            max_tokens: 8000,
+            temperature: 0.1,
+            system:
+              "You are a technical analyst. You must return ONLY a raw JSON array of strings (file paths to retain). No markdown formatting.",
+            messages: [{ role: "user", content: prompt }],
+          });
+
+          let text =
+            response.content.find((c) => c.type === "text")?.text || "[]";
+          text = text
+            .replace(/^\s*```(json)?/i, "")
+            .replace(/```\s*$/i, "")
+            .trim();
+
+          const keptFilesRelative = JSON.parse(text);
+          if (!Array.isArray(keptFilesRelative)) {
+            throw new Error("AI did not return an array.");
+          }
+
+          const keptFilesAbsolute = keptFilesRelative.map((p) =>
+            path.resolve(targetDir, p),
+          );
+          chunkKeptFiles = chunk.files.filter((f) =>
+            keptFilesAbsolute.includes(path.resolve(f)),
+          );
+          break;
+        } catch (err) {
+          if (err.status === 429 && attempt < explicitMaxRetries) {
+            attempt++;
+            const delay = Math.min(
+              Math.pow(2, attempt) * 2000 + Math.random() * 1000,
+              30000,
+            );
+            console.warn(
+              `\n⚠️  [AI Pre-filtering] API Rate Limit hit (429). Retrying in ${Math.round(delay / 1000)}s... (Attempt ${attempt}/${explicitMaxRetries})`,
+            );
+            await new Promise((res) => setTimeout(res, delay));
+          } else if (
+            attempt < explicitMaxRetries &&
+            err.name === "SyntaxError"
+          ) {
+            attempt++;
+          } else {
+            console.warn(
+              `\n⚠️  AI filtering failed for chunk ${chunk.index + 1}, falling back to all files in chunk.`,
+              err.message,
+            );
+            break;
+          }
+        }
+      }
+      return chunkKeptFiles;
+    },
+    CONCURRENCY_LIMIT,
+  );
+
+  let allKeptFiles = [];
+  for (const res of chunkResults) {
+    allKeptFiles = allKeptFiles.concat(res);
+  }
+  return allKeptFiles;
+}
+
 // Stage 1: File-Level (Micro)
 async function extractFeaturesWithClaude(structuralData, targetDir) {
   const fullPath = path.join(targetDir, structuralData.path);
@@ -599,6 +704,21 @@ async function main() {
     return;
   }
 
+  // --- CONFIRMATION ENQUIRER ---
+  const { Confirm } = require("enquirer");
+  const prompt = new Confirm({
+    name: "proceed",
+    message: `Ready to analyze ${targetFiles.length} files. Should we run AI Pre-filtering (Stage 0) before continuing?`,
+  });
+
+  let useAiFilter = false;
+  try {
+    useAiFilter = await prompt.run();
+  } catch (err) {
+    console.log("Aborted.");
+    return;
+  }
+
   // --- CACHE INITIALIZATION ---
   const folderName = path.basename(path.resolve(targetDir));
   const outputPath = path.join(process.cwd(), `${folderName}-features.md`);
@@ -643,13 +763,36 @@ async function main() {
   const tasks = new Listr(
     [
       {
+        title: "STAGE 0: AI File Pre-filtering",
+        skip: () => !useAiFilter,
+        task: async (ctx, task) => {
+          task.output = `Analyzing ${targetFiles.length} files...`;
+
+          if (targetFiles.length === 0) {
+            ctx.filteredFiles = [];
+            task.title = "STAGE 0: AI File Pre-filtering (No files to filter)";
+            return;
+          }
+
+          const filtered = await prefilterFilesWithClaude(
+            targetFiles,
+            targetDir,
+          );
+          const removedCount = targetFiles.length - filtered.length;
+
+          ctx.filteredFiles = filtered;
+          task.title = `STAGE 0: AI File Pre-filtering (Removed ${removedCount} trivial files)`;
+        },
+      },
+      {
         title: "Analyzing File Structure",
         task: async (ctx, task) => {
           const structuralData = [];
           let completed = 0;
-          const total = targetFiles.length;
+          const filesToAnalyze = ctx.filteredFiles || targetFiles;
+          const total = filesToAnalyze.length;
 
-          for (const file of targetFiles) {
+          for (const file of filesToAnalyze) {
             if (file.endsWith("index.js") && __dirname === targetDir) {
               completed++;
               continue;
@@ -834,6 +977,7 @@ module.exports = {
   getIgnores,
   initTreeSitter,
   extractStructure,
+  prefilterFilesWithClaude,
   extractFeaturesWithClaude,
   extractComponentSummary,
   extractGlobalArchitecture,
