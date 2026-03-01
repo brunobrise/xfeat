@@ -98,6 +98,7 @@ The foundational Tree-sitter AST parser natively understands:
 - TypeScript (`.ts`, `.tsx`)
 - Python (`.py`)
 - Rust (`.rs`)
+- Go (`.go`)
 
 ## License
 

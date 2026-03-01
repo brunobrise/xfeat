@@ -53,6 +53,17 @@ def py_function():
       `,
     );
 
+    await fs.writeFile(
+      path.join(testDir, "sample.go"),
+      `
+      package main
+      import "fmt"
+      type MyGoStruct struct {}
+      func (m *MyGoStruct) GoMethod() {}
+      func GoFunction() {}
+      `,
+    );
+
     await fs.writeFile(path.join(testDir, "unsupported.txt"), "Hello world");
 
     // Initialize TreeSitter before testing extraction
@@ -130,6 +141,21 @@ def py_function():
       expect(structure.classes).toContain("MyRustStruct");
       expect(structure.functions).toContain("rs_method");
       expect(structure.functions).toContain("rs_function");
+    });
+
+    it("should extract AST structure for Go files", async () => {
+      const goFilePath = path.join(testDir, "sample.go");
+      const structure = await extractStructure(goFilePath);
+
+      expect(structure).not.toBeNull();
+      expect(structure.file).toBe(goFilePath);
+      expect(structure.classes).toContain("MyGoStruct");
+      expect(structure.functions).toContain("GoMethod");
+      expect(structure.functions).toContain("GoFunction");
+      expect(structure.exports).toContain("MyGoStruct");
+      expect(structure.exports).toContain("GoMethod");
+      expect(structure.exports).toContain("GoFunction");
+      expect(structure.imports).toContain('"fmt"');
     });
 
     it("should return null for unsupported file extensions", async () => {

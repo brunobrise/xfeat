@@ -165,7 +165,8 @@ async function extractStructure(filePath) {
       const isClass =
         type.includes("class") ||
         type.includes("struct") ||
-        type.includes("interface");
+        type.includes("interface") ||
+        type === "type_spec";
       const isFunction =
         type.includes("function") ||
         type.includes("method") ||
@@ -180,8 +181,14 @@ async function extractStructure(filePath) {
       if (isClass) {
         const nameNode =
           node.childForFieldName("name") ||
-          node.children.find((c) => c.type === "identifier");
-        if (nameNode) structure.classes.push(nameNode.text);
+          node.children.find((c) => c.type === "identifier") ||
+          node.children.find((c) => c.type === "type_identifier");
+        if (nameNode) {
+          structure.classes.push(nameNode.text);
+          if (ext === ".go" && /^[A-Z]/.test(nameNode.text)) {
+            structure.exports.push(nameNode.text);
+          }
+        }
       }
 
       if (isFunction) {
@@ -190,6 +197,9 @@ async function extractStructure(filePath) {
           node.children.find((c) => c.type === "identifier");
         if (nameNode && !nameNode.text.startsWith("__")) {
           structure.functions.push(nameNode.text);
+          if (ext === ".go" && /^[A-Z]/.test(nameNode.text)) {
+            structure.exports.push(nameNode.text);
+          }
         }
       }
 
