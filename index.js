@@ -905,7 +905,10 @@ async function main() {
 
   // --- CACHE INITIALIZATION ---
   const folderName = path.basename(path.resolve(targetDir));
+  const isSingleFile = process.argv.includes("--single-file");
   const outputPath = path.join(process.cwd(), `${folderName}-features.md`);
+  const detailsDirName = `${folderName}-features`;
+  const detailsDirPath = path.join(process.cwd(), detailsDirName);
   const cachePath = path.join(
     process.cwd(),
     `.extract-cache-${folderName}.json`,
@@ -1141,21 +1144,67 @@ async function main() {
       {
         title: "Final Assembly",
         task: async (ctx, task) => {
-          let finalDocument = `# Codebase Architecture & Feature Map\n\n`;
-          finalDocument += `${ctx.globalArchitecture}\n\n`;
-          finalDocument += `---\n\n## Component Breakdown\n\n`;
+          if (isSingleFile) {
+            let finalDocument = `# Codebase Architecture & Feature Map\n\n`;
+            finalDocument += `${ctx.globalArchitecture}\n\n`;
+            finalDocument += `---\n\n## Component Breakdown\n\n`;
 
-          for (const [dir, summary] of Object.entries(ctx.componentSummaries)) {
-            finalDocument += `### Directory: \`${dir}\`\n${summary}\n\n`;
+            for (const [dir, summary] of Object.entries(
+              ctx.componentSummaries,
+            )) {
+              finalDocument += `### Directory: \`${dir === "." ? "Root" : dir}\`\n${summary}\n\n`;
+            }
+
+            finalDocument += `---\n\n## File-Level Details\n\n`;
+            for (const file of ctx.fileAnalyses) {
+              finalDocument += `#### \`${file.path}\`\n${file.features}\n\n`;
+            }
+
+            await fs.writeFile(outputPath, finalDocument, "utf8");
+            task.title = `Codebase mapping complete! Saved to ${outputPath}`;
+          } else {
+            // MULTI-FILE OUTPUT (Default)
+            await fs.mkdir(detailsDirPath, { recursive: true });
+
+            // 1. Create the Main Index
+            let indexDocument = `# Codebase Architecture & Feature Map\n\n`;
+            indexDocument += `${ctx.globalArchitecture}\n\n`;
+            indexDocument += `---\n\n## Component Explorer\n\n`;
+            indexDocument += `Detailed analysis for each directory in the repository:\n\n`;
+
+            const sortedComponents = Object.keys(ctx.componentSummaries).sort();
+
+            for (const dir of sortedComponents) {
+              const safeName = (dir === "." ? "root" : dir).replace(
+                /[/\\?%*:|"<>]/g,
+                "_",
+              );
+              const componentFile = `${safeName}.md`;
+              const displayName = dir === "." ? "Root /" : `/${dir}`;
+              indexDocument += `- [${displayName}](${detailsDirName}/${componentFile})\n`;
+
+              // 2. Create the Component Detail File
+              let componentDoc = `# Component: \`${dir === "." ? "Root" : dir}\`\n\n`;
+              componentDoc += `[← Back to Overview](../${path.basename(outputPath)})\n\n`;
+              componentDoc += `## Summary\n\n`;
+              componentDoc += `${ctx.componentSummaries[dir]}\n\n`;
+              componentDoc += `---\n\n## File-Level Details\n\n`;
+
+              const filesInDir = ctx.fileAnalyses.filter((f) => f.dir === dir);
+              for (const file of filesInDir) {
+                componentDoc += `### \`${file.path}\`\n${file.features}\n\n`;
+              }
+
+              await fs.writeFile(
+                path.join(detailsDirPath, componentFile),
+                componentDoc,
+                "utf8",
+              );
+            }
+
+            await fs.writeFile(outputPath, indexDocument, "utf8");
+            task.title = `Codebase mapping complete! Index: ${outputPath}, Details: ${detailsDirPath}`;
           }
-
-          finalDocument += `---\n\n## File-Level Details\n\n`;
-          for (const file of ctx.fileAnalyses) {
-            finalDocument += `#### \`${file.path}\`\n${file.features}\n\n`;
-          }
-
-          await fs.writeFile(outputPath, finalDocument, "utf8");
-          task.title = `Codebase mapping complete! Saved to ${outputPath}`;
         },
       },
     ],

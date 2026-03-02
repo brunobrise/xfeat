@@ -147,3 +147,5 @@ vite.config.ts.timestamp-*
 # Extract Caching
 .extract-cache-*.json
 
+# macOS
+.DS_Store
