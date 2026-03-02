@@ -300,7 +300,7 @@ async function prefilterFilesWithClaude(filePaths, targetDir) {
   const modelToUse =
     process.env.CLAUDE_CODE_SUBAGENT_MODEL ||
     process.env.ANTHROPIC_MODEL ||
-    "claude-3-5-sonnet-20240620";
+    "claude-3-7-sonnet-20250219";
 
   const CONCURRENCY_LIMIT = parseInt(process.env.CONCURRENCY_LIMIT || "5", 10);
 
@@ -425,7 +425,7 @@ async function extractFeaturesWithClaude(structuralData, targetDir) {
   const modelToUse =
     process.env.CLAUDE_CODE_SUBAGENT_MODEL ||
     process.env.ANTHROPIC_MODEL ||
-    "claude-3-5-sonnet-20240620";
+    "claude-3-7-sonnet-20250219";
 
   try {
     for (let turns = 0; turns < 5; turns++) {
@@ -500,7 +500,7 @@ async function extractComponentSummary(dirName, fileSummaries) {
   const modelToUse =
     process.env.CLAUDE_CODE_SUBAGENT_MODEL ||
     process.env.ANTHROPIC_MODEL ||
-    "claude-3-5-sonnet-20240620";
+    "claude-3-7-sonnet-20250219";
   const MAX_CHARS = 500000;
 
   async function summarizeChunk(chunkFiles, isFinal) {
@@ -619,7 +619,7 @@ async function extractGlobalArchitecture(componentSummaries) {
   const modelToUse =
     process.env.CLAUDE_CODE_SUBAGENT_MODEL ||
     process.env.ANTHROPIC_MODEL ||
-    "claude-3-5-sonnet-20240620";
+    "claude-3-7-sonnet-20250219";
   const MAX_CHARS = 500000;
 
   async function summarizeChunk(chunkEntries, isFinal) {
