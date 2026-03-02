@@ -497,7 +497,22 @@ async function extractFeaturesWithClaude(structuralData, targetDir) {
 
 // Stage 2: Component-Level (Macro)
 async function extractComponentSummary(dirName, fileSummaries) {
-  const prompt = `
+  const modelToUse =
+    process.env.CLAUDE_CODE_SUBAGENT_MODEL ||
+    process.env.ANTHROPIC_MODEL ||
+    "claude-3-7-sonnet-20250219";
+  const MAX_CHARS = 500000;
+
+  async function summarizeChunk(chunkFiles, isFinal) {
+    const fileStr = chunkFiles
+      .map((f) => `### File: ${f.path}\n${f.features}`)
+      .join("\n\n");
+    let systemPrompt, userPrompt;
+
+    if (isFinal) {
+      systemPrompt =
+        "You are a Lead Software Architect. Synthesize low-level file features into a cohesive high-level component summary with a Mermaid diagram.";
+      userPrompt = `
   You are an expert software architect. You are looking at a specific directory/component of a codebase: \`${dirName}\`
   
   Below are the granular feature summaries for the individual files inside this directory.
@@ -509,48 +524,114 @@ async function extractComponentSummary(dirName, fileSummaries) {
   CRITICAL INSTRUCTION: When creating Mermaid diagrams, you MUST wrap node labels in double quotes if they contain any special characters (like parentheses, brackets, or strange punctuation). For example, use \`NodeID["Text with (parentheses)"]\` instead of \`NodeID[Text with (parentheses)]\`.
 
   File Summaries:
-  ${fileSummaries.map((f) => `### File: ${f.path}\n${f.features}`).join("\n\n")}
+  ${fileStr}
   `;
+    } else {
+      systemPrompt =
+        "You are a Lead Software Architect. Synthesize this subset of file features into an intermediate component summary.";
+      userPrompt = `
+  You are an expert software architect. You are looking at a subset of files within the directory/component: \`${dirName}\`
+  
+  Your job is to synthesize these file-level details into an **Intermediate Component Summary** to be merged later.
+  Retain the core functions, major exports, and responsibilities of these files.
 
-  const modelToUse =
-    process.env.CLAUDE_CODE_SUBAGENT_MODEL ||
-    process.env.ANTHROPIC_MODEL ||
-    "claude-3-7-sonnet-20250219";
+  File Summaries:
+  ${fileStr}
+  `;
+    }
 
-  let attempt = 0;
-  const explicitMaxRetries = 3;
-  while (attempt <= explicitMaxRetries) {
-    try {
-      const response = await anthropic.messages.create({
-        model: modelToUse,
-        max_tokens: 2000,
-        temperature: 0.2,
-        system:
-          "You are a Lead Software Architect. Synthesize low-level file features into a cohesive high-level component summary with a Mermaid diagram.",
-        messages: [{ role: "user", content: prompt }],
-      });
-      return response.content[0].text;
-    } catch (err) {
-      if (err.status === 429 && attempt < explicitMaxRetries) {
-        attempt++;
-        const delay = Math.min(
-          Math.pow(2, attempt) * 2000 + Math.random() * 1000,
-          30000,
-        );
-        console.warn(
-          `\n⚠️  [Component: ${dirName}] API Rate Limit hit (429). Retrying in ${Math.round(delay / 1000)}s... (Attempt ${attempt}/${explicitMaxRetries})`,
-        );
-        await new Promise((res) => setTimeout(res, delay));
-      } else {
-        throw err;
+    let attempt = 0;
+    const explicitMaxRetries = 3;
+    while (attempt <= explicitMaxRetries) {
+      try {
+        const response = await anthropic.messages.create({
+          model: modelToUse,
+          max_tokens: 2000,
+          temperature: 0.2,
+          system: systemPrompt,
+          messages: [{ role: "user", content: userPrompt }],
+        });
+        return response.content[0].text;
+      } catch (err) {
+        if (err.status === 429 && attempt < explicitMaxRetries) {
+          attempt++;
+          const delay = Math.min(
+            Math.pow(2, attempt) * 2000 + Math.random() * 1000,
+            30000,
+          );
+          console.warn(
+            `\n⚠️  [Component: ${dirName}] API Rate Limit hit (429). Retrying in ${Math.round(delay / 1000)}s... (Attempt ${attempt}/${explicitMaxRetries})`,
+          );
+          await new Promise((res) => setTimeout(res, delay));
+        } else {
+          throw err;
+        }
       }
+    }
+  }
+
+  let currentFiles = fileSummaries;
+  if (!currentFiles || currentFiles.length === 0)
+    return "No files in component.";
+
+  while (true) {
+    const chunks = [];
+    let currentChunk = [];
+    let currentLength = 0;
+
+    for (const file of currentFiles) {
+      const fileStr = `### File: ${file.path}\n${file.features}\n\n`;
+      if (
+        currentLength + fileStr.length > MAX_CHARS &&
+        currentChunk.length > 0
+      ) {
+        chunks.push(currentChunk);
+        currentChunk = [file];
+        currentLength = fileStr.length;
+      } else {
+        currentChunk.push(file);
+        currentLength += fileStr.length;
+      }
+    }
+    if (currentChunk.length > 0) chunks.push(currentChunk);
+
+    if (chunks.length === 1) {
+      return await summarizeChunk(chunks[0], true);
+    } else {
+      const intermediateResults = [];
+      for (let i = 0; i < chunks.length; i++) {
+        console.warn(
+          `\n⏳ Component ${dirName} is large. Processing intermediate chunk ${i + 1}/${chunks.length}...`,
+        );
+        const result = await summarizeChunk(chunks[i], false);
+        intermediateResults.push({
+          path: `Intermediate_Subset_${i + 1}`,
+          features: result,
+        });
+      }
+      currentFiles = intermediateResults;
     }
   }
 }
 
 // Stage 3: Global Overview
 async function extractGlobalArchitecture(componentSummaries) {
-  const prompt = `
+  const modelToUse =
+    process.env.CLAUDE_CODE_SUBAGENT_MODEL ||
+    process.env.ANTHROPIC_MODEL ||
+    "claude-3-7-sonnet-20250219";
+  const MAX_CHARS = 500000;
+
+  async function summarizeChunk(chunkEntries, isFinal) {
+    const componentStr = chunkEntries
+      .map(([dir, summary]) => `### Component: ${dir}\n${summary}`)
+      .join("\n\n");
+    let systemPrompt, userPrompt;
+
+    if (isFinal) {
+      systemPrompt =
+        "You are a Chief Software Architect. Produce a master architecture and feature document based on component analyses.";
+      userPrompt = `
     You are an expert software architect. You have analyzed various components of a codebase.
     Synthesize the following component summaries into a **Global Architecture Overview** for the entire repository.
   
@@ -560,43 +641,87 @@ async function extractGlobalArchitecture(componentSummaries) {
     CRITICAL INSTRUCTION: When creating Mermaid diagrams, you MUST wrap node labels in double quotes if they contain any special characters (like parentheses, brackets, or strange punctuation). For example, use \`NodeID["Text with (parentheses)"]\` instead of \`NodeID[Text with (parentheses)]\`.
   
     Component Summaries:
-    ${Object.entries(componentSummaries)
-      .map(([dir, summary]) => `### Component: ${dir}\n${summary}`)
-      .join("\n\n")}
+    ${componentStr}
     `;
+    } else {
+      systemPrompt =
+        "You are a Chief Software Architect. Synthesize these subsets of component summaries into an intermediate architectural summary.";
+      userPrompt = `
+    You are an expert software architect. You are given a subset of component summaries from a massive codebase.
+    Your task is to synthesize them into a single coherent **Intermediate Architecture Summary**.
+    Retain the core purpose, major features, and crucial interactions of these components.
+    
+    Component Summaries:
+    ${componentStr}
+    `;
+    }
 
-  const modelToUse =
-    process.env.CLAUDE_CODE_SUBAGENT_MODEL ||
-    process.env.ANTHROPIC_MODEL ||
-    "claude-3-7-sonnet-20250219";
-
-  let attempt = 0;
-  const explicitMaxRetries = 3;
-  while (attempt <= explicitMaxRetries) {
-    try {
-      const response = await anthropic.messages.create({
-        model: modelToUse,
-        max_tokens: 2500,
-        temperature: 0.2,
-        system:
-          "You are a Chief Software Architect. Produce a master architecture and feature document based on component analyses.",
-        messages: [{ role: "user", content: prompt }],
-      });
-      return response.content[0].text;
-    } catch (err) {
-      if (err.status === 429 && attempt < explicitMaxRetries) {
-        attempt++;
-        const delay = Math.min(
-          Math.pow(2, attempt) * 2000 + Math.random() * 1000,
-          30000,
-        );
-        console.warn(
-          `\n⚠️  [Global Architecture] API Rate Limit hit (429). Retrying in ${Math.round(delay / 1000)}s... (Attempt ${attempt}/${explicitMaxRetries})`,
-        );
-        await new Promise((res) => setTimeout(res, delay));
-      } else {
-        throw err;
+    let attempt = 0;
+    const explicitMaxRetries = 3;
+    while (attempt <= explicitMaxRetries) {
+      try {
+        const response = await anthropic.messages.create({
+          model: modelToUse,
+          max_tokens: isFinal ? 2500 : 2000,
+          temperature: 0.2,
+          system: systemPrompt,
+          messages: [{ role: "user", content: userPrompt }],
+        });
+        return response.content[0].text;
+      } catch (err) {
+        if (err.status === 429 && attempt < explicitMaxRetries) {
+          attempt++;
+          const delay = Math.min(
+            Math.pow(2, attempt) * 2000 + Math.random() * 1000,
+            30000,
+          );
+          console.warn(
+            `\n⚠️  [Global Architecture] API Rate Limit hit (429). Retrying in ${Math.round(delay / 1000)}s... (Attempt ${attempt}/${explicitMaxRetries})`,
+          );
+          await new Promise((res) => setTimeout(res, delay));
+        } else {
+          throw err;
+        }
       }
+    }
+  }
+
+  let currentEntries = Object.entries(componentSummaries);
+  if (currentEntries.length === 0) return "No components found.";
+
+  while (true) {
+    const chunks = [];
+    let currentChunk = [];
+    let currentLength = 0;
+
+    for (const entry of currentEntries) {
+      const entryStr = `### Component: ${entry[0]}\n${entry[1]}\n\n`;
+      if (
+        currentLength + entryStr.length > MAX_CHARS &&
+        currentChunk.length > 0
+      ) {
+        chunks.push(currentChunk);
+        currentChunk = [entry];
+        currentLength = entryStr.length;
+      } else {
+        currentChunk.push(entry);
+        currentLength += entryStr.length;
+      }
+    }
+    if (currentChunk.length > 0) chunks.push(currentChunk);
+
+    if (chunks.length === 1) {
+      return await summarizeChunk(chunks[0], true);
+    } else {
+      const intermediateResults = [];
+      for (let i = 0; i < chunks.length; i++) {
+        console.warn(
+          `\n⏳ Global Architecture is large. Processing intermediate chunk ${i + 1}/${chunks.length}...`,
+        );
+        const result = await summarizeChunk(chunks[i], false);
+        intermediateResults.push([`Intermediate_Group_${i + 1}`, result]);
+      }
+      currentEntries = intermediateResults;
     }
   }
 }
@@ -791,6 +916,8 @@ async function main() {
     fileAnalyses: {},
     componentSummaries: {},
     globalArchitecture: null,
+    filteredFiles: null,
+    structuralData: null,
   };
 
   if (clearCacheArg) {
@@ -798,7 +925,7 @@ async function main() {
   } else {
     try {
       const cacheData = await fs.readFile(cachePath, "utf8");
-      cache = JSON.parse(cacheData);
+      cache = { ...cache, ...JSON.parse(cacheData) };
       console.log(`♻️  Loaded existing cache from ${cachePath}`);
     } catch (e) {
       // If no cache file exists, it will naturally start fresh
@@ -825,11 +952,19 @@ async function main() {
         title: "STAGE 0: AI File Pre-filtering",
         skip: () => !useAiFilter,
         task: async (ctx, task) => {
+          if (cache.filteredFiles) {
+            ctx.filteredFiles = cache.filteredFiles;
+            task.title = "STAGE 0: AI File Pre-filtering (Loaded from cache)";
+            return;
+          }
+
           task.output = `Analyzing ${targetFiles.length} files...`;
 
           if (targetFiles.length === 0) {
             ctx.filteredFiles = [];
             task.title = "STAGE 0: AI File Pre-filtering (No files to filter)";
+            cache.filteredFiles = [];
+            await saveCache();
             return;
           }
 
@@ -840,12 +975,20 @@ async function main() {
           const removedCount = targetFiles.length - filtered.length;
 
           ctx.filteredFiles = filtered;
+          cache.filteredFiles = filtered;
+          await saveCache();
           task.title = `STAGE 0: AI File Pre-filtering (Removed ${removedCount} trivial files)`;
         },
       },
       {
         title: "Analyzing File Structure",
         task: async (ctx, task) => {
+          if (cache.structuralData) {
+            ctx.structuralData = cache.structuralData;
+            task.title = "Analyzing File Structure (Loaded from cache)";
+            return;
+          }
+
           const structuralData = [];
           let completed = 0;
           const filesToAnalyze = ctx.filteredFiles || targetFiles;
@@ -887,6 +1030,8 @@ async function main() {
             throw new Error("No valid structural data found.");
           }
           ctx.structuralData = structuralData;
+          cache.structuralData = structuralData;
+          await saveCache();
         },
       },
       {
