@@ -1,0 +1,56 @@
+@startuml
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam defaultTextAlignment center
+skinparam ArrowColor #4b5563
+skinparam PackageBorderColor #64748b
+skinparam PackageBackgroundColor transparent
+skinparam rectangle {
+  BorderColor #4b5563
+  FontColor #111827
+  BackgroundColor #f8fafc
+}
+top to bottom direction
+package "External Actors" as External {
+rectangle "AI Agent Core" as Agent
+}
+package "nanobot/skills/cron" as CronSkill {
+package "Action Interface" as Interface {
+rectangle "ADD Job" as Add
+rectangle "LIST Jobs" as List
+rectangle "REMOVE Job" as Remove
+}
+package "Time Expression Parser" as Parser {
+rectangle "Natural Language\nTime Converter" as NLP
+rectangle "ISO Datetime\nProcessor" as ISO
+rectangle "Cron Expression\nValidator" as CronExpr
+}
+package "Scheduling Engine" as Scheduler {
+rectangle "Timezone Handler\n(IANA Support)" as TZ
+rectangle "Job Registry" as JobQueue
+}
+package "Execution Modes" as Execution {
+rectangle "Reminder Mode\n(Notify User)" as Reminder
+rectangle "Task Mode\n(Agent Executes)" as Task
+}
+}
+package "Outcomes" as Output {
+rectangle "User Notification" as Notify
+rectangle "Task Results" as ActionResult
+}
+rectangle "User" as User
+User --> Agent : Schedule request
+Agent --> Interface : Action Parameter
+Add --> Parser
+List --> JobQueue
+Remove --> JobQueue
+NLP --> TZ
+ISO --> TZ
+CronExpr --> TZ
+TZ --> JobQueue
+JobQueue --> Execution : Trigger at schedule
+Reminder --> Notify
+Task --> ActionResult : Execute & return
+ActionResult --> Agent
+Notify --> User
+@enduml

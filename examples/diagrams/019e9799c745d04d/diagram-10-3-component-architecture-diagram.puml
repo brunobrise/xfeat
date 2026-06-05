@@ -1,0 +1,72 @@
+@startuml
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam defaultTextAlignment center
+skinparam ArrowColor #4b5563
+skinparam PackageBorderColor #64748b
+skinparam PackageBackgroundColor transparent
+skinparam rectangle {
+  BorderColor #4b5563
+  FontColor #111827
+  BackgroundColor #f8fafc
+}
+top to bottom direction
+package "External Sources" as External {
+rectangle "Environment Variables\n(NANOBOT_*)" as ENV
+rectangle "Config File\n(~/.nanobot/config.json)" as FILE
+rectangle "Legacy Config Files" as LEGACY
+}
+package "nanobot/config Component" as ConfigComponent {
+package "Public API (__init__.py)" as Interface {
+rectangle "load_config()" as LOAD
+rectangle "get_config_path()" as GETPATH
+rectangle "Config Class\n(Type-Safe Access)" as CONFIG
+}
+package "Core Logic (loader.py)" as CoreLogic {
+rectangle "Path Resolution\n(Default + Custom)" as RESOLVE
+rectangle "File Reading\n(UTF-8 JSON)" as READ
+rectangle "File Writing\n(Pretty Printed)" as WRITE
+rectangle "Schema Migration\n(Version Upgrades)" as MIGRATE
+rectangle "Pydantic Validation" as VALIDATE
+rectangle "Default Fallback\n(Error Recovery)" as FALLBACK
+}
+package "Data Model (schema.py)" as DataModel {
+rectangle "Channel Configs\n(10+ Platforms)" as CHANNELS
+rectangle "LLM Providers\n(15+ Services)" as LLMS
+rectangle "Agent Settings\n(Workspace, Model, Memory)" as AGENT
+rectangle "Tool Configs\n(Web Search, Shell, MCP)" as TOOLS
+rectangle "Gateway Server\n(HTTP, Heartbeat)" as GATEWAY
+}
+}
+package "System Consumers" as Consumers {
+rectangle "Nanobot Application" as APP
+rectangle "Agent Runtime" as AGENT_RUNNER
+rectangle "Channel Managers" as CHANNEL_MGR
+rectangle "LLM Client" as LLM_CLIENT
+}
+ENV --> VALIDATE
+FILE --> READ
+LEGACY --> MIGRATE
+READ --> MIGRATE
+MIGRATE --> VALIDATE
+VALIDATE --> CONFIG : Success
+VALIDATE --> FALLBACK : Failure
+FALLBACK --> CONFIG
+RESOLVE --> READ
+WRITE --> FILE
+CONFIG --> CHANNELS
+CONFIG --> LLMS
+CONFIG --> AGENT
+CONFIG --> TOOLS
+CONFIG --> GATEWAY
+LOAD --> RESOLVE
+LOAD --> READ
+LOAD --> VALIDATE
+GETPATH --> RESOLVE
+CONFIG --> APP
+CHANNELS --> CHANNEL_MGR
+LLMS --> LLM_CLIENT
+AGENT --> AGENT_RUNNER
+TOOLS --> AGENT_RUNNER
+GATEWAY --> APP
+@enduml

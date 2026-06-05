@@ -1,0 +1,50 @@
+@startuml
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam defaultTextAlignment center
+skinparam ArrowColor #4b5563
+skinparam PackageBorderColor #64748b
+skinparam PackageBackgroundColor transparent
+skinparam rectangle {
+  BorderColor #4b5563
+  FontColor #111827
+  BackgroundColor #f8fafc
+}
+top to bottom direction
+package "External System" as External {
+rectangle "📁 Workspace\nHEARTBEAT.md" as WORKSPACE
+rectangle "🔌 Callbacks\n(on_execute, on_notify)" as CALLBACKS
+rectangle "🤖 LLM Provider" as LLM_PROVIDER
+}
+package "nanobot/heartbeat" as HeartbeatComponent {
+package "__init__.py\nModule Interface" as Interface {
+rectangle "HeartbeatService\n(Public API)" as PUBLIC
+}
+package "service.py\nCore Implementation" as Core {
+package "Lifecycle Management" as Lifecycle {
+rectangle "start()" as START
+rectangle "stop()" as STOP
+rectangle "trigger_now()" as TRIGGER
+}
+package "Heartbeat Engine" as Engine {
+rectangle "⏰ Async Loop\n(Configurable Interval)" as LOOP
+rectangle "📄 File Reader\n(HEARTBEAT.md)" as READER
+rectangle "🧠 LLM Decision\n(Phase 1: skip/run)" as DECIDER
+rectangle "⚡ Task Executor\n(Phase 2)" as EXECUTOR
+}
+}
+}
+PUBLIC --> START
+PUBLIC --> STOP
+PUBLIC --> TRIGGER
+START --> LOOP
+TRIGGER --> LOOP
+LOOP --> READER : Interval Tick
+READER --> WORKSPACE : Read Tasks
+READER --> DECIDER : Task Content
+DECIDER --> LLM_PROVIDER : LLM Analysis
+LLM_PROVIDER --> EXECUTOR : Decision: run
+LLM_PROVIDER --> LOOP : Decision: skip
+EXECUTOR --> CALLBACKS : Execute
+EXECUTOR --> CALLBACKS : Results
+@enduml

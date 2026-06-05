@@ -1,0 +1,30 @@
+@startuml
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam defaultTextAlignment center
+skinparam ArrowColor #4b5563
+skinparam PackageBorderColor #64748b
+skinparam PackageBackgroundColor transparent
+skinparam rectangle {
+  BorderColor #4b5563
+  FontColor #111827
+  BackgroundColor #f8fafc
+}
+top to bottom direction
+package "External Actors" as External {
+rectangle "👤 Developer / User" as USER
+rectangle "📜 External Script" as SCRIPT
+}
+package "nanobot Package v0.1.4.post3 🐈" as Nanobot {
+rectangle "__init__.py\nPackage Core" as INIT
+rectangle "__main__.py\nCLI Entry Point" as MAIN
+rectangle "app\nCLI Application Instance" as APP
+rectangle "Nanobot Framework\nAI Agent Building Blocks" as PKG
+INIT --> PKG : defines framework
+MAIN --> APP : imports & invokes
+APP --> PKG : extends
+}
+USER --> MAIN : python -m nanobot
+SCRIPT --> INIT : import nanobot
+USER --> APP : CLI Commands
+@enduml

@@ -1,0 +1,46 @@
+@startuml
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam defaultTextAlignment center
+skinparam ArrowColor #4b5563
+skinparam PackageBorderColor #64748b
+skinparam PackageBackgroundColor transparent
+skinparam rectangle {
+  BorderColor #4b5563
+  FontColor #111827
+  BackgroundColor #f8fafc
+}
+top to bottom direction
+package "External Services" as External {
+rectangle "WhatsApp\nNetwork" as WA
+}
+package "bridge Component" as Bridge {
+package "Configuration Layer" as Config {
+rectangle "package.json\nDependencies & Scripts" as PKG
+rectangle "tsconfig.json\nCompilation Settings" as TSC
+}
+package "Runtime Layer" as Runtime {
+rectangle "QR Authentication\nModule" as AUTH
+rectangle "WebSocket\nHandler" as WS
+rectangle "Pino Logger\nInstance" as LOG
+}
+package "Build Artifacts" as Build {
+rectangle "src/\nTypeScript Source" as SRC
+rectangle "dist/\nCompiled JS + .d.ts" as DIST
+}
+}
+package "Nanobot Platform" as Consumer {
+rectangle "Nanobot\nCore System" as NB
+}
+WA <--> WS : Baileys Protocol
+WA --> AUTH : Auth Challenge
+rectangle "Terminal\nOutput" as TERM
+AUTH --> TERM : QR Code
+PKG --> TSC : Defines
+TSC --> SRC : Compiles
+SRC --> DIST : Emits
+WS --> LOG : Events
+AUTH --> LOG : Status
+WS --> NB : Messages
+NB --> WS : Send Commands
+@enduml

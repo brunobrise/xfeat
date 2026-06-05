@@ -1,0 +1,46 @@
+@startuml
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam sequence {
+  ArrowColor #4b5563
+  ActorBorderColor #4b5563
+  LifeLineBorderColor #94a3b8
+  ParticipantBorderColor #4b5563
+  ParticipantBackgroundColor #f8fafc
+  ParticipantFontColor #111827
+}
+    participant "Nanobot Agent" as Agent
+    participant "ToolRegistry" as Registry
+    participant "Tool Instance" as Tool
+    participant "JSON Validator" as Validator
+    participant "External System" as External
+    Agent->>Registry: get_definitions()
+    Registry-->>Agent: OpenAI Function Schemas
+    Agent->>Registry: execute('tool_name', params)
+    Registry->>Registry: get('tool_name')
+    alt Tool Not Found
+        Registry-->>Agent: Error + Available Tools
+    else Tool Found
+        Registry->>Tool: validate_params(params)
+        Tool->>Validator: JSON Schema Validation
+        alt Validation Failed
+            Validator-->>Tool: Error List
+            Tool-->>Registry: Validation Errors
+            Registry-->>Agent: Parameter Error
+        else Validation Passed
+            Validator-->>Tool: Valid
+            Registry->>Tool: execute(params) async
+            Tool->>External: Perform Operation
+            alt Execution Success
+                External-->>Tool: Result
+                Tool-->>Registry: Success Result
+                Registry-->>Agent: Tool Output
+            else Execution Error
+                External-->>Tool: Exception
+                Tool-->>Registry: Error Result
+                Registry->>Registry: Enhance Error with Hints
+                Registry-->>Agent: Error + Retry Hints
+            end
+        end
+    end
+@enduml

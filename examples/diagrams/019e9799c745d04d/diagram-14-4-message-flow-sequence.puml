@@ -1,0 +1,44 @@
+@startuml
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam sequence {
+  ArrowColor #4b5563
+  ActorBorderColor #4b5563
+  LifeLineBorderColor #94a3b8
+  ParticipantBorderColor #4b5563
+  ParticipantBackgroundColor #f8fafc
+  ParticipantFontColor #111827
+}
+    participant "User" as User
+    participant "Messaging Platform" as Platform
+    participant "Channel Implementation" as Channel
+    participant "ChannelManager" as Manager
+    participant "Message Bus" as Bus
+    participant "Bot Core" as Core
+    group Phase rgb(230, 245, 255)
+        Note over User,Core : Inbound Message Flow
+        User->>Platform: Sends message
+        Platform->>Channel: Push/Long-poll event
+        Channel->>Channel: Validate sender (allowlist)
+        Channel->>Channel: Parse content & media
+        Channel->>Bus: Publish inbound event
+        Bus->>Core: Consume message
+        Core->>Core: Process & generate response
+    end
+    group Phase rgb(255, 243, 224)
+        Note over User,Core : Outbound Message Flow
+        Core->>Bus: Publish outbound event
+        Bus->>Manager: Dispatcher picks up message
+        Manager->>Channel: Route to appropriate channel
+        Channel->>Channel: Format for platform
+        Channel->>Platform: Send via API/WebSocket
+        Platform->>User: Deliver message
+    end
+    group Phase rgb(232, 245, 233)
+        Note over Manager,Channel : Lifecycle Management
+        Manager->>Channel: start() - Initialize connection
+        Channel->>Platform: Establish connection
+        Manager->>Channel: stop() - Graceful shutdown
+        Channel->>Platform: Close connection
+    end
+@enduml

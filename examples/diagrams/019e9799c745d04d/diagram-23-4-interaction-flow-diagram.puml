@@ -1,0 +1,36 @@
+@startuml
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam sequence {
+  ArrowColor #4b5563
+  ActorBorderColor #4b5563
+  LifeLineBorderColor #94a3b8
+  ParticipantBorderColor #4b5563
+  ParticipantBackgroundColor #f8fafc
+  ParticipantFontColor #111827
+}
+    participant "nanobot/core" as Client
+    participant "SessionManager" as SM
+    participant "In-Memory Cache" as Cache
+    participant "JSONL Storage" as FS
+    Client->>SM: get_or_create('channel:chat_id')
+    SM->>Cache: check_cache(key)
+    alt Cache Hit
+        Cache-->>SM: Session
+    else Cache Miss
+        SM->>FS: load_session(key)
+        alt Session Exists
+            FS-->>SM: Session data
+            SM->>SM: deserialize messages
+        else New Session
+            SM->>SM: create new Session()
+        end
+        SM->>Cache: store(session)
+    end
+    SM-->>Client: Session
+    Client->>SM: session.add_message('user', 'Hello')
+    SM->>Cache: update cache
+    SM->>FS: save_session(session)
+    FS-->>SM: persisted
+    Note over SM,FS : Atomic JSONL write with UTF-8 encoding
+@enduml

@@ -1,0 +1,64 @@
+@startuml
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam class {
+  BorderColor #4b5563
+  BackgroundColor #f8fafc
+  FontColor #111827
+  ArrowColor #4b5563
+}
+top to bottom direction
+
+    package "Public_API" {
+        class SessionManager {
+            +get_or_create(key: str) Session
+            +clear(key: str) void
+            +invalidate(key: str) void
+            +list_sessions() List<SessionMeta>
+            -_cache: Dict<str, Session>
+            -_workspace_path: Path
+        }
+
+        class Session {
+            +key: str
+            +messages: List<Message>
+            +metadata: Dict
+            +created_at: datetime
+            +updated_at: datetime
+            +add_message(role, content, tool_calls, tool_call_id)
+            +save()
+            +consolidation_progress: int
+        }
+    }
+
+    package "Storage_Layer" {
+        class JSONLStorage {
+            +save(session: Session)
+            +load(key: str) Session
+            +migrate_legacy()
+        }
+
+        class Message {
+            +role: str
+            +content: str
+            +timestamp: datetime
+            +tool_calls: Optional
+            +tool_call_id: Optional
+        }
+    }
+
+    SessionManager "1" --> "*" Session : manages
+    Session "1" --> "*" Message : contains
+    SessionManager --> JSONLStorage : persists via
+    JSONLStorage ..> Session : deserializes to
+
+    note right of SessionManager
+      Entry point defined in __init__.py
+      Exposes clean public API via __all__
+    end note
+    note right of JSONLStorage
+      Handles atomic writes,
+      legacy migration, and
+      workspace-scoped paths
+    end note
+@enduml

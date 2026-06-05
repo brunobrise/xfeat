@@ -1,0 +1,54 @@
+@startuml
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam defaultTextAlignment center
+skinparam ArrowColor #4b5563
+skinparam PackageBorderColor #64748b
+skinparam PackageBackgroundColor transparent
+skinparam rectangle {
+  BorderColor #4b5563
+  FontColor #111827
+  BackgroundColor #f8fafc
+}
+top to bottom direction
+package "nanobot Core" as NB {
+rectangle "Agent Orchestrator" as Agent
+}
+package "nanobot/skills Component" as SS {
+package "Skill System Core" as Core {
+rectangle "Skills Directory" as SD
+rectangle "YAML/Markdown Parser" as Parser
+rectangle "Skill Loader" as Loader
+}
+package "Built-in Skills" as BuiltIn {
+rectangle "GitHub CLI\ngh integration" as GH
+rectangle "Weather\nwttr.in / Open-Meteo" as WX
+rectangle "Summarizer\nURLs / Files / YouTube" as SUM
+rectangle "Tmux Controller\nSession Management" as TMX
+rectangle "ClawHub Registry\nSearch / Install" as REG
+rectangle "Skill Creator\nNew Skill Generator" as CRT
+}
+package "Skill Schema" as Schema {
+rectangle "YAML Frontmatter\n(name, description, config)" as YAML
+rectangle "Markdown Instructions\n(agent execution steps)" as MD
+}
+}
+package "External Systems" as External {
+rectangle "GitHub API" as GitHub
+rectangle "Weather Services" as WeatherAPI
+rectangle "ClawHub Registry" as ClawHub
+rectangle "Tmux Sessions" as TmuxSrv
+rectangle "Content Sources\nURLs / Files / YouTube" as ContentSrc
+}
+Agent --> Loader : Discover & Execute
+Loader --> Parser : Parse
+Parser --> SD : Read
+SD --> Schema : Contains
+Loader --> BuiltIn : Route to
+GH <--> GitHub : gh CLI
+WX <--> WeatherAPI : HTTP
+REG <--> ClawHub : Search/Install
+TMX <--> TmuxSrv : Control
+SUM <--> ContentSrc : Fetch/Extract
+CRT --> SD : Generate
+@enduml

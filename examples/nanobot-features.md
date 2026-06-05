@@ -157,102 +157,7 @@ The Nanobot ecosystem is organized into **seven major architectural pillars**, e
 
 ## 3. High-Level Architecture Diagram
 
-```mermaid
-flowchart TB
-    subgraph Users["👥 Users"]
-        U1[📱 Mobile Apps]
-        U2[💻 Desktop Clients]
-    end
-
-    subgraph ChatPlatforms["📡 Chat Platform Channels"]
-        TG[Telegram]
-        DC[Discord]
-        WA[WhatsApp]
-        SL[Slack]
-        FS[Feishu/Lark]
-        DT[DingTalk]
-        QQ[QQ]
-        MX[Matrix]
-        EM[Email]
-        MC[Mochat]
-    end
-
-    subgraph BridgeLayer["🌉 Protocol Bridges"]
-        WABRIDGE["WhatsApp Bridge<br/>(Node.js/Baileys)<br/>bridge/src"]
-    end
-
-    subgraph NanobotCore["🤖 Nanobot AI Framework"]
-        subgraph ChannelLayer["Channel Adapters"]
-            CHMGR["ChannelManager<br/>nanobot/channels"]
-        end
-
-        subgraph BusLayer["Message Bus"]
-            BUS["MessageBus<br/>nanobot/bus<br/><i>Async Event Queue</i>"]
-        end
-
-        subgraph AgentCore["Core Agent (~4k LOC)"]
-            AG["Agent Loop<br/>nanobot/agent"]
-            CTX["Context Builder"]
-            MEM["Memory Store<br/>(MEMORY.md + HISTORY.md)"]
-            SUB["Subagent Manager"]
-        end
-
-        subgraph ToolLayer["Tool System"]
-            TOOLS["ToolRegistry<br/>nanobot/agent/tools"]
-            FS_TOOL["Filesystem"]
-            WEB_TOOL["Web Search"]
-            SHELL_TOOL["Shell"]
-            MCP_TOOL["MCP Bridge"]
-        end
-
-        subgraph SkillLayer["Skill System"]
-            SKILLS["SkillsLoader<br/>nanobot/skills"]
-            SKILL_REGISTRY["ClawHub Registry"]
-        end
-
-        subgraph ProviderLayer["LLM Provider Registry"]
-            PR["Provider Router<br/>nanobot/providers<br/>(LiteLLM)"]
-        end
-
-        subgraph SecurityLayer["Security Layer"]
-            AC["Access Control"]
-            SCMD["Command Filter"]
-            PSAN["Path Sanitizer"]
-        end
-
-        subgraph InfraLayer["Infrastructure"]
-            CFG["Config Manager<br/>nanobot/config"]
-            SESS["Session Manager<br/>nanobot/session"]
-            CRON["Cron Scheduler<br/>nanobot/cron"]
-            HB["Heartbeat Service<br/>nanobot/heartbeat"]
-            TPL["Templates<br/>nanobot/templates"]
-        end
-    end
-
-    subgraph LLMProviders["🧠 LLM Providers"]
-        OAI[OpenAI]
-        ANT[Anthropic]
-        GEM[Google Gemini]
-        DSK[DeepSeek]
-        GRQ[Groq]
-        VLL[vLLM/Local]
-        OR[OpenRouter]
-    end
-
-    subgraph ExternalTools["🔧 External Tools (MCP)"]
-        MCP1["MCP Server 1"]
-        MCP2["MCP Server 2"]
-    end
-
-    subgraph Deployment["📦 Deployment"]
-        DK["Docker Container<br/>Python 3.12 + Node 20"]
-        DCY["docker-compose.yml"]
-    end
-
-    subgraph Storage["💾 Persistent Storage"]
-        WORKSPACE["~/.nanobot/workspace/<br/>• MEMORY.md<br/>• HISTORY.md<br/>• skills"]
-    end
-```
+![3. High-Level Architecture Diagram](./diagrams/019e9799c745d04d/diagram-01-3-high-level-architecture-diagram.svg)
 
 ---
 
@@ -286,34 +191,7 @@ The framework abstracts the complexity of AI agent development into a clean, imp
 
 The following C4 Container diagram illustrates the `nanobot` component's structure and its interaction patterns:
 
-```mermaid
-flowchart TB
-    subgraph External["External Actors"]
-        USER["👤 Developer / User"]
-        SCRIPT["📜 External Script"]
-    end
-
-    subgraph Nanobot["nanobot Package v0.1.4.post3 🐈"]
-        direction TB
-        INIT["__init__.py<br/><i>Package Core</i>"]
-        MAIN["__main__.py<br/><i>CLI Entry Point</i>"]
-        APP["app<br/><i>CLI Application Instance</i>"]
-
-        INIT -->|"defines framework"| PKG["Nanobot Framework<br/><i>AI Agent Building Blocks</i>"]
-        MAIN -->|"imports & invokes"| APP
-        APP -->|"extends"| PKG
-    end
-
-    USER -->|"python -m nanobot"| MAIN
-    SCRIPT -->|"import nanobot"| INIT
-    USER -->|"CLI Commands"| APP
-
-    style Nanobot fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    style INIT fill:#fff3e0,stroke:#e65100
-    style MAIN fill:#fff3e0,stroke:#e65100
-    style APP fill:#f3e5f5,stroke:#4a148c
-    style PKG fill:#e8f5e9,stroke:#1b5e20
-```
+![3. Component Interaction Diagram](./diagrams/019e9799c745d04d/diagram-02-3-component-interaction-diagram.svg)
 
 ### Flow Description
 
@@ -350,65 +228,7 @@ This component encapsulates all WhatsApp-specific logic, authentication flows, a
 
 ## 3. Component Architecture Diagram
 
-```mermaid
-flowchart TB
-    subgraph External["External Services"]
-        WA[("WhatsApp<br/>Network")]
-    end
-
-    subgraph Bridge["bridge Component"]
-        direction TB
-
-        subgraph Config["Configuration Layer"]
-            PKG["package.json<br/>Dependencies & Scripts"]
-            TSC["tsconfig.json<br/>Compilation Settings"]
-        end
-
-        subgraph Runtime["Runtime Layer"]
-            AUTH["QR Authentication<br/>Module"]
-            WS["WebSocket<br/>Handler"]
-            LOG["Pino Logger<br/>Instance"]
-        end
-
-        subgraph Build["Build Artifacts"]
-            SRC["src/<br/>TypeScript Source"]
-            DIST["dist/<br/>Compiled JS + .d.ts"]
-        end
-    end
-
-    subgraph Consumer["Nanobot Platform"]
-        NB["Nanobot<br/>Core System"]
-    end
-
-    %% External connections
-    WA <-->|"Baileys Protocol"| WS
-    WA -->|"Auth Challenge"| AUTH
-    AUTH -->|"QR Code"| TERM["Terminal<br/>Output"]
-
-    %% Internal flow
-    PKG -->|"Defines"| TSC
-    TSC -->|"Compiles"| SRC
-    SRC -->|"Emits"| DIST
-
-    %% Runtime connections
-    WS -->|"Events"| LOG
-    AUTH -->|"Status"| LOG
-    WS -->|"Messages"| NB
-    NB -->|"Send Commands"| WS
-
-    %% Styling
-    classDef external fill:#ff6b6b,stroke:#c92a2a,color:#fff
-    classDef config fill:#845ef7,stroke:#5f3dc4,color:#fff
-    classDef runtime fill:#20c997,stroke:#0ca678,color:#fff
-    classDef build fill:#339af0,stroke:#1971c2,color:#fff
-    classDef consumer fill:#fab005,stroke:#e67700,color:#000
-
-    class WA,TERM external
-    class PKG,TSC config
-    class AUTH,WS,LOG runtime
-    class SRC,DIST build
-    class NB consumer
-```
+![3. Component Architecture Diagram](./diagrams/019e9799c745d04d/diagram-03-3-component-architecture-diagram.svg)
 
 ---
 
@@ -438,133 +258,13 @@ The `nanobot/agent` component is the **central nervous system** of the nanobot f
 
 ## 3. Component Architecture Diagram
 
-```mermaid
-flowchart TB
-    subgraph External["External Systems"]
-        LLM[("LLM Provider")]
-        FS[("File System")]
-        WEB[("Web APIs")]
-    end
-
-    subgraph AgentCore["nanobot/agent"]
-        direction TB
-
-        subgraph Orchestrator["Orchestration Layer"]
-            INIT["__init__.py<br/>Module Hub"]
-            LOOP["loop.py<br/>Agent Loop"]
-        end
-
-        subgraph ContextLayer["Context Layer"]
-            CTX["context.py<br/>ContextBuilder"]
-        end
-
-        subgraph PersistenceLayer["Persistence Layer"]
-            MEM["memory.py<br/>MemoryStore"]
-            MEM_FILES["MEMORY.md<br/>HISTORY.md"]
-        end
-
-        subgraph CapabilityLayer["Capability Layer"]
-            SKILLS["skills.py<br/>SkillsLoader"]
-            SKILL_FILES["SKILL.md Files"]
-        end
-
-        subgraph ExecutionLayer["Execution Layer"]
-            SUB["subagent.py<br/>SubagentManager"]
-        end
-    end
-
-    %% Main flow
-    INIT --> LOOP
-    LOOP <--> CTX
-    LOOP <--> MEM
-    LOOP <--> SKILLS
-    LOOP --> SUB
-
-    %% Context assembly
-    CTX --> MEM
-    CTX --> SKILLS
-
-    %% Persistence
-    MEM <--> MEM_FILES
-
-    %% Skills discovery
-    SKILLS <--> SKILL_FILES
-
-    %% External interactions
-    LOOP <--> LLM
-    MEM <--> FS
-    SKILLS <--> FS
-    SUB <--> LLM
-    SUB <--> FS
-    SUB <--> WEB
-    CTX --> LLM
-
-    %% Styling
-    classDef core fill:#3b82f6,stroke:#1d4ed8,color:#fff
-    classDef storage fill:#10b981,stroke:#059669,color:#fff
-    classDef external fill:#6b7280,stroke:#374151,color:#fff
-    classDef layer fill:#f3f4f6,stroke:#d1d5db,color:#1f2937
-
-    class LOOP,CTX,MEM,SKILLS,SUB core
-    class MEM_FILES,SKILL_FILES storage
-    class LLM,FS,WEB external
-```
+![3. Component Architecture Diagram](./diagrams/019e9799c745d04d/diagram-04-3-component-architecture-diagram.svg)
 
 ---
 
 ## 4. Data Flow Sequence
 
-```mermaid
-sequenceDiagram
-    participant User
-    participant Loop as AgentLoop
-    participant Context as ContextBuilder
-    participant Memory as MemoryStore
-    participant Skills as SkillsLoader
-    participant LLM
-    participant Subagent as SubagentManager
-
-    User->>Loop: Send Message
-
-    rect rgb(240, 249, 255)
-        Note over Loop,Skills: Context Assembly Phase
-        Loop->>Context: Build context
-        Context->>Memory: Get long-term memory
-        Memory-->>Context: Return MEMORY.md content
-        Context->>Skills: Get always-active skills
-        Skills-->>Context: Return validated skills
-        Context->>Context: Load bootstrap files
-        Context->>Context: Inject runtime metadata
-        Context-->>Loop: Complete message list
-    end
-
-    rect rgb(240, 255, 240)
-        Note over Loop,LLM: Reasoning Phase
-        Loop->>LLM: Send context + messages
-        LLM-->>Loop: Response with tool calls
-    end
-
-    rect rgb(255, 250, 240)
-        Note over Loop,Subagent: Delegation Phase (Optional)
-        alt Complex Task Detected
-            Loop->>Subagent: Spawn background task
-            Subagent->>Subagent: Execute 15-iteration loop
-            Subagent->>Subagent: Use tools (fs, shell, web)
-            Subagent-->>Loop: Report result via message bus
-        end
-    end
-
-    rect rgb(255, 240, 245)
-        Note over Loop,Memory: Consolidation Phase
-        Loop->>Memory: Trigger consolidation
-        Memory->>LLM: Extract key information
-        LLM-->>Memory: Structured updates
-        Memory->>Memory: Append to HISTORY.md
-        Memory->>Memory: Merge into MEMORY.md
-    end
-
-    Loop-->>User: Response
-```
+![4. Data Flow Sequence](./diagrams/019e9799c745d04d/diagram-05-4-data-flow-sequence.svg)
 
 ---
 
@@ -603,82 +303,13 @@ The `bridge/src` component is a **standalone Node.js middleware service** that a
 
 ## 3. Component Architecture Diagram
 
-```mermaid
-C4 Container
-    title Bridge Component - Container Diagram
-
-    Person user, "End User", "Sends/receives WhatsApp messages"
-
-    System_Ext(whatsapp, "WhatsApp Servers", "Meta's WhatsApp infrastructure")
-
-    Container_Boundary(bridge, "bridge/src Component") {
-        Container(index, "index.ts", "Entry Point", "Process lifecycle, config loading, crypto polyfill")
-        Container(server, "server.ts", "WebSocket Server", "Client connections, auth, message routing, broadcasting")
-        Container(whatsapp_client, "whatsapp.ts", "WhatsApp Client", "Baileys wrapper, QR auth, message send/receive")
-        ContainerDb(types, "types.d.ts", "Type Definitions", "TypeScript declarations for qrcode-terminal")
-    }
-
-    Container_Ext(python_backend, "Python Backend", "nanobot core", "Connects via WebSocket to bridge")
-
-    Rel(user, whatsapp, "Uses")
-    Rel(whatsapp_client, whatsapp, "WebSocket\n(WhatsApp Protocol)")
-    Rel(index, server, "Initializes")
-    Rel(index, whatsapp_client, "Initializes")
-    Rel(server, whatsapp_client, "Calls send()\nReceives callbacks")
-    Rel(server, types, "Uses types")
-    Rel(python_backend, server, "WebSocket\n(ws://127.0.0.1:3001)")
-
-    UpdateRelLayout(Vertical)
-```
+![3. Component Architecture Diagram](./diagrams/019e9799c745d04d/diagram-06-3-component-architecture-diagram.svg)
 
 ---
 
 ## 4. Message Flow Sequence
 
-```mermaid
-sequenceDiagram
-    participant Python as Python Backend
-    participant Server as server.ts
-    participant WA as whatsapp.ts
-    participant WhatsApp as WhatsApp Servers
-    participant User as End User
-
-    Note over Python,User: Authentication Flow
-    WA->>WhatsApp: Connect
-    WhatsApp-->>WA: Request QR
-    WA->>Server: QR callback
-    Server->>Python: Broadcast {type: "qr", data}
-    Python->>User: Display QR code
-    User->>WhatsApp: Scan QR
-    WhatsApp-->>WA: Authenticated
-    WA->>Server: Status callback
-    Server->>Python: Broadcast {type: "status", connected}
-
-    Note over Python,User: Inbound Message Flow
-    User->>WhatsApp: Send message
-    WhatsApp-->>WA: Message event
-    WA->>WA: Extract content
-    WA->>Server: onMessage callback
-    Server->>Python: Broadcast {type: "message", ...}
-
-    Note over Python,User: Outbound Message Flow
-    Python->>Server: {type: "send", to, text}
-    Server->>Server: Validate & route
-    Server->>WA: sendMessage(to, text)
-    WA->>WhatsApp: Send via socket
-    WhatsApp-->>WA: Delivery confirm
-    WA-->>Server: Success
-    Server->>Python: {type: "sent", id}
-
-    Note over Python,User: Graceful Shutdown
-    rect rgb(60, 60, 60)
-        participant Process as SIGINT/SIGTERM
-        Process->>Server: Signal received
-        Server->>Python: Close connections
-        Server->>WA: disconnect()
-        WA->>WhatsApp: Close socket
-    end
-```
+![4. Message Flow Sequence](./diagrams/019e9799c745d04d/diagram-07-4-message-flow-sequence.svg)
 
 ---
 
@@ -721,98 +352,7 @@ The framework emphasizes minimalism without sacrificing functionality—providin
 
 ## 3. Architecture Diagram
 
-```mermaid
-flowchart TB
-    subgraph Users["Users"]
-        U1[📱 Mobile Apps]
-        U2[💻 Desktop Clients]
-    end
-
-    subgraph ChatPlatforms["Chat Platform Channels"]
-        TG[Telegram]
-        DC[Discord]
-        WA[WhatsApp]
-        SL[Slack]
-        FS[Feishu/Lark]
-        DT[DingTalk]
-        QQ[QQ]
-        MX[Matrix]
-        EM[Email]
-        MC[Mochat]
-    end
-
-    subgraph NanobotCore["Nanobot AI Framework"]
-        subgraph ChannelLayer["Channel Adapters"]
-            CA[Platform-specific<br/>Message Handlers]
-        end
-
-        subgraph AgentCore["Core Agent (~4k LOC)"]
-            AG[Agent Logic]
-            TK[Tool System]
-            MM[Memory Manager]
-            CR[Cron Scheduler]
-            HB[Heartbeat System]
-        end
-
-        subgraph ProviderLayer["LLM Provider Registry"]
-            PR["Provider Router<br/>(LiteLLM)"]
-        end
-
-        subgraph Security["Security Layer"]
-            AC[Access Control]
-            SC[Command Filter]
-            PS[Path Sanitizer]
-        end
-
-        subgraph Config["Configuration"]
-            CF[config.json]
-            ENV[Environment Vars]
-        end
-    end
-
-    subgraph LLMProviders["LLM Providers"]
-        OAI[OpenAI]
-        ANT[Anthropic]
-        GEM[Google Gemini]
-        DSK[DeepSeek]
-        GRQ[Groq]
-        VLL[vLLM/Local]
-        OR[OpenRouter]
-    end
-
-    subgraph ExternalTools["External Tools (MCP)"]
-        MCP1[Tool Server 1]
-        MCP2[Tool Server 2]
-        CH[ClawHub Skills]
-    end
-
-    subgraph Deployment["Deployment"]
-        DK[Docker Container]
-        DCY[docker-compose.yml]
-        DF[Dockerfile<br/>Python 3.12 + Node 20]
-    end
-
-    Users --> ChatPlatforms
-    ChatPlatforms --> CA
-    CA --> Security
-    Security --> AG
-    AG <--> TK
-    AG <--> MM
-    AG <--> CR
-    AG <--> HB
-    AG --> PR
-    PR --> LLMProviders
-    TK --> ExternalTools
-    Config --> AgentCore
-    Deployment --> NanobotCore
-
-    WA -.->|Bridge| DF
-
-    style AgentCore fill:#e1f5fe
-    style Security fill:#ffebee
-    style LLMProviders fill:#f3e5f5
-    style Deployment fill:#fff3e0
-```
+![3. Architecture Diagram](./diagrams/019e9799c745d04d/diagram-08-3-architecture-diagram.svg)
 
 ---
 
@@ -866,74 +406,7 @@ The `nanobot/bus` component serves as the **central nervous system for asynchron
 
 The following C4 Container-level diagram illustrates the message flow and interactions within the `nanobot/bus` component:
 
-```mermaid
-flowchart TB
-    subgraph External["External Chat Platforms"]
-        TG[Telegram]
-        DC[Discord]
-        SL[Slack]
-        WA[WhatsApp]
-    end
-
-    subgraph BusComponent["nanobot/bus Component"]
-        direction TB
-
-        subgraph Events["events.py<br/>Data Structures"]
-            IM[InboundMessage]
-            OM[OutboundMessage]
-        end
-
-        subgraph Queue["queue.py<br/>Message Bus"]
-            IQ[Inbound Queue<br/>asyncio.Queue]
-            OQ[Outbound Queue<br/>asyncio.Queue]
-        end
-
-        subgraph Init["__init__.py<br/>Public API"]
-            API[MessageBus Class]
-        end
-    end
-
-    subgraph Consumers["Internal Systems"]
-        AGENT[Agent Core<br/>Message Consumer]
-        HANDLERS[Channel Handlers<br/>Response Dispatchers]
-    end
-
-    %% Inbound Flow
-    TG -->|Raw Message| IM
-    DC -->|Raw Message| IM
-    SL -->|Raw Message| IM
-    WA -->|Raw Message| IM
-    IM -->|Normalized Event| IQ
-    IQ -->|Consume| AGENT
-
-    %% Outbound Flow
-    AGENT -->|Generate Response| OM
-    OM -->|Queue Response| OQ
-    OQ -->|Dispatch| HANDLERS
-    HANDLERS -->|Deliver| TG
-    HANDLERS -->|Deliver| DC
-    HANDLERS -->|Deliver| SL
-    HANDLERS -->|Deliver| WA
-
-    %% API Exposure
-    API -.->|Exposes| IQ
-    API -.->|Exposes| OQ
-    API -.->|Exports| IM
-    API -.->|Exports| OM
-
-    %% Styling
-    classDef platform fill:#ff6b6b,stroke:#c92a2a,color:#fff
-    classDef datastruct fill:#4dabf7,stroke:#1971c2,color:#fff
-    classDef queue fill:#51cf66,stroke:#2f9e44,color:#fff
-    classDef consumer fill:#ffd43b,stroke:#f59f00,color:#000
-    classDef api fill:#845ef7,stroke:#5f3dc4,color:#fff
-
-    class TG,DC,SL,WA platform
-    class IM,OM datastruct
-    class IQ,OQ queue
-    class AGENT,HANDLERS consumer
-    class API api
-```
+![3. Component Architecture Diagram](./diagrams/019e9799c745d04d/diagram-09-3-component-architecture-diagram.svg)
 
 ---
 
@@ -970,87 +443,7 @@ The `nanobot/config` component serves as the **centralized configuration managem
 
 ## 3. Component Architecture Diagram
 
-```mermaid
-flowchart TB
-    subgraph External["External Sources"]
-        ENV["Environment Variables<br/>(NANOBOT_*)"]
-        FILE["Config File<br/>(~/.nanobot/config.json)"]
-        LEGACY["Legacy Config Files"]
-    end
-
-    subgraph ConfigComponent["nanobot/config Component"]
-        direction TB
-
-        subgraph Interface["Public API (__init__.py)"]
-            LOAD["load_config()"]
-            GETPATH["get_config_path()"]
-            CONFIG["Config Class<br/>(Type-Safe Access)"]
-        end
-
-        subgraph CoreLogic["Core Logic (loader.py)"]
-            RESOLVE["Path Resolution<br/>(Default + Custom)"]
-            READ["File Reading<br/>(UTF-8 JSON)"]
-            WRITE["File Writing<br/>(Pretty Printed)"]
-            MIGRATE["Schema Migration<br/>(Version Upgrades)"]
-            VALIDATE["Pydantic Validation"]
-            FALLBACK["Default Fallback<br/>(Error Recovery)"]
-        end
-
-        subgraph DataModel["Data Model (schema.py)"]
-            CHANNELS["Channel Configs<br/>(10+ Platforms)"]
-            LLMS["LLM Providers<br/>(15+ Services)"]
-            AGENT["Agent Settings<br/>(Workspace, Model, Memory)"]
-            TOOLS["Tool Configs<br/>(Web Search, Shell, MCP)"]
-            GATEWAY["Gateway Server<br/>(HTTP, Heartbeat)"]
-        end
-    end
-
-    subgraph Consumers["System Consumers"]
-        APP["Nanobot Application"]
-        AGENT_RUNNER["Agent Runtime"]
-        CHANNEL_MGR["Channel Managers"]
-        LLM_CLIENT["LLM Client"]
-    end
-
-    ENV --> VALIDATE
-    FILE --> READ
-    LEGACY --> MIGRATE
-
-    READ --> MIGRATE
-    MIGRATE --> VALIDATE
-    VALIDATE -->|Success| CONFIG
-    VALIDATE -->|Failure| FALLBACK
-    FALLBACK --> CONFIG
-
-    RESOLVE --> READ
-    WRITE --> FILE
-
-    CONFIG --> CHANNELS
-    CONFIG --> LLMS
-    CONFIG --> AGENT
-    CONFIG --> TOOLS
-    CONFIG --> GATEWAY
-
-    LOAD --> RESOLVE
-    LOAD --> READ
-    LOAD --> VALIDATE
-
-    GETPATH --> RESOLVE
-
-    CONFIG --> APP
-    CHANNELS --> CHANNEL_MGR
-    LLMS --> LLM_CLIENT
-    AGENT --> AGENT_RUNNER
-    TOOLS --> AGENT_RUNNER
-    GATEWAY --> APP
-
-    style ConfigComponent fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    style Interface fill:#b3e5fc,stroke:#0288d1
-    style CoreLogic fill:#b3e5fc,stroke:#0288d1
-    style DataModel fill:#b3e5fc,stroke:#0288d1
-    style External fill:#fff3e0,stroke:#ef6c00
-    style Consumers fill:#e8f5e9,stroke:#2e7d32
-```
+![3. Component Architecture Diagram](./diagrams/019e9799c745d04d/diagram-10-3-component-architecture-diagram.svg)
 
 ---
 
@@ -1099,105 +492,13 @@ This component abstracts the complexity of the underlying AI, messaging, and sch
 
 ## 3. Component Architecture Diagram
 
-```mermaid
-flowchart TB
-    subgraph CLI["nanobot/cli"]
-        INIT["__init__.py<br/>Package Initializer"]
-        CMD["commands.py<br/>CLI Implementation"]
-    end
-
-    subgraph Interface["User Interface Layer"]
-        ARGS["Command Line Args"]
-        STDIN["Interactive Input"]
-        SIGNALS["System Signals<br/>(SIGINT, EOF)"]
-    end
-
-    subgraph Features["Core Feature Modules"]
-        direction TB
-        CHAT["Chat Engine<br/>- Session Management<br/>- Markdown Rendering<br/>- History Persistence"]
-        GATEWAY["Gateway Server<br/>- Port 18790<br/>- MCP Integration<br/>- Message Bus"]
-        SCHEDULER["Cron Scheduler<br/>- Interval/Cron/Timestamp<br/>- Enable/Disable/Force"]
-        PROVIDER["Provider Manager<br/>- OAuth Flows<br/>- API Keys<br/>- LiteLLM Proxy"]
-        ONBOARD["Onboarding<br/>- Workspace Setup<br/>- Config Init<br/>- Template Sync"]
-    end
-
-    subgraph Channels["Multi-Channel Bridges"]
-        WA["WhatsApp"]
-        DC["Discord"]
-        TG["Telegram"]
-        SL["Slack"]
-        FS["Feishu"]
-        DT["DingTalk"]
-        QQ["QQ"]
-        EM["Email"]
-        MC["Mochat"]
-    end
-
-    subgraph Providers["AI Providers"]
-        OAI["OpenAI"]
-        COPILOT["GitHub Copilot"]
-        CODEX["OpenAI Codex"]
-        LOCAL["Local Models"]
-        CUSTOM["Custom Endpoints"]
-    end
-
-    ARGS --> CMD
-    STDIN --> CMD
-    SIGNALS --> CMD
-
-    INIT -.-> CMD
-
-    CMD --> CHAT
-    CMD --> GATEWAY
-    CMD --> SCHEDULER
-    CMD --> PROVIDER
-    CMD --> ONBOARD
-
-    GATEWAY --> WA & DC & TG & SL & FS & DT & QQ & EM & MC
-    PROVIDER --> OAI & COPILOT & CODEX & LOCAL & CUSTOM
-
-    CHAT --> |"Single Message<br/>(-m flag)"| CMD
-    GATEWAY --> |"Daemon Mode<br/>(--gateway)"| CMD
-```
+![3. Component Architecture Diagram](./diagrams/019e9799c745d04d/diagram-11-3-component-architecture-diagram.svg)
 
 ---
 
 ## 4. Interaction Flow Diagram
 
-```mermaid
-sequenceDiagram
-    participant User
-    participant CLI as commands.py
-    participant Config as Configuration
-    participant AI as AI Provider
-    participant Channels as Multi-Channel Bus
-
-    alt First Run / Onboarding
-        User->>CLI: nanobot
-        CLI->>Config: Check if initialized
-        Config-->>CLI: Not initialized
-        CLI->>Config: Create workspace & templates
-        CLI-->>User: Display setup instructions
-    else Interactive Chat
-        User->>CLI: nanobot chat -m "Hello"
-        CLI->>AI: Send message with session context
-        AI-->>CLI: Stream response
-        CLI-->>User: Render markdown response
-    else Gateway Mode
-        User->>CLI: nanobot --gateway --port 18790
-        CLI->>Channels: Initialize enabled channels
-        loop Message Processing
-            Channels->>CLI: Incoming message
-            CLI->>AI: Process with context
-            AI-->>CLI: Response
-            CLI->>Channels: Deliver to channel
-        end
-    else Cron Management
-        User->>CLI: nanobot cron add --interval 3600
-        CLI->>Config: Store scheduled job
-        CLI-->>User: Confirm job creation
-    end
-```
+![4. Interaction Flow Diagram](./diagrams/019e9799c745d04d/diagram-12-4-interaction-flow-diagram.svg)
 
 ---
 
@@ -1277,155 +578,13 @@ The `nanobot/channels` component is a **multi-platform messaging gateway** that 
 
 ## 3. Architecture Diagram
 
-```mermaid
-flowchart TB
-    subgraph External["External Messaging Platforms"]
-        TG[Telegram]
-        DC[Discord]
-        SL[Slack]
-        FS[Feishu/Lark]
-        DT[DingTalk]
-        WA[WhatsApp]
-        EM[Email<br/>IMAP/SMTP]
-        MX[Matrix]
-        QQ[QQ]
-        MC[Mochat]
-    end
-
-    subgraph Channels["nanobot/channels Component"]
-        subgraph Core["Core Infrastructure"]
-            BC[BaseChannel<br/>Abstract Interface]
-            CM[ChannelManager<br/>Lifecycle & Routing]
-            INIT[__init__.py<br/>Public API]
-        end
-
-        subgraph Implementations["Channel Implementations"]
-            TG_C[TelegramChannel]
-            DC_C[DiscordChannel]
-            SL_C[SlackChannel]
-            FS_C[FeishuChannel]
-            DT_C[DingTalkChannel]
-            WA_C[WhatsAppChannel]
-            EM_C[EmailChannel]
-            MX_C[MatrixChannel]
-            QQ_C[QQChannel]
-            MC_C[MochatChannel]
-        end
-    end
-
-    subgraph Internal["Nanobot Core System"]
-        BUS[Message Bus<br/>Event Queue]
-        CORE[Bot Core<br/>Processing Logic]
-    end
-
-    %% External to Channels
-    TG <--> TG_C
-    DC <--> DC_C
-    SL <--> SL_C
-    FS <--> FS_C
-    DT <--> DT_C
-    WA <--> WA_C
-    EM <--> EM_C
-    MX <--> MX_C
-    QQ <--> QQ_C
-    MC <--> MC_C
-
-    %% Inheritance
-    TG_C -.->|extends| BC
-    DC_C -.->|extends| BC
-    SL_C -.->|extends| BC
-    FS_C -.->|extends| BC
-    DT_C -.->|extends| BC
-    WA_C -.->|extends| BC
-    EM_C -.->|extends| BC
-    MX_C -.->|extends| BC
-    QQ_C -.->|extends| BC
-    MC_C -.->|extends| BC
-
-    %% Manager relationships
-    CM --> TG_C
-    CM --> DC_C
-    CM --> SL_C
-    CM --> FS_C
-    CM --> DT_C
-    CM --> WA_C
-    CM --> EM_C
-    CM --> MX_C
-    CM --> QQ_C
-    CM --> MC_C
-
-    %% Message Bus Integration
-    TG_C <--> BUS
-    DC_C <--> BUS
-    SL_C <--> BUS
-    FS_C <--> BUS
-    DT_C <--> BUS
-    WA_C <--> BUS
-    EM_C <--> BUS
-    MX_C <--> BUS
-    QQ_C <--> BUS
-    MC_C <--> BUS
-
-    CM <--> BUS
-    BUS <--> CORE
-
-    %% Styling
-    classDef core fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    classDef impl fill:#fff3e0,stroke:#e65100,stroke-width:1px
-    classDef external fill:#f3e5f5,stroke:#4a148c,stroke-width:1px
-    classDef internal fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
-
-    class BC,CM,INIT core
-    class TG_C,DC_C,SL_C,FS_C,DT_C,WA_C,EM_C,MX_C,QQ_C,MC_C impl
-    class TG,DC,SL,FS,DT,WA,EM,MX,QQ,MC external
-    class BUS,CORE internal
-```
+![3. Architecture Diagram](./diagrams/019e9799c745d04d/diagram-13-3-architecture-diagram.svg)
 
 ---
 
 ## 4. Message Flow Sequence
 
-```mermaid
-sequenceDiagram
-    participant User as User
-    participant Platform as Messaging Platform
-    participant Channel as Channel Implementation
-    participant Manager as ChannelManager
-    participant Bus as Message Bus
-    participant Core as Bot Core
-
-    %% Inbound Message Flow
-    rect rgb(230, 245, 255)
-        Note over User,Core: Inbound Message Flow
-        User->>Platform: Sends message
-        Platform->>Channel: Push/Long-poll event
-        Channel->>Channel: Validate sender (allowlist)
-        Channel->>Channel: Parse content & media
-        Channel->>Bus: Publish inbound event
-        Bus->>Core: Consume message
-        Core->>Core: Process & generate response
-    end
-
-    %% Outbound Message Flow
-    rect rgb(255, 243, 224)
-        Note over User,Core: Outbound Message Flow
-        Core->>Bus: Publish outbound event
-        Bus->>Manager: Dispatcher picks up message
-        Manager->>Channel: Route to appropriate channel
-        Channel->>Channel: Format for platform
-        Channel->>Platform: Send via API/WebSocket
-        Platform->>User: Deliver message
-    end
-
-    %% Lifecycle Management
-    rect rgb(232, 245, 233)
-        Note over Manager,Channel: Lifecycle Management
-        Manager->>Channel: start() - Initialize connection
-        Channel->>Platform: Establish connection
-        Manager->>Channel: stop() - Graceful shutdown
-        Channel->>Platform: Close connection
-    end
-```
+![4. Message Flow Sequence](./diagrams/019e9799c745d04d/diagram-14-4-message-flow-sequence.svg)
 
 ---
 
@@ -1464,123 +623,13 @@ The `nanobot/cron` component is a **persistent, asynchronous job scheduling engi
 
 ## 3. Component Architecture
 
-```mermaid
-classDiagram
-    direction TB
-
-    class CronService {
-        +start() void
-        +stop() void
-        +schedule(job: CronJob) str
-        +unschedule(job_id: str) void
-        +run_job(job_id: str, force: bool) void
-        +list_jobs(include_disabled: bool) List~CronJob~
-        +get_status() ServiceStatus
-        -_load_jobs() void
-        -_save_jobs() void
-        -_rearm_timer() void
-        -_execute_job(job: CronJob) void
-    }
-
-    class CronJob {
-        +id: str
-        +name: str
-        +enabled: bool
-        +schedule: CronSchedule
-        +payload: JobPayload
-        +state: JobState
-        +created_at: datetime
-        +updated_at: datetime
-    }
-
-    class CronSchedule {
-        +kind: "at" | "every" | "cron"
-        +at: Optional~datetime~
-        +interval_seconds: Optional~int~
-        +cron_expression: Optional~str~
-        +timezone: Optional~str~
-    }
-
-    class JobPayload {
-        +kind: "agent_turn" | "message" | "system_event"
-        +message: Optional~str~
-        +channel: Optional~str~
-        +recipient: Optional~str~
-    }
-
-    class JobState {
-        +next_run: Optional~datetime~
-        +last_run: Optional~datetime~
-        +status: "success" | "error" | "skipped"
-        +error_message: Optional~str~
-    }
-
-    class JobStore {
-        +version: str
-        +jobs: List~CronJob~
-    }
-
-    CronService "1" --> "*" CronJob : manages
-    CronJob "1" *-- "1" CronSchedule : has
-    CronJob "1" *-- "1" JobPayload : has
-    CronJob "1" *-- "1" JobState : tracks
-    CronService ..> JobStore : persists to JSON
-
-    note for CronService "Event-driven timer-based execution\nAuto-saves after modifications\nGraceful error handling"
-    note for CronSchedule "Supports 3 scheduling patterns:\n- One-time (at)\n- Interval (every)\n- Cron expression"
-```
+![3. Component Architecture](./diagrams/019e9799c745d04d/diagram-15-3-component-architecture.svg)
 
 ---
 
 ## 4. Execution Flow
 
-```mermaid
-sequenceDiagram
-    participant Client
-    participant CronService
-    participant JobStore
-    participant Timer
-    participant Agent/Channel
-
-    Note over CronService: Service Initialization
-    CronService->>JobStore: Load persisted jobs
-    JobStore-->>CronService: Return jobs list
-    CronService->>CronService: Compute next run times
-    CronService->>Timer: Arm timer for next job
-
-    Note over Client: Schedule New Job
-    Client->>CronService: schedule(name, schedule, payload)
-    CronService->>CronService: Validate schedule
-    CronService->>CronService: Create CronJob with ID
-    CronService->>CronService: Compute next_run
-    CronService->>JobStore: Save jobs to disk
-    CronService->>Timer: Rearm timer if earlier
-    CronService-->>Client: Return job_id
-
-    Note over Timer: Timer Fires
-    Timer->>CronService: Execute pending job
-    CronService->>CronService: Check if enabled
-    alt Job Enabled
-        CronService->>Agent/Channel: Execute payload
-        Agent/Channel-->>CronService: Result
-        alt Success
-            CronService->>CronService: Update state (status: success)
-        else Error
-            CronService->>CronService: Update state (status: error, message)
-        end
-    else Job Disabled
-        CronService->>CronService: Skip execution
-    end
-
-    alt One-shot Job
-        CronService->>CronService: Disable or delete job
-    else Recurring/Cron Job
-        CronService->>CronService: Compute next_run
-    end
-
-    CronService->>JobStore: Save updated state
-    CronService->>Timer: Rearm for next job
-```
+![4. Execution Flow](./diagrams/019e9799c745d04d/diagram-16-4-execution-flow.svg)
 
 ---
 
@@ -1627,105 +676,13 @@ This component bridges the gap between passive agent systems and proactive, time
 
 ## 3. Component Architecture Diagram
 
-```mermaid
-flowchart TB
-    subgraph External["External System"]
-        WORKSPACE["📁 Workspace<br/>HEARTBEAT.md"]
-        CALLBACKS["🔌 Callbacks<br/>(on_execute, on_notify)"]
-        LLM_PROVIDER["🤖 LLM Provider"]
-    end
-
-    subgraph HeartbeatComponent["nanobot/heartbeat"]
-        direction TB
-
-        subgraph Interface["__init__.py<br/>Module Interface"]
-            PUBLIC["HeartbeatService<br/>(Public API)"]
-        end
-
-        subgraph Core["service.py<br/>Core Implementation"]
-            direction LR
-
-            subgraph Lifecycle["Lifecycle Management"]
-                START["start()"]
-                STOP["stop()"]
-                TRIGGER["trigger_now()"]
-            end
-
-            subgraph Engine["Heartbeat Engine"]
-                LOOP["⏰ Async Loop<br/>(Configurable Interval)"]
-                READER["📄 File Reader<br/>(HEARTBEAT.md)"]
-                DECIDER["🧠 LLM Decision<br/>(Phase 1: skip/run)"]
-                EXECUTOR["⚡ Task Executor<br/>(Phase 2)"]
-            end
-        end
-    end
-
-    %% Connections
-    PUBLIC --> START
-    PUBLIC --> STOP
-    PUBLIC --> TRIGGER
-
-    START --> LOOP
-    TRIGGER --> LOOP
-
-    LOOP -->|"Interval Tick"| READER
-    READER -->|"Read Tasks"| WORKSPACE
-    READER -->|"Task Content"| DECIDER
-    DECIDER -->|"LLM Analysis"| LLM_PROVIDER
-    LLM_PROVIDER -->|"Decision: run"| EXECUTOR
-    LLM_PROVIDER -->|"Decision: skip"| LOOP
-
-    EXECUTOR -->|"Execute"| CALLBACKS
-    EXECUTOR -->|"Results"| CALLBACKS
-
-    %% Styling
-    classDef component fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    classDef external fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    classDef process fill:#f3e5f5,stroke:#4a148c,stroke-width:1px
-
-    class HeartbeatComponent,Interface,Core component
-    class External,WORKSPACE,CALLBACKS,LLM_PROVIDER external
-    class Lifecycle,Engine,START,STOP,TRIGGER,LOOP,READER,DECIDER,EXECUTOR process
-```
+![3. Component Architecture Diagram](./diagrams/019e9799c745d04d/diagram-17-3-component-architecture-diagram.svg)
 
 ---
 
 ## 4. Interaction Flow (Sequence Perspective)
 
-```mermaid
-sequenceDiagram
-    participant System as External System
-    participant HS as HeartbeatService
-    participant Loop as Background Loop
-    participant File as HEARTBEAT.md
-    participant LLM as LLM Provider
-    participant Callback as on_execute
-
-    System->>HS: start()
-    HS->>Loop: Create asyncio task
-    activate Loop
-
-    loop Every N seconds
-        Loop->>File: Read task definitions
-        File-->>Loop: Markdown content
-
-        Loop->>LLM: Phase 1: Analyze tasks
-        Note over LLM: Structured tool call<br/>(skip or run action)
-
-        alt Tasks Need Execution
-            LLM-->>Loop: Decision: "run" + summary
-            Loop->>Callback: Phase 2: on_execute(summary)
-            Callback-->>Loop: Execution result
-            Loop->>System: on_notify(result)
-        else No Tasks Active
-            LLM-->>Loop: Decision: "skip"
-        end
-    end
-
-    System->>HS: stop()
-    HS->>Loop: Cancel & cleanup
-    deactivate Loop
-```
+![4. Interaction Flow (Sequence Perspective)](./diagrams/019e9799c745d04d/diagram-18-4-interaction-flow-sequence-perspective.svg)
 
 ---
 
@@ -1764,66 +721,7 @@ The system follows the **OpenClaw compatibility standard**, ensuring skills are 
 
 ## 3. Component Architecture Diagram
 
-```mermaid
-flowchart TB
-    subgraph NB["nanobot Core"]
-        Agent[Agent Orchestrator]
-    end
-
-    subgraph SS["nanobot/skills Component"]
-        subgraph Core["Skill System Core"]
-            SD[(Skills Directory)]
-            Parser[YAML/Markdown Parser]
-            Loader[Skill Loader]
-        end
-
-        subgraph BuiltIn["Built-in Skills"]
-            GH[GitHub CLI<br/>gh integration]
-            WX[Weather<br/>wttr.in / Open-Meteo]
-            SUM[Summarizer<br/>URLs / Files / YouTube]
-            TMX[Tmux Controller<br/>Session Management]
-            REG[ClawHub Registry<br/>Search / Install]
-            CRT[Skill Creator<br/>New Skill Generator]
-        end
-
-        subgraph Schema["Skill Schema"]
-            YAML["YAML Frontmatter<br/>(name, description, config)"]
-            MD["Markdown Instructions<br/>(agent execution steps)"]
-        end
-    end
-
-    subgraph External["External Systems"]
-        GitHub[(GitHub API)]
-        WeatherAPI[(Weather Services)]
-        ClawHub[(ClawHub Registry)]
-        TmuxSrv[Tmux Sessions]
-        ContentSrc[Content Sources<br/>URLs / Files / YouTube]
-    end
-
-    Agent -->|"Discover & Execute"| Loader
-    Loader -->|"Parse"| Parser
-    Parser -->|"Read"| SD
-    SD -->|"Contains"| Schema
-
-    Loader -->|"Route to"| BuiltIn
-
-    GH <-->|"gh CLI"| GitHub
-    WX <-->|"HTTP"| WeatherAPI
-    REG <-->|"Search/Install"| ClawHub
-    TMX <-->|"Control"| TmuxSrv
-    SUM <-->|"Fetch/Extract"| ContentSrc
-    CRT -->|"Generate"| SD
-
-    classDef core fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    classDef skill fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    classDef external fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
-    classDef schema fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
-
-    class SD,Parser,Loader core
-    class GH,WX,SUM,TMX,REG,CRT skill
-    class GitHub,WeatherAPI,ClawHub,TmuxSrv,ContentSrc external
-    class YAML,MD schema
-```
+![3. Component Architecture Diagram](./diagrams/019e9799c745d04d/diagram-19-3-component-architecture-diagram.svg)
 
 ---
 
@@ -1863,99 +761,13 @@ The `nanobot/providers` component serves as the **unified LLM abstraction layer*
 
 ## 3. Architecture Diagram
 
-```mermaid
-flowchart TB
-    subgraph Clients["System Clients"]
-        direction LR
-        NC[Nanobot Core]
-        CLI[CLI Commands]
-    end
-
-    subgraph Registry["Provider Registry"]
-        PR[registry.py<br/>Provider Metadata]
-        PR --> |"Provider Lookup"| DET{Detection Logic}
-        DET --> |"Model Keyword"| STD[Standard Providers]
-        DET --> |"API Key Prefix"| GW[Gateways]
-        DET --> |"Base URL"| LOC[Local/Custom]
-    end
-
-    subgraph Abstraction["Abstraction Layer"]
-        INIT["__init__.py<br/>Module Exports"]
-        BASE["base.py<br/>LLMProvider ABC"]
-        RESP["LLMResponse Dataclass"]
-        TC["ToolCallRequest Dataclass"]
-
-        BASE --> RESP
-        BASE --> TC
-        INIT --> BASE
-    end
-
-    subgraph Providers["Provider Implementations"]
-        direction TB
-
-        LP["litellm_provider.py<br/>LiteLLM Wrapper"]
-        CP["custom_provider.py<br/>Direct OpenAI-Compatible"]
-        OCP["openai_codex_provider.py<br/>ChatGPT Backend + OAuth"]
-
-        LP --> |"Multi-Provider"| PROVS[("Anthropic, OpenAI,<br/>Gemini, DeepSeek,<br/>OpenRouter, etc.")]
-        CP --> |"Direct API"| LOCAL["Local vLLM,<br/>Self-Hosted"]
-        OCP --> |"OAuth + SSE"| CODEX["GPT-5.1-codex"]
-    end
-
-    subgraph Voice["Voice Services"]
-        TR["transcription.py<br/>Groq Whisper"]
-        TR --> |"Audio → Text"| GROQ["Groq API"]
-    end
-
-    NC --> |"Chat Request"| INIT
-    CLI --> |"Status/Config"| PR
-
-    BASE -.-> |"implements"| LP
-    BASE -.-> |"implements"| CP
-    BASE -.-> |"implements"| OCP
-
-    PR --> |"Route to Provider"| LP
-    PR --> |"Bypass LiteLLM"| CP
-    PR --> |"OAuth Provider"| OCP
-
-    style BASE fill:#e1f5fe,stroke:#01579b
-    style PR fill:#fff3e0,stroke:#e65100
-    style LP fill:#e8f5e9,stroke:#1b5e20
-    style RESP fill:#f3e5f5,stroke:#4a148c
-```
+![3. Architecture Diagram](./diagrams/019e9799c745d04d/diagram-20-3-architecture-diagram.svg)
 
 ---
 
 ## 4. Component Interaction Flow
 
-```mermaid
-sequenceDiagram
-    participant Core as Nanobot Core
-    participant Init as __init__.py
-    participant Reg as Registry
-    participant Base as LLMProvider
-    participant Prov as Provider Impl
-    participant LLM as LLM API
-
-    Core->>Init: Import LLMProvider, LLMResponse
-    Init->>Base: Expose abstract interface
-
-    Core->>Reg: resolve_provider(model, config)
-    Reg->>Reg: Match by keyword/prefix/URL
-    Reg-->>Core: ProviderSpec (type, env vars, prefix)
-
-    Core->>Prov: new(provider_spec, api_key, base_url)
-    Prov-->>Core: Provider instance
-
-    Core->>Prov: chat_completion(messages, tools, params)
-    Prov->>Base: sanitize_messages(messages)
-    Base-->>Prov: Cleaned messages
-    Prov->>Prov: Build provider-specific request
-    Prov->>LLM: Async HTTP request
-    LLM-->>Prov: Raw response / SSE stream
-    Prov->>Prov: Parse response + tool calls
-    Prov-->>Core: LLMResponse(text, tool_calls, usage)
-```
+![4. Component Interaction Flow](./diagrams/019e9799c745d04d/diagram-21-4-component-interaction-flow.svg)
 
 ---
 
@@ -1994,93 +806,13 @@ The `nanobot/session` component serves as the **persistent conversation memory l
 
 ## 3. Component Architecture Diagram
 
-```mermaid
-classDiagram
-    direction TB
-
-    namespace Public_API {
-        class SessionManager {
-            +get_or_create(key: str) Session
-            +clear(key: str) void
-            +invalidate(key: str) void
-            +list_sessions() List~SessionMeta~
-            -_cache: Dict~str, Session~
-            -_workspace_path: Path
-        }
-
-        class Session {
-            +key: str
-            +messages: List~Message~
-            +metadata: Dict
-            +created_at: datetime
-            +updated_at: datetime
-            +add_message(role, content, tool_calls, tool_call_id)
-            +save()
-            +consolidation_progress: int
-        }
-    }
-
-    namespace Storage_Layer {
-        class JSONLStorage {
-            +save(session: Session)
-            +load(key: str) Session
-            +migrate_legacy()
-        }
-
-        class Message {
-            +role: str
-            +content: str
-            +timestamp: datetime
-            +tool_calls: Optional
-            +tool_call_id: Optional
-        }
-    }
-
-    SessionManager "1" --> "*" Session : manages
-    Session "1" --> "*" Message : contains
-    SessionManager --> JSONLStorage : persists via
-    JSONLStorage ..> Session : deserializes to
-
-    note for SessionManager "Entry point defined in __init__.py\nExposes clean public API via __all__"
-    note for JSONLStorage "Handles atomic writes,\nlegacy migration, and\nworkspace-scoped paths"
-```
+![3. Component Architecture Diagram](./diagrams/019e9799c745d04d/diagram-22-3-component-architecture-diagram.svg)
 
 ---
 
 ## 4. Interaction Flow Diagram
 
-```mermaid
-sequenceDiagram
-    participant Client as nanobot/core
-    participant SM as SessionManager
-    participant Cache as In-Memory Cache
-    participant FS as JSONL Storage
-
-    Client->>SM: get_or_create("channel:chat_id")
-    SM->>Cache: check_cache(key)
-
-    alt Cache Hit
-        Cache-->>SM: Session
-    else Cache Miss
-        SM->>FS: load_session(key)
-        alt Session Exists
-            FS-->>SM: Session data
-            SM->>SM: deserialize messages
-        else New Session
-            SM->>SM: create new Session()
-        end
-        SM->>Cache: store(session)
-    end
-
-    SM-->>Client: Session
-
-    Client->>SM: session.add_message("user", "Hello")
-    SM->>Cache: update cache
-    SM->>FS: save_session(session)
-    FS-->>SM: persisted
-
-    Note over SM,FS: Atomic JSONL write with UTF-8 encoding
-```
+![4. Interaction Flow Diagram](./diagrams/019e9799c745d04d/diagram-23-4-interaction-flow-diagram.svg)
 
 ---
 
@@ -2117,95 +849,7 @@ The `nanobot/utils` component serves as the **foundational infrastructure layer*
 
 ## 3. Component Architecture Diagram
 
-```mermaid
-flowchart TB
-    subgraph External["External Consumers"]
-        APP["Nanobot Core Application"]
-        CLI["CLI Commands"]
-        AGENTS["Agent Modules"]
-    end
-
-    subgraph Utils["nanobot/utils Component"]
-        direction TB
-
-        subgraph Init["__init__.py"]
-            ALLEXPORT["Public API Exports\n(__all__)"]
-        end
-
-        subgraph Helpers["helpers.py"]
-            direction LR
-
-            subgraph PathMgmt["Path Management"]
-                GETWP["get_workspace_path()"]
-                GETDP["get_data_path()"]
-            end
-
-            subgraph FileOps["File Operations"]
-                ENSURE["ensure_dir()"]
-                SANITIZE["sanitize_filename()"]
-                SYNC["sync_templates()"]
-            end
-
-            subgraph Utilities["Utilities"]
-                TIMESTAMP["get_timestamp()"]
-            end
-        end
-    end
-
-    subgraph FileSystem["Filesystem Layer"]
-        direction TB
-        DATA_DIR["~/.nanobot/\n(Data Directory)"]
-        WORKSPACE["~/.nanobot/workspace/\n(Workspace Root)"]
-        MEMORY["memory/"]
-        SKILLS["skills/"]
-        TEMPLATES["Bundled Templates\n(Package Resources)"]
-    end
-
-    %% External connections
-    APP --> ALLEXPORT
-    CLI --> ALLEXPORT
-    AGENTS --> ALLEXPORT
-
-    %% Internal routing
-    ALLEXPORT --> GETWP
-    ALLEXPORT --> GETDP
-    ALLEXPORT --> ENSURE
-    ALLEXPORT --> SANITIZE
-    ALLEXPORT --> SYNC
-
-    %% Path management flows
-    GETWP --> ENSURE
-    GETWP --> WORKSPACE
-    GETDP --> ENSURE
-    GETDP --> DATA_DIR
-
-    %% Template sync flow
-    SYNC --> TEMPLATES
-    SYNC --> ENSURE
-    SYNC --> MEMORY
-    SYNC --> SKILLS
-    SYNC --> WORKSPACE
-
-    %% Utilities
-    ENSURE --> WORKSPACE
-    ENSURE --> DATA_DIR
-    SANITIZE --> |"Safe Filenames"| WORKSPACE
-
-    %% Styling
-    classDef coreModule fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    classDef publicAPI fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    classDef fileOp fill:#e8f5e9,stroke:#2e7d32,stroke-width:1px
-    classDef pathOp fill:#f3e5f5,stroke:#7b1fa2,stroke-width:1px
-    classDef storage fill:#fce4ec,stroke:#c2185b,stroke-width:2px
-    classDef external fill:#fff8e1,stroke:#ff8f00,stroke-width:1px,stroke-dasharray: 5 5
-
-    class Init,Helpers coreModule
-    class ALLEXPORT publicAPI
-    class ENSURE,SANITIZE,SYNC fileOp
-    class GETWP,GETDP,TIMESTAMP pathOp
-    class DATA_DIR,WORKSPACE,MEMORY,SKILLS,TEMPLATES storage
-    class APP,CLI,AGENTS external
-```
+![3. Component Architecture Diagram](./diagrams/019e9799c745d04d/diagram-24-3-component-architecture-diagram.svg)
 
 ---
 
@@ -2244,58 +888,7 @@ The `nanobot/templates` component serves as the **configuration and behavioral f
 
 The following C4 Container diagram illustrates how the template files interact to form a cohesive agent configuration system:
 
-```mermaid
-flowchart TB
-    subgraph Templates["<b>nanobot/templates</b><br/>Configuration Layer"]
-        direction TB
-
-        SOUL["<b>SOUL.md</b><br/>Personality & Values<br/>━━━━━━━━━━━━━━<br/>• Identity Definition<br/>• Communication Style<br/>• Core Values Framework"]
-
-        USER["<b>USER.md</b><br/>User Profile<br/>━━━━━━━━━━━━━━<br/>• Identity & Preferences<br/>• Technical Expertise<br/>• Work Context"]
-
-        AGENTS["<b>AGENTS.md</b><br/>Agent Instructions<br/>━━━━━━━━━━━━━━<br/>• Reminder Management<br/>• Heartbeat Task Rules<br/>• Behavior Guidelines"]
-
-        HEARTBEAT["<b>HEARTBEAT.md</b><br/>Task Queue<br/>━━━━━━━━━━━━━━<br/>• Active Tasks<br/>• Completed Tasks<br/>• 30-min Cycle"]
-
-        TOOLS["<b>TOOLS.md</b><br/>Safety Constraints<br/>━━━━━━━━━━━━━━<br/>• Command Timeouts<br/>• Dangerous Command Block<br/>• Workspace Limits"]
-    end
-
-    subgraph Runtime["<b>Nanobot Runtime</b><br/>Agent Execution Engine"]
-        ENGINE[("🤖 AI Agent<br/>Execution Core")]
-        CRON["⏰ Cron<br/>Scheduler"]
-        CHANNEL["📤 Delivery<br/>Channels"]
-    end
-
-    %% Configuration Flow
-    SOUL -->|"Shapes Persona"| ENGINE
-    USER -->|"Personalizes Responses"| ENGINE
-    TOOLS -->|"Enforces Safety"| ENGINE
-
-    %% Task Orchestration Flow
-    AGENTS -->|"Defines Task Rules"| ENGINE
-    ENGINE -->|"Reads/Writes Tasks"| HEARTBEAT
-    HEARTBEAT -->|"Triggers Every 30min"| ENGINE
-
-    %% Reminder Flow
-    AGENTS -->|"Schedules Reminders"| CRON
-    CRON -->|"Triggers Delivery"| CHANNEL
-    ENGINE -->|"Routes to User"| CHANNEL
-
-    %% Styling
-    classDef soul fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    classDef user fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
-    classDef agents fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    classDef heartbeat fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
-    classDef tools fill:#ffebee,stroke:#b71c1c,stroke-width:2px
-    classDef runtime fill:#eceff1,stroke:#37474f,stroke-width:2px
-
-    class SOUL soul
-    class USER user
-    class AGENTS agents
-    class HEARTBEAT heartbeat
-    class TOOLS tools
-    class ENGINE,CRON,CHANNEL runtime
-```
+![3. Component Interaction Diagram](./diagrams/019e9799c745d04d/diagram-25-3-component-interaction-diagram.svg)
 
 ---
 
@@ -2339,34 +932,7 @@ Based on the file analysis, this component provides the following high-level cap
 
 The following C4 Container diagram illustrates the interaction flow between the user, the nanobot system, and the external ClawHub registry managed by this component.
 
-```mermaid
-C4Container
-    title Component Interaction: ClawHub Skill Manager
-
-    Person(user, "User", "Interacts via natural language or CLI")
-
-    System_Boundary(nanobot, "Nanobot System") {
-        Container(clawhub_skill, "ClawHub Skill", "Skill Module", "Interprets intent and orchestrates skill management")
-        Container(workspace, "Nanobot Workspace", "File System", "~/.nanobot/workspace/skills/")
-        Container(nanobot_core, "Nanobot Core", "Agent Runtime", "Executes skills and manages session")
-    }
-
-    System_External(clawhub_registry, "ClawHub Registry", "Public skill database & vector search engine")
-
-    Rel(user, nanobot_core, "Requests skill install/search", "Natural Language")
-    Rel(nanobot_core, clawhub_skill, "Delegates task")
-
-    Rel(clawhub_skill, clawhub_registry, "1. Search skills (Vector Search)", "HTTPS/npx")
-    Rel(clawhub_skill, clawhub_registry, "2. Fetch skill package", "HTTPS/npx")
-
-    Rel(clawhub_skill, workspace, "3. Write/Update skill files", "File I/O")
-
-    Rel(nanobot_core, workspace, "4. Load new skills", "Session Restart")
-
-    UpdateRelStyle(user, nanobot_core, $textColor="blue")
-    UpdateRelStyle(clawhub_skill, clawhub_registry, $textColor="red")
-    UpdateRelStyle(clawhub_skill, workspace, $textColor="green")
-```
+![3. Component Architecture Diagram](./diagrams/019e9799c745d04d/diagram-26-3-component-architecture-diagram.svg)
 
 ### Directory: `nanobot/skills/cron`
 
@@ -2393,68 +959,7 @@ The **cron** skill is a **time-based job scheduling subsystem** that enables the
 
 ## 3. Component Architecture Diagram
 
-```mermaid
-flowchart TB
-    subgraph External["External Actors"]
-        User["User"]
-        Agent["AI Agent Core"]
-    end
-
-    subgraph CronSkill["nanobot/skills/cron"]
-        direction TB
-
-        subgraph Interface["Action Interface"]
-            Add["ADD Job"]
-            List["LIST Jobs"]
-            Remove["REMOVE Job"]
-        end
-
-        subgraph Parser["Time Expression Parser"]
-            NLP["Natural Language<br/>Time Converter"]
-            ISO["ISO Datetime<br/>Processor"]
-            CronExpr["Cron Expression<br/>Validator"]
-        end
-
-        subgraph Scheduler["Scheduling Engine"]
-            TZ["Timezone Handler<br/>(IANA Support)"]
-            JobQueue["Job Registry"]
-        end
-
-        subgraph Execution["Execution Modes"]
-            Reminder["Reminder Mode<br/>(Notify User)"]
-            Task["Task Mode<br/>(Agent Executes)"]
-        end
-    end
-
-    subgraph Output["Outcomes"]
-        Notify["User Notification"]
-        ActionResult["Task Results"]
-    end
-
-    User -->|"Schedule request"| Agent
-    Agent -->|"Action Parameter"| Interface
-
-    Add --> Parser
-    List --> JobQueue
-    Remove --> JobQueue
-
-    NLP --> TZ
-    ISO --> TZ
-    CronExpr --> TZ
-
-    TZ --> JobQueue
-    JobQueue -->|"Trigger at schedule"| Execution
-
-    Reminder --> Notify
-    Task -->|"Execute & return"| ActionResult
-    ActionResult --> Agent
-
-    Notify --> User
-
-    style CronSkill fill:#e1f5fe,stroke:#01579b
-    style External fill:#fff3e0,stroke:#e65100
-    style Output fill:#e8f5e9,stroke:#1b5e20
-```
+![3. Component Architecture Diagram](./diagrams/019e9799c745d04d/diagram-27-3-component-architecture-diagram.svg)
 
 ---
 
@@ -2493,57 +998,7 @@ The **Memory** component is a persistent, two-layer memory subsystem designed to
 
 ## 3. Architecture Diagram
 
-```mermaid
-flowchart TB
-    subgraph Session["🔄 Active Session"]
-        User[("User Interaction")]
-        AI["AI Assistant Context"]
-    end
-
-    subgraph MemorySystem["📁 Memory Component (Always-Active Skill)"]
-        direction TB
-
-        subgraph SemanticLayer["🧠 Semantic Memory Layer"]
-            MEMFile[("MEMORY.md<br/>━━━━━━━━━━━<br/>• User Preferences<br/>• Project Context<br/>• Relationships<br/>• Long-term Facts")]
-        end
-
-        subgraph EpisodicLayer["📜 Episodic Memory Layer"]
-            HISTFile[("HISTORY.md<br/>━━━━━━━━━━━<br/>• Timestamped Events<br/>• Conversation Summaries<br/>• [YYYY-MM-DD HH:MM]")]
-        end
-
-        subgraph Operations["⚙️ Memory Operations"]
-            AutoLoad["Auto-Load<br/>(Session Start)"]
-            FactExtract["Fact Extraction<br/>(Automatic)"]
-            Consolidate["Consolidation<br/>(Size-Triggered)"]
-            Search["Grep Search<br/>(On-Demand)"]
-        end
-    end
-
-    %% Session flows
-    User -->|"Conversation"| AI
-    AutoLoad -->|"1. Load Context"| AI
-    AI -->|"2. New Information"| FactExtract
-    AI -->|"Search Query"| Search
-
-    %% Storage flows
-    FactExtract -->|"Extract Facts"| MEMFile
-    FactExtract -->|"Log Events"| HISTFile
-    Consolidate -->|"Summarize & Move"| HISTFile
-    Consolidate -->|"Extract Facts"| MEMFile
-
-    %% Search flow
-    Search -->|"Pattern Match"| HISTFile
-    Search -->|"Results"| AI
-
-    %% Styling
-    classDef fileNode fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    classDef opNode fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    classDef entityNode fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
-
-    class MEMFile,HISTFile fileNode
-    class AutoLoad,FactExtract,Consolidate,Search opNode
-    class User,AI entityNode
-```
+![3. Architecture Diagram](./diagrams/019e9799c745d04d/diagram-28-3-architecture-diagram.svg)
 
 ---
 
@@ -2583,177 +1038,13 @@ The `nanobot/agent/tools` component serves as the **extensible tooling subsystem
 
 ## 3. Architecture Diagram
 
-```mermaid
-classDiagram
-    direction TB
-
-    namespace "Public API" {
-        class InitModule {
-            <<module>>
-            +Tool
-            +ToolRegistry
-        }
-    }
-
-    namespace "Core Framework" {
-        class ToolBase {
-            <<abstract>>
-            +name: str
-            +description: str
-            +parameters: dict
-            +execute()* async
-            +validate_params()
-            +get_schema()
-            -_validate_json_schema()
-        }
-
-        class ToolRegistry {
-            -_tools: dict
-            +register(tool)
-            +unregister(name)
-            +get(name)
-            +execute(name, params)*
-            +get_definitions()
-            +list_tools()
-        }
-    }
-
-    namespace "Built-in Tools" {
-        class FilesystemTool {
-            +read_file()
-            +write_file()
-            +edit_file()
-            +list_directory()
-            -_resolve_path()
-            -_validate_path()
-        }
-
-        class MessageTool {
-            +send_message()
-            +set_context()
-            +reset_turn()
-            -_send_callback()
-        }
-
-        class WebTool {
-            +web_search()
-            +fetch_url()
-            -_html_to_markdown()
-            -_extract_content()
-        }
-
-        class CronTool {
-            +add_job()
-            +list_jobs()
-            +remove_job()
-            -_validate_timezone()
-        }
-
-        class ShellTool {
-            +execute_command()
-            -_check_denylist()
-            -_extract_paths()
-            -_validate_workspace()
-        }
-
-        class SpawnTool {
-            +spawn_subagent()
-            -_create_session_key()
-        }
-    }
-
-    namespace "External Integration" {
-        class MCPClient {
-            +connect_servers()
-            +discover_tools()
-            +wrap_mcp_tool()
-            -_handle_stdio_transport()
-            -_handle_http_transport()
-        }
-    }
-
-    namespace "External Services" {
-        class CronService {
-            <<external>>
-        }
-        class SubagentManager {
-            <<external>>
-        }
-        class BraveSearchAPI {
-            <<external>>
-        }
-        class MCPServers {
-            <<external>>
-        }
-    }
-
-    %% Relationships
-    InitModule --> ToolBase : exposes
-    InitModule --> ToolRegistry : exposes
-
-    ToolRegistry "1" --> "*" ToolBase : manages
-    ToolBase <|-- FilesystemTool : extends
-    ToolBase <|-- MessageTool : extends
-    ToolBase <|-- WebTool : extends
-    ToolBase <|-- CronTool : extends
-    ToolBase <|-- ShellTool : extends
-    ToolBase <|-- SpawnTool : extends
-
-    MCPClient --> ToolRegistry : registers wrapped tools
-    MCPClient --> MCPServers : connects
-
-    CronTool --> CronService : uses
-    SpawnTool --> SubagentManager : uses
-    WebTool --> BraveSearchAPI : queries
-```
+![3. Architecture Diagram](./diagrams/019e9799c745d04d/diagram-29-3-architecture-diagram.svg)
 
 ---
 
 ## 4. Data Flow: Tool Execution Lifecycle
 
-```mermaid
-sequenceDiagram
-    participant Agent as Nanobot Agent
-    participant Registry as ToolRegistry
-    participant Tool as Tool Instance
-    participant Validator as JSON Validator
-    participant External as External System
-
-    Agent->>Registry: get_definitions()
-    Registry-->>Agent: OpenAI Function Schemas
-
-    Agent->>Registry: execute("tool_name", params)
-    Registry->>Registry: get("tool_name")
-
-    alt Tool Not Found
-        Registry-->>Agent: Error + Available Tools
-    else Tool Found
-        Registry->>Tool: validate_params(params)
-        Tool->>Validator: JSON Schema Validation
-
-        alt Validation Failed
-            Validator-->>Tool: Error List
-            Tool-->>Registry: Validation Errors
-            Registry-->>Agent: Parameter Error
-        else Validation Passed
-            Validator-->>Tool: Valid
-            Registry->>Tool: execute(params) async
-
-            Tool->>External: Perform Operation
-
-            alt Execution Success
-                External-->>Tool: Result
-                Tool-->>Registry: Success Result
-                Registry-->>Agent: Tool Output
-            else Execution Error
-                External-->>Tool: Exception
-                Tool-->>Registry: Error Result
-                Registry->>Registry: Enhance Error with Hints
-                Registry-->>Agent: Error + Retry Hints
-            end
-        end
-    end
-```
+![4. Data Flow: Tool Execution Lifecycle](./diagrams/019e9799c745d04d/diagram-30-4-data-flow-tool-execution-lifecycle.svg)
 
 ---
 
@@ -2795,127 +1086,13 @@ This component transforms raw GitHub CLI capabilities into a **declarative, skil
 
 ## 3. Component Architecture Diagram
 
-```mermaid
-flowchart TB
-    subgraph NB["🤖 Nanobot Core System"]
-        direction TB
-        ORCH[("Skill Orchestrator")]
-        SKILL["SKILL.md<br/>GitHub Skill Definition"]
-    end
-
-    subgraph GH_COMP["📦 nanobot/skills/github"]
-        direction TB
-
-        subgraph FEATURES["Capability Layer"]
-            PR["🔀 Pull Request<br/>Management"]
-            WF["⚙️ Workflow<br/>Monitoring"]
-            API["🔌 API<br/>Gateway"]
-            ISS["📋 Issue<br/>Management"]
-        end
-
-        subgraph UTILS["Utility Layer"]
-            FMT["JSON/jq<br/>Formatter"]
-            REPO["Repository<br/>Resolver"]
-        end
-    end
-
-    subgraph EXT["🌐 External Dependencies"]
-        direction LR
-        GH_CLI["GitHub CLI<br/>(gh binary)"]
-        BREW["Homebrew"]
-        APT["APT Package<br/>Manager"]
-    end
-
-    subgraph GH_API["☁️ GitHub Platform"]
-        direction TB
-        REST["REST API"]
-        GQL["GraphQL API"]
-        ACTIONS["GitHub Actions"]
-        PRS["Pull Requests"]
-        ISSUES["Issues"]
-    end
-
-    %% Internal Flow
-    ORCH -->|"Invokes Skill"| SKILL
-    SKILL --> PR
-    SKILL --> WF
-    SKILL --> API
-    SKILL --> ISS
-
-    PR --> FMT
-    WF --> FMT
-    API --> FMT
-    ISS --> FMT
-
-    FMT --> REPO
-
-    %% External Dependencies
-    SKILL -.->|"Dependency Check"| GH_CLI
-    BREW -.->|"Install"| GH_CLI
-    APT -.->|"Install"| GH_CLI
-
-    %% API Connections
-    REPO -->|"Executes Commands"| GH_CLI
-    GH_CLI -->|"API Calls"| REST
-    GH_CLI -->|"API Calls"| GQL
-
-    REST --> ACTIONS
-    REST --> PRS
-    REST --> ISSUES
-    GQL --> PRS
-    GQL --> ISSUES
-
-    %% Styling
-    classDef core fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    classDef feature fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    classDef external fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
-    classDef github fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
-
-    class ORCH,SKILL core
-    class PR,WF,API,ISS,FMT,REPO feature
-    class GH_CLI,BREW,APT external
-    class REST,GQL,ACTIONS,PRS,ISSUES github
-```
+![3. Component Architecture Diagram](./diagrams/019e9799c745d04d/diagram-31-3-component-architecture-diagram.svg)
 
 ---
 
 ## 4. Interaction Flow (Runtime Sequence)
 
-```mermaid
-sequenceDiagram
-    participant User as 👤 User/Agent
-    participant NB as Nanobot Core
-    participant Skill as GitHub Skill
-    participant CLI as gh CLI
-    participant GH as GitHub API
-
-    User->>NB: Request GitHub Operation
-    NB->>Skill: Load SKILL.md
-
-    alt CLI Not Installed
-        Skill->>CLI: Check Binary Dependency
-        CLI-->>Skill: Not Found
-        Skill-->>NB: Trigger Installation (brew/apt)
-    end
-
-    NB->>Skill: Execute Operation
-
-    alt Repository Context Needed
-        Skill->>Skill: Resolve Repository<br/>(auto-detect | explicit | URL)
-    end
-
-    Skill->>CLI: Construct gh Command
-    CLI->>GH: API Request
-    GH-->>CLI: Response Data
-    CLI-->>Skill: JSON Output
-
-    alt jq Filtering Required
-        Skill->>Skill: Apply jq Transform
-    end
-
-    Skill-->>NB: Structured Result
-    NB-->>User: Formatted Response
-```
+![4. Interaction Flow (Runtime Sequence)](./diagrams/019e9799c745d04d/diagram-32-4-interaction-flow-runtime-sequence.svg)
 
 ---
 
@@ -2960,69 +1137,7 @@ Based on the file analysis, this component provides the following high-level cap
 
 The following C4 Container diagram illustrates the flow of data from external sources through the `summarize` component's internal logic to the final output generation.
 
-```mermaid
-graph TD
-    subgraph "External Sources"
-        WEB[Web URLs]
-        FS[Local Files / PDFs]
-        YT[YouTube Videos]
-    end
-
-    subgraph "summarize Component"
-        direction TB
-        CLI[CLI Interface / Entry Point]
-
-        subgraph "Ingestion Layer"
-            WEB_HANDLER[HTTP / Firecrawl Handler]
-            FILE_PARSER[File Parser]
-            YT_EXTRACT[YouTube Transcript Extractor]
-        end
-
-        TEXT_NORMALIZER[Text Normalizer]
-
-        subgraph "AI Provider Gateway"
-            PROV_ROUTER{Provider Router}
-            OPENAI[OpenAI API]
-            ANTHROPIC[Anthropic API]
-            XAI[xAI API]
-            GEMINI[Google Gemini API]
-        end
-
-        CONFIG[Configuration Manager]
-        DB[(Config Store<br/>~/.summarize/config.json)]
-    end
-
-    subgraph "Outputs"
-        HUMAN_OUT[Human-Readable Summary]
-        JSON_OUT[JSON Output]
-        RAW_TEXT[Raw Extracted Text]
-    end
-
-    %% Relationships
-    WEB --> WEB_HANDLER
-    FS --> FILE_PARSER
-    YT --> YT_EXTRACT
-
-    WEB_HANDLER --> TEXT_NORMALIZER
-    FILE_PARSER --> TEXT_NORMALIZER
-    YT_EXTRACT --> TEXT_NORMALIZER
-
-    CLI --> TEXT_NORMALIZER
-    TEXT_NORMALIZER --> PROV_ROUTER
-
-    PROV_ROUTER --> OPENAI
-    PROV_ROUTER --> ANTHROPIC
-    PROV_ROUTER --> XAI
-    PROV_ROUTER --> GEMINI
-
-    CONFIG --> DB
-    CONFIG -.-> PROV_ROUTER
-    CONFIG -.-> CLI
-
-    OPENAI --> HUMAN_OUT
-    ANTHROPIC --> JSON_OUT
-    TEXT_NORMALIZER -- Extract Only --> RAW_TEXT
-```
+![3. Component Architecture Diagram](./diagrams/019e9799c745d04d/diagram-33-3-component-architecture-diagram.svg)
 
 ### Directory: `nanobot/skills/skill-creator`
 
@@ -3049,73 +1164,7 @@ The **Skill Creator** component is a **meta-skill framework**—a self-describin
 
 The following diagram illustrates the **Skill Creation Workflow** and how the constituent files interact to produce a packaged, distributable skill:
 
-```mermaid
-flowchart TD
-    subgraph "Skill Creator Component"
-        SKILL_MD["SKILL.md<br/><i>Design Specification & Workflow Guide</i>"]
-        INIT["init_skill.py<br/><i>Scaffolding Tool</i>"]
-        PACKAGE["package_skill.py<br/><i>Validation & Packaging Tool</i>"]
-    end
-
-    subgraph "Skill Creation Workflow"
-        direction TB
-        STEP1[/"1. UNDERSTAND<br/>Gather examples & validate requirements"/]
-        STEP2[/"2. PLAN<br/>Identify scripts, references, assets"/]
-        STEP3[/"3. INITIALIZE<br/>Generate structure"/]
-        STEP4[/"4. EDIT<br/>Implement resources & write SKILL.md"/]
-        STEP5[/"5. PACKAGE<br/>Validate & create .skill file"/]
-        STEP6[/"6. ITERATE<br/>Real-world testing & refinement"/]
-    end
-
-    subgraph "Generated Skill Structure"
-        direction TB
-        NEW_SKILL_MD["skill-name/SKILL.md<br/><i>YAML frontmatter + Markdown body</i>"]
-        SCRIPTS["scripts/<br/><i>Executable code</i>"]
-        REFS["references/<br/><i>Loadable documentation</i>"]
-        ASSETS["assets/<br/><i>Output templates</i>"]
-    end
-
-    subgraph "Output"
-        SKILL_FILE[("skill-name.skill<br/><i>Distributable zip package</i>")]
-    end
-
-    %% Workflow connections
-    STEP1 --> STEP2
-    STEP2 --> STEP3
-    STEP3 --> STEP4
-    STEP4 --> STEP5
-    STEP5 --> STEP6
-    STEP6 -.->|"feedback loop"| STEP4
-
-    %% Component to workflow mapping
-    SKILL_MD -.->|"guides all steps"| STEP1
-    SKILL_MD -.->|"Degrees of Freedom<br/>Framework"| STEP2
-    INIT -->|"auto-generates"| STEP3
-    PACKAGE -->|"validates & bundles"| STEP5
-
-    %% Initialization outputs
-    STEP3 --> NEW_SKILL_MD
-    STEP3 --> SCRIPTS
-    STEP3 --> REFS
-    STEP3 --> ASSETS
-
-    %% Packaging inputs
-    NEW_SKILL_MD & SCRIPTS & REFS & ASSETS --> STEP5
-    STEP5 --> SKILL_FILE
-
-    %% Styling
-    classDef spec fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    classDef tool fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    classDef workflow fill:#f3e5f5,stroke:#4a148c,stroke-width:1px,rx:20
-    classDef output fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
-    classDef generated fill:#fce4ec,stroke:#880e4f,stroke-width:1px
-
-    class SKILL_MD spec
-    class INIT,PACKAGE tool
-    class STEP1,STEP2,STEP3,STEP4,STEP5,STEP6 workflow
-    class SKILL_FILE output
-    class NEW_SKILL_MD,SCRIPTS,REFS,ASSETS generated
-```
+![3. Component Interaction Diagram](./diagrams/019e9799c745d04d/diagram-34-3-component-interaction-diagram.svg)
 
 ---
 
@@ -3154,61 +1203,7 @@ The **Weather Skill** is a self-contained capability module that provides the na
 
 ## 3. Component Architecture Diagram
 
-```mermaid
-flowchart TB
-    subgraph NB["🤖 Nanobot System"]
-        REQ["Weather Request"]
-    end
-
-    subgraph WS["nanobot/skills/weather"]
-        direction TB
-
-        subgraph CONFIG["Configuration Layer"]
-            UNITS["Unit System<br/>(Metric / USCS)"]
-            FORMAT["Output Format<br/>(Compact / Detailed / PNG / JSON)"]
-            TIME["Time Range<br/>(Current / Today / Forecast)"]
-        end
-
-        subgraph CORE["Processing Engine"]
-            LOC["Location Parser<br/>(City / Airport / Coordinates)"]
-            ENC["URL Encoder"]
-        end
-
-        subgraph SOURCES["Data Source Layer"]
-            direction LR
-            PRI["wttr.in<br/>(Primary)"]
-            SEC["Open-Meteo<br/>(Fallback)"]
-        end
-    end
-
-    subgraph OUTPUT["Response Formats"]
-        COMPACT["Compact Summary<br/>🌤️ 72°F, Partly Cloudy"]
-        DETAIL["Detailed Forecast<br/>(Multi-day, metrics)"]
-        IMG["PNG Image"]
-        JSON["Structured JSON"]
-    end
-
-    REQ --> LOC
-    LOC --> ENC
-    ENC --> PRI
-    PRI -.->|Fallback| SEC
-
-    UNITS --> CORE
-    FORMAT --> CORE
-    TIME --> CORE
-
-    PRI --> OUTPUT
-    SEC --> OUTPUT
-
-    COMPACT --> NB
-    DETAIL --> NB
-    IMG --> NB
-    JSON --> NB
-
-    style WS fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    style SOURCES fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    style OUTPUT fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
-```
+![3. Component Architecture Diagram](./diagrams/019e9799c745d04d/diagram-35-3-component-architecture-diagram.svg)
 
 ---
 
@@ -3241,53 +1236,7 @@ The **memory** component serves as the **persistent long-term memory subsystem**
 
 ## 3. Component Architecture Diagram
 
-```mermaid
-flowchart TB
-    subgraph NB["Nanobot System"]
-        direction TB
-
-        subgraph Memory["Memory Component"]
-            MD["MEMORY.md<br/>Structured Template"]
-            PY["__init__.py<br/>Module Interface"]
-        end
-
-        subgraph Core["Nanobot Core"]
-            ENG["Interaction Engine"]
-            PROC["Context Processor"]
-        end
-    end
-
-    subgraph Storage["Persistent Layer"]
-        FS[("File System<br/>.md Storage")]
-    end
-
-    subgraph External["External Interactions"]
-        USER["User Sessions"]
-    end
-
-    %% Relationships
-    USER -->|"Session Data"| ENG
-    ENG -->|"Significant Info"| PROC
-    PROC -->|"Write Memory"| PY
-    PY -->|"Render Template"| MD
-    MD -->|"Persist"| FS
-    FS -->|"Read on Init"| MD
-    MD -->|"Load Context"| PY
-    PY -->|"Provide Memory"| PROC
-    PROC -->|"Contextual Response"| ENG
-    ENG -->|"Personalized Reply"| USER
-
-    %% Styling
-    classDef memory fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    classDef core fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    classDef storage fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
-    classDef external fill:#fce4ec,stroke:#880e4f,stroke-width:2px
-
-    class MD,PY memory
-    class ENG,PROC core
-    class FS storage
-    class USER external
-```
+![3. Component Architecture Diagram](./diagrams/019e9799c745d04d/diagram-36-3-component-architecture-diagram.svg)
 
 ---
 
@@ -3330,128 +1279,13 @@ At its core, this component solves the fundamental challenge of **programmatic i
 
 The following C4 Container diagram illustrates the component's internal structure and external interactions:
 
-```mermaid
-flowchart TB
-    subgraph External["External Systems"]
-        AGENT_CLIS["Coding Agents<br/>(Claude Code, Codex)"]
-        SHELL["Shell Environment<br/>(bash/zsh/fish)"]
-        FS["File System<br/>(Git Worktrees, Socket Dir)"]
-    end
-
-    subgraph Nanobot["Nanobot System"]
-        SKILL_INTF["Skill Interface"]
-    end
-
-    subgraph TmuxSkill["nanobot/skills/tmux"]
-        direction TB
-
-        subgraph Config["Configuration Layer"]
-            ENV["Environment Variables<br/>NANOBOT_TMUX_SOCKET_DIR<br/>PYTHON_BASIC_REPL"]
-            SKILL_MD["SKILL.md<br/>Capability Definition"]
-        end
-
-        subgraph Core["Core Capabilities"]
-            SESSION_MGR["Session Manager<br/>• Create/Kill Sessions<br/>• List/Discover Sessions<br/>• Socket Isolation"]
-            INPUT_CTRL["Input Controller<br/>• Send Keys (literal mode)<br/>• Control Sequences<br/>• Safe Input Handling"]
-            OUTPUT_MON["Output Monitor<br/>• Pane Scraping<br/>• Pattern Waiting<br/>• Prompt Detection"]
-            TARGET["Targeting Engine<br/>• session:window.pane<br/>• Multi-pane Support"]
-        end
-
-        subgraph Orchestration["Orchestration Layer"]
-            PARALLEL["Parallel Agent Runner<br/>• Multi-session coordination<br/>• Independent worktrees"]
-            HELPERS["Helper Scripts<br/>• find-sessions.sh<br/>• wait-for-text.sh"]
-        end
-    end
-
-    subgraph TmuxServer["tmux Server(s)"]
-        direction LR
-        SES1["Session 1<br/>Agent A"]
-        SES2["Session 2<br/>Agent B"]
-        SES3["Session N<br/>Agent N"]
-    end
-
-    %% Relationships
-    SKILL_INTF -->|"Invokes Skill"| SKILL_MD
-    SKILL_MD --> SESSION_MGR
-    SKILL_MD --> INPUT_CTRL
-    SKILL_MD --> OUTPUT_MON
-
-    SESSION_MGR -->|"Creates/Manages"| TmuxServer
-    INPUT_CTRL -->|"Sends Keystrokes"| TmuxServer
-    OUTPUT_MON -->|"Scrapes Output"| TmuxServer
-    TARGET -->|"Addresses Panes"| TmuxServer
-
-    PARALLEL --> SESSION_MGR
-    PARALLEL --> INPUT_CTRL
-    PARALLEL --> OUTPUT_MON
-    HELPERS --> OUTPUT_MON
-    HELPERS --> SESSION_MGR
-
-    ENV -.->|"Configures"| SESSION_MGR
-    ENV -.->|"Configures"| INPUT_CTRL
-
-    TmuxServer -->|"Hosts"| AGENT_CLIS
-    TmuxServer -->|"Runs in"| SHELL
-    SESSION_MGR -->|"Socket Storage"| FS
-    PARALLEL -->|"Uses Worktrees"| FS
-
-    %% Styling
-    classDef core fill:#3b82f6,stroke:#1d4ed8,color:#fff
-    classDef config fill:#6b7280,stroke:#374151,color:#fff
-    classDef external fill:#f3f4f6,stroke:#9ca3af,color:#1f2937
-    classDef orchestration fill:#10b981,stroke:#047857,color:#fff
-    classDef server fill:#f59e0b,stroke:#b45309,color:#fff
-
-    class SESSION_MGR,INPUT_CTRL,OUTPUT_MON,TARGET core
-    class ENV,SKILL_MD config
-    class AGENT_CLIS,SHELL,FS external
-    class PARALLEL,HELPERS orchestration
-    class SES1,SES2,SES3 server
-```
+![3. Architecture Diagram](./diagrams/019e9799c745d04d/diagram-37-3-architecture-diagram.svg)
 
 ---
 
 ## 4. Key Interaction Flow
 
-```mermaid
-sequenceDiagram
-    participant N as Nanobot
-    participant T as tmux Skill
-    participant S as tmux Server
-    participant A as Coding Agent
-
-    Note over N,A: Parallel Agent Orchestration Flow
-
-    N->>T: Request: Run 3 agents in parallel
-    T->>T: Generate isolated socket paths
-    loop For each agent
-        T->>S: Create session (isolated socket)
-        S-->>T: Session created
-        T->>S: Send startup command (send-keys)
-        S->>A: Execute agent CLI
-    end
-
-    T-->>N: Sessions ready
-
-    Note over N,A: Output Monitoring
-
-    loop Until completion
-        T->>S: Capture pane output
-        S-->>T: Terminal buffer
-        T->>T: Check for prompt/pattern
-        alt Pattern found
-            T-->>N: Command completed
-        else Timeout
-            T-->>N: Timeout error
-        end
-    end
-
-    Note over N,A: Cleanup
-
-    N->>T: Kill sessions
-    T->>S: Terminate sessions
-    S-->>T: Confirmed
-```
+![4. Key Interaction Flow](./diagrams/019e9799c745d04d/diagram-38-4-key-interaction-flow.svg)
 
 ---
 
@@ -3496,82 +1330,13 @@ This component provides a **tmux automation and orchestration toolkit** for the 
 
 ## 3. Component Interaction Diagram
 
-```mermaid
-flowchart TB
-    subgraph "External System"
-        TMUX[tmux server/sessions]
-    end
-
-    subgraph "nanobot/skills/tmux/scripts"
-        direction TB
-
-        subgraph "Discovery Layer"
-            FS[find-sessions.sh]
-        end
-
-        subgraph "Synchronization Layer"
-            WFT[wait-for-text.sh]
-        end
-    end
-
-    subgraph "Consumers"
-        NB[nanobot Orchestrator]
-        EXT[External Automation]
-    end
-
-    %% Relationships
-    NB -->|"1. Discover available sessions"| FS
-    FS -->|"2. Query sockets & sessions"| TMUX
-    FS -->|"3. Return session list"| NB
-
-    NB -->|"4. Select target pane"| WFT
-    WFT -->|"5. Poll pane content"| TMUX
-    WFT -->|"6. Pattern match / timeout"| NB
-
-    EXT -.->|"Optional direct usage"| FS
-    EXT -.->|"Optional direct usage"| WFT
-
-    %% Data flow annotations
-    FS -.->|"Reads: NANOBOT_TMUX_SOCKET_DIR"| ENV[(Environment)]
-
-    style FS fill:#e1f5fe,stroke:#01579b
-    style WFT fill:#fff3e0,stroke:#e65100
-    style TMUX fill:#f3e5f5,stroke:#4a148c
-```
+![3. Component Interaction Diagram](./diagrams/019e9799c745d04d/diagram-39-3-component-interaction-diagram.svg)
 
 ---
 
 ## 4. Interaction Flow (Typical Usage Pattern)
 
-```mermaid
-sequenceDiagram
-    participant Bot as nanobot
-    participant FS as find-sessions.sh
-    participant TMUX as tmux server
-    participant WFT as wait-for-text.sh
-
-    Note over Bot,WFT: Discovery Phase
-    Bot->>FS: Execute with socket dir
-    FS->>FS: Validate tmux dependency
-    FS->>TMUX: List sessions (-L/-S/-A)
-    TMUX-->>FS: Session metadata
-    FS->>FS: Filter by query (optional)
-    FS-->>Bot: Session list (name, status, time)
-
-    Note over Bot,WFT: Synchronization Phase
-    Bot->>WFT: Execute with target & pattern
-    WFT->>WFT: Validate parameters
-    loop Until timeout or match
-        WFT->>TMUX: capture-pane -J -p
-        TMUX-->>WFT: Pane content
-        WFT->>WFT: Pattern match check
-    end
-    alt Pattern Found
-        WFT-->>Bot: Exit 0 (success)
-    else Timeout
-        WFT-->>Bot: Exit 1 + diagnostics
-    end
-```
+![4. Interaction Flow (Typical Usage Pattern)](./diagrams/019e9799c745d04d/diagram-40-4-interaction-flow-typical-usage-pattern.svg)
 
 ---
 

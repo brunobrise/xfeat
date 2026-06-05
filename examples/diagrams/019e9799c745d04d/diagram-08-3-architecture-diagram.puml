@@ -1,0 +1,86 @@
+@startuml
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam defaultTextAlignment center
+skinparam ArrowColor #4b5563
+skinparam PackageBorderColor #64748b
+skinparam PackageBackgroundColor transparent
+skinparam rectangle {
+  BorderColor #4b5563
+  FontColor #111827
+  BackgroundColor #f8fafc
+}
+top to bottom direction
+package "Users" as Users {
+rectangle "📱 Mobile Apps" as U1
+rectangle "💻 Desktop Clients" as U2
+}
+package "Chat Platform Channels" as ChatPlatforms {
+rectangle "Telegram" as TG
+rectangle "Discord" as DC
+rectangle "WhatsApp" as WA
+rectangle "Slack" as SL
+rectangle "Feishu/Lark" as FS
+rectangle "DingTalk" as DT
+rectangle "Matrix" as MX
+rectangle "Email" as EM
+rectangle "Mochat" as MC
+}
+package "Nanobot AI Framework" as NanobotCore {
+package "Channel Adapters" as ChannelLayer {
+rectangle "Platform-specific\nMessage Handlers" as CA
+}
+package "Core Agent (~4k LOC)" as AgentCore {
+rectangle "Agent Logic" as AG
+rectangle "Tool System" as TK
+rectangle "Memory Manager" as MM
+rectangle "Cron Scheduler" as CR
+rectangle "Heartbeat System" as HB
+}
+package "LLM Provider Registry" as ProviderLayer {
+rectangle "Provider Router\n(LiteLLM)" as PR
+}
+package "Security Layer" as Security {
+rectangle "Access Control" as AC
+rectangle "Command Filter" as SC
+rectangle "Path Sanitizer" as PS
+}
+package "Configuration" as Config {
+rectangle "config.json" as CF
+rectangle "Environment Vars" as ENV
+}
+}
+package "LLM Providers" as LLMProviders {
+rectangle "OpenAI" as OAI
+rectangle "Anthropic" as ANT
+rectangle "Google Gemini" as GEM
+rectangle "DeepSeek" as DSK
+rectangle "Groq" as GRQ
+rectangle "vLLM/Local" as VLL
+rectangle "OpenRouter" as OR
+}
+package "External Tools (MCP)" as ExternalTools {
+rectangle "Tool Server 1" as MCP1
+rectangle "Tool Server 2" as MCP2
+rectangle "ClawHub Skills" as CH
+}
+package "Deployment" as Deployment {
+rectangle "Docker Container" as DK
+rectangle "docker-compose.yml" as DCY
+rectangle "Dockerfile\nPython 3.12 + Node 20" as DF
+}
+Users --> ChatPlatforms
+ChatPlatforms --> CA
+CA --> Security
+Security --> AG
+AG <--> TK
+AG <--> MM
+AG <--> CR
+AG <--> HB
+AG --> PR
+PR --> LLMProviders
+TK --> ExternalTools
+Config --> AgentCore
+Deployment --> NanobotCore
+WA ..> DF : Bridge
+@enduml

@@ -1,0 +1,37 @@
+@startuml
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam sequence {
+  ArrowColor #4b5563
+  ActorBorderColor #4b5563
+  LifeLineBorderColor #94a3b8
+  ParticipantBorderColor #4b5563
+  ParticipantBackgroundColor #f8fafc
+  ParticipantFontColor #111827
+}
+    participant "👤 User/Agent" as User
+    participant "Nanobot Core" as NB
+    participant "GitHub Skill" as Skill
+    participant "gh CLI" as CLI
+    participant "GitHub API" as GH
+    User->>NB: Request GitHub Operation
+    NB->>Skill: Load SKILL.md
+    alt CLI Not Installed
+        Skill->>CLI: Check Binary Dependency
+        CLI-->>Skill: Not Found
+        Skill-->>NB: Trigger Installation (brew/apt)
+    end
+    NB->>Skill: Execute Operation
+    alt Repository Context Needed
+        Skill->>Skill: Resolve Repository\n(auto-detect | explicit | URL)
+    end
+    Skill->>CLI: Construct gh Command
+    CLI->>GH: API Request
+    GH-->>CLI: Response Data
+    CLI-->>Skill: JSON Output
+    alt jq Filtering Required
+        Skill->>Skill: Apply jq Transform
+    end
+    Skill-->>NB: Structured Result
+    NB-->>User: Formatted Response
+@enduml

@@ -1,0 +1,62 @@
+@startuml
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam defaultTextAlignment center
+skinparam ArrowColor #4b5563
+skinparam PackageBorderColor #64748b
+skinparam PackageBackgroundColor transparent
+skinparam rectangle {
+  BorderColor #4b5563
+  FontColor #111827
+  BackgroundColor #f8fafc
+}
+top to bottom direction
+package "System Clients" as Clients {
+rectangle "Nanobot Core" as NC
+rectangle "CLI Commands" as CLI
+}
+package "Provider Registry" as Registry {
+rectangle "registry.py\nProvider Metadata" as PR
+rectangle "Detection Logic" as DET
+PR --> DET : Provider Lookup
+rectangle "Standard Providers" as STD
+DET --> STD : Model Keyword
+rectangle "Gateways" as GW
+DET --> GW : API Key Prefix
+rectangle "Local/Custom" as LOC
+DET --> LOC : Base URL
+}
+package "Abstraction Layer" as Abstraction {
+rectangle "__init__.py\nModule Exports" as INIT
+rectangle "base.py\nLLMProvider ABC" as BASE
+rectangle "LLMResponse Dataclass" as RESP
+rectangle "ToolCallRequest Dataclass" as TC
+BASE --> RESP
+BASE --> TC
+INIT --> BASE
+}
+package "Provider Implementations" as Providers {
+rectangle "litellm_provider.py\nLiteLLM Wrapper" as LP
+rectangle "custom_provider.py\nDirect OpenAI-Compatible" as CP
+rectangle "openai_codex_provider.py\nChatGPT Backend + OAuth" as OCP
+rectangle "Anthropic, OpenAI,\nGemini, DeepSeek,\nOpenRouter, etc." as PROVS
+LP --> PROVS : Multi-Provider
+rectangle "Local vLLM,\nSelf-Hosted" as LOCAL
+CP --> LOCAL : Direct API
+rectangle "GPT-5.1-codex" as CODEX
+OCP --> CODEX : OAuth + SSE
+}
+package "Voice Services" as Voice {
+rectangle "transcription.py\nGroq Whisper" as TR
+rectangle "Groq API" as GROQ
+TR --> GROQ : Audio → Text
+}
+NC --> INIT : Chat Request
+CLI --> PR : Status/Config
+BASE ..> LP : implements
+BASE ..> CP : implements
+BASE ..> OCP : implements
+PR --> LP : Route to Provider
+PR --> CP : Bypass LiteLLM
+PR --> OCP : OAuth Provider
+@enduml

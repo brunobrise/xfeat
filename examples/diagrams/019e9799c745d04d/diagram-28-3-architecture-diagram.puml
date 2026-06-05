@@ -1,0 +1,42 @@
+@startuml
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam defaultTextAlignment center
+skinparam ArrowColor #4b5563
+skinparam PackageBorderColor #64748b
+skinparam PackageBackgroundColor transparent
+skinparam rectangle {
+  BorderColor #4b5563
+  FontColor #111827
+  BackgroundColor #f8fafc
+}
+top to bottom direction
+package "🔄 Active Session" as Session {
+rectangle "User Interaction" as User
+rectangle "AI Assistant Context" as AI
+}
+package "📁 Memory Component (Always-Active Skill)" as MemorySystem {
+package "🧠 Semantic Memory Layer" as SemanticLayer {
+rectangle "MEMORY.md\n━━━━━━━━━━━\n• User Preferences\n• Project Context\n• Relationships\n• Long-term Facts" as MEMFile
+}
+package "📜 Episodic Memory Layer" as EpisodicLayer {
+rectangle "HISTORY.md\n━━━━━━━━━━━\n• Timestamped Events\n• Conversation Summaries\n• [YYYY-MM-DD HH:MM]" as HISTFile
+}
+package "⚙️ Memory Operations" as Operations {
+rectangle "Auto-Load\n(Session Start)" as AutoLoad
+rectangle "Fact Extraction\n(Automatic)" as FactExtract
+rectangle "Consolidation\n(Size-Triggered)" as Consolidate
+rectangle "Grep Search\n(On-Demand)" as Search
+}
+}
+User --> AI : Conversation
+AutoLoad --> AI : 1. Load Context
+AI --> FactExtract : 2. New Information
+AI --> Search : Search Query
+FactExtract --> MEMFile : Extract Facts
+FactExtract --> HISTFile : Log Events
+Consolidate --> HISTFile : Summarize & Move
+Consolidate --> MEMFile : Extract Facts
+Search --> HISTFile : Pattern Match
+Search --> AI : Results
+@enduml

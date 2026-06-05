@@ -1,0 +1,39 @@
+@startuml
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam defaultTextAlignment center
+skinparam ArrowColor #4b5563
+skinparam PackageBorderColor #64748b
+skinparam PackageBackgroundColor transparent
+skinparam rectangle {
+  BorderColor #4b5563
+  FontColor #111827
+  BackgroundColor #f8fafc
+}
+top to bottom direction
+package "External System" as External_System {
+rectangle "tmux server/sessions" as TMUX
+}
+package "nanobot/skills/tmux/scripts" as nanobot_skills_tmux_scripts {
+package "Discovery Layer" as Discovery_Layer {
+rectangle "find-sessions.sh" as FS
+}
+package "Synchronization Layer" as Synchronization_Layer {
+rectangle "wait-for-text.sh" as WFT
+}
+}
+package "Consumers" as Consumers {
+rectangle "nanobot Orchestrator" as NB
+rectangle "External Automation" as EXT
+}
+NB --> FS : 1. Discover available sessions
+FS --> TMUX : 2. Query sockets & sessions
+FS --> NB : 3. Return session list
+NB --> WFT : 4. Select target pane
+WFT --> TMUX : 5. Poll pane content
+WFT --> NB : 6. Pattern match / timeout
+EXT ..> FS : Optional direct usage
+EXT ..> WFT : Optional direct usage
+rectangle "Environment" as ENV
+FS ..> ENV : Reads: NANOBOT_TMUX_SOCKET_DIR
+@enduml

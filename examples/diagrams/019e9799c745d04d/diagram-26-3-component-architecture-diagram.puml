@@ -1,0 +1,30 @@
+@startuml
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam componentStyle rectangle
+top to bottom direction
+skinparam component {
+  BorderColor #4b5563
+  BackgroundColor #f8fafc
+  FontColor #111827
+}
+skinparam rectangle {
+  BorderColor #4b5563
+  BackgroundColor #f8fafc
+  FontColor #111827
+}
+title Component Interaction: ClawHub Skill Manager
+actor "User\nInteracts via natural language or CLI" as user
+package "Nanobot System" as nanobot {
+component "ClawHub Skill\nSkill Module\nInterprets intent and orchestrates skill management" as clawhub_skill
+component "Nanobot Workspace\nFile System\n~/.nanobot/workspace/skills/" as workspace
+component "Nanobot Core\nAgent Runtime\nExecutes skills and manages session" as nanobot_core
+}
+rectangle "ClawHub Registry\nPublic skill database & vector search engine" as clawhub_registry
+user --> nanobot_core : Requests skill install/search\nNatural Language
+nanobot_core --> clawhub_skill : Delegates task
+clawhub_skill --> clawhub_registry : 1. Search skills (Vector Search)\nHTTPS/npx
+clawhub_skill --> clawhub_registry : 2. Fetch skill package\nHTTPS/npx
+clawhub_skill --> workspace : 3. Write/Update skill files\nFile I/O
+nanobot_core --> workspace : 4. Load new skills\nSession Restart
+@enduml

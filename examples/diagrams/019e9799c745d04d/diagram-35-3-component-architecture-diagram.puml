@@ -1,0 +1,51 @@
+@startuml
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam defaultTextAlignment center
+skinparam ArrowColor #4b5563
+skinparam PackageBorderColor #64748b
+skinparam PackageBackgroundColor transparent
+skinparam rectangle {
+  BorderColor #4b5563
+  FontColor #111827
+  BackgroundColor #f8fafc
+}
+top to bottom direction
+package "🤖 Nanobot System" as NB {
+rectangle "Weather Request" as REQ
+}
+package "nanobot/skills/weather" as WS {
+package "Configuration Layer" as CONFIG {
+rectangle "Unit System\n(Metric / USCS)" as UNITS
+rectangle "Output Format\n(Compact / Detailed / PNG / JSON)" as FORMAT
+rectangle "Time Range\n(Current / Today / Forecast)" as TIME
+}
+package "Processing Engine" as CORE {
+rectangle "Location Parser\n(City / Airport / Coordinates)" as LOC
+rectangle "URL Encoder" as ENC
+}
+package "Data Source Layer" as SOURCES {
+rectangle "wttr.in\n(Primary)" as PRI
+rectangle "Open-Meteo\n(Fallback)" as SEC
+}
+}
+package "Response Formats" as OUTPUT {
+rectangle "Compact Summary\n🌤️ 72°F, Partly Cloudy" as COMPACT
+rectangle "Detailed Forecast\n(Multi-day, metrics)" as DETAIL
+rectangle "PNG Image" as IMG
+rectangle "Structured JSON" as JSON
+}
+REQ --> LOC
+LOC --> ENC
+ENC --> PRI
+PRI ..> SEC : Fallback
+UNITS --> CORE
+FORMAT --> CORE
+TIME --> CORE
+PRI --> OUTPUT
+SEC --> OUTPUT
+COMPACT --> NB
+DETAIL --> NB
+IMG --> NB
+JSON --> NB
+@enduml

@@ -1,0 +1,81 @@
+@startuml
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam class {
+  BorderColor #4b5563
+  BackgroundColor #f8fafc
+  FontColor #111827
+  ArrowColor #4b5563
+}
+top to bottom direction
+
+    class CronService {
+        +start() void
+        +stop() void
+        +schedule(job: CronJob) str
+        +unschedule(job_id: str) void
+        +run_job(job_id: str, force: bool) void
+        +list_jobs(include_disabled: bool) List<CronJob>
+        +get_status() ServiceStatus
+        -_load_jobs() void
+        -_save_jobs() void
+        -_rearm_timer() void
+        -_execute_job(job: CronJob) void
+    }
+
+    class CronJob {
+        +id: str
+        +name: str
+        +enabled: bool
+        +schedule: CronSchedule
+        +payload: JobPayload
+        +state: JobState
+        +created_at: datetime
+        +updated_at: datetime
+    }
+
+    class CronSchedule {
+        +kind: "at" | "every" | "cron"
+        +at: Optional<datetime>
+        +interval_seconds: Optional<int>
+        +cron_expression: Optional<str>
+        +timezone: Optional<str>
+    }
+
+    class JobPayload {
+        +kind: "agent_turn" | "message" | "system_event"
+        +message: Optional<str>
+        +channel: Optional<str>
+        +recipient: Optional<str>
+    }
+
+    class JobState {
+        +next_run: Optional<datetime>
+        +last_run: Optional<datetime>
+        +status: "success" | "error" | "skipped"
+        +error_message: Optional<str>
+    }
+
+    class JobStore {
+        +version: str
+        +jobs: List<CronJob>
+    }
+
+    CronService "1" --> "*" CronJob : manages
+    CronJob "1" *-- "1" CronSchedule : has
+    CronJob "1" *-- "1" JobPayload : has
+    CronJob "1" *-- "1" JobState : tracks
+    CronService ..> JobStore : persists to JSON
+
+    note right of CronService
+      Event-driven timer-based execution
+      Auto-saves after modifications
+      Graceful error handling
+    end note
+    note right of CronSchedule
+      Supports 3 scheduling patterns:
+      - One-time (at)
+      - Interval (every)
+      - Cron expression
+    end note
+@enduml

@@ -1,0 +1,54 @@
+@startuml
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam defaultTextAlignment center
+skinparam ArrowColor #4b5563
+skinparam PackageBorderColor #64748b
+skinparam PackageBackgroundColor transparent
+skinparam rectangle {
+  BorderColor #4b5563
+  FontColor #111827
+  BackgroundColor #f8fafc
+}
+top to bottom direction
+package "External Chat Platforms" as External {
+rectangle "Telegram" as TG
+rectangle "Discord" as DC
+rectangle "Slack" as SL
+rectangle "WhatsApp" as WA
+}
+package "nanobot/bus Component" as BusComponent {
+package "events.py\nData Structures" as Events {
+rectangle "InboundMessage" as IM
+rectangle "OutboundMessage" as OM
+}
+package "queue.py\nMessage Bus" as Queue {
+rectangle "Inbound Queue\nasyncio.Queue" as IQ
+rectangle "Outbound Queue\nasyncio.Queue" as OQ
+}
+package "__init__.py\nPublic API" as Init {
+rectangle "MessageBus Class" as API
+}
+}
+package "Internal Systems" as Consumers {
+rectangle "Agent Core\nMessage Consumer" as AGENT
+rectangle "Channel Handlers\nResponse Dispatchers" as HANDLERS
+}
+TG --> IM : Raw Message
+DC --> IM : Raw Message
+SL --> IM : Raw Message
+WA --> IM : Raw Message
+IM --> IQ : Normalized Event
+IQ --> AGENT : Consume
+AGENT --> OM : Generate Response
+OM --> OQ : Queue Response
+OQ --> HANDLERS : Dispatch
+HANDLERS --> TG : Deliver
+HANDLERS --> DC : Deliver
+HANDLERS --> SL : Deliver
+HANDLERS --> WA : Deliver
+API ..> IQ : Exposes
+API ..> OQ : Exposes
+API ..> IM : Exports
+API ..> OM : Exports
+@enduml

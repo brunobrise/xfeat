@@ -1,0 +1,63 @@
+@startuml
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam defaultTextAlignment center
+skinparam ArrowColor #4b5563
+skinparam PackageBorderColor #64748b
+skinparam PackageBackgroundColor transparent
+skinparam rectangle {
+  BorderColor #4b5563
+  FontColor #111827
+  BackgroundColor #f8fafc
+}
+top to bottom direction
+package "🤖 Nanobot Core System" as NB {
+rectangle "Skill Orchestrator" as ORCH
+rectangle "SKILL.md\nGitHub Skill Definition" as SKILL
+}
+package "📦 nanobot/skills/github" as GH_COMP {
+package "Capability Layer" as FEATURES {
+rectangle "🔀 Pull Request\nManagement" as PR
+rectangle "⚙️ Workflow\nMonitoring" as WF
+rectangle "🔌 API\nGateway" as API
+rectangle "📋 Issue\nManagement" as ISS
+}
+package "Utility Layer" as UTILS {
+rectangle "JSON/jq\nFormatter" as FMT
+rectangle "Repository\nResolver" as REPO
+}
+}
+package "🌐 External Dependencies" as EXT {
+rectangle "GitHub CLI\n(gh binary)" as GH_CLI
+rectangle "Homebrew" as BREW
+rectangle "APT Package\nManager" as APT
+}
+package "☁️ GitHub Platform" as GH_API {
+rectangle "REST API" as REST
+rectangle "GraphQL API" as GQL
+rectangle "GitHub Actions" as ACTIONS
+rectangle "Pull Requests" as PRS
+rectangle "Issues" as ISSUES
+}
+ORCH --> SKILL : Invokes Skill
+SKILL --> PR
+SKILL --> WF
+SKILL --> API
+SKILL --> ISS
+PR --> FMT
+WF --> FMT
+API --> FMT
+ISS --> FMT
+FMT --> REPO
+SKILL ..> GH_CLI : Dependency Check
+BREW ..> GH_CLI : Install
+APT ..> GH_CLI : Install
+REPO --> GH_CLI : Executes Commands
+GH_CLI --> REST : API Calls
+GH_CLI --> GQL : API Calls
+REST --> ACTIONS
+REST --> PRS
+REST --> ISSUES
+GQL --> PRS
+GQL --> ISSUES
+@enduml

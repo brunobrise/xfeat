@@ -1,0 +1,38 @@
+@startuml
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam sequence {
+  ArrowColor #4b5563
+  ActorBorderColor #4b5563
+  LifeLineBorderColor #94a3b8
+  ParticipantBorderColor #4b5563
+  ParticipantBackgroundColor #f8fafc
+  ParticipantFontColor #111827
+}
+    participant "External System" as System
+    participant "HeartbeatService" as HS
+    participant "Background Loop" as Loop
+    participant "HEARTBEAT.md" as File
+    participant "LLM Provider" as LLM
+    participant "on_execute" as Callback
+    System->>HS: start()
+    HS->>Loop: Create asyncio task
+    activate Loop
+    loop Every N seconds
+        Loop->>File: Read task definitions
+        File-->>Loop: Markdown content
+        Loop->>LLM: Phase 1: Analyze tasks
+        Note over LLM : Structured tool call\n(skip or run action)
+        alt Tasks Need Execution
+            LLM-->>Loop: Decision: 'run' + summary
+            Loop->>Callback: Phase 2: on_execute(summary)
+            Callback-->>Loop: Execution result
+            Loop->>System: on_notify(result)
+        else No Tasks Active
+            LLM-->>Loop: Decision: 'skip
+        end
+    end
+    System->>HS: stop()
+    HS->>Loop: Cancel & cleanup
+    deactivate Loop
+@enduml

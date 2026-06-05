@@ -1,0 +1,55 @@
+@startuml
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam defaultTextAlignment center
+skinparam ArrowColor #4b5563
+skinparam PackageBorderColor #64748b
+skinparam PackageBackgroundColor transparent
+skinparam rectangle {
+  BorderColor #4b5563
+  FontColor #111827
+  BackgroundColor #f8fafc
+}
+top to bottom direction
+package "External Systems" as External {
+rectangle "LLM Provider" as LLM
+rectangle "File System" as FS
+rectangle "Web APIs" as WEB
+}
+package "nanobot/agent" as AgentCore {
+package "Orchestration Layer" as Orchestrator {
+rectangle "__init__.py\nModule Hub" as INIT
+rectangle "loop.py\nAgent Loop" as LOOP
+}
+package "Context Layer" as ContextLayer {
+rectangle "context.py\nContextBuilder" as CTX
+}
+package "Persistence Layer" as PersistenceLayer {
+rectangle "memory.py\nMemoryStore" as MEM
+rectangle "MEMORY.md\nHISTORY.md" as MEM_FILES
+}
+package "Capability Layer" as CapabilityLayer {
+rectangle "skills.py\nSkillsLoader" as SKILLS
+rectangle "SKILL.md Files" as SKILL_FILES
+}
+package "Execution Layer" as ExecutionLayer {
+rectangle "subagent.py\nSubagentManager" as SUB
+}
+}
+INIT --> LOOP
+LOOP <--> CTX
+LOOP <--> MEM
+LOOP <--> SKILLS
+LOOP --> SUB
+CTX --> MEM
+CTX --> SKILLS
+MEM <--> MEM_FILES
+SKILLS <--> SKILL_FILES
+LOOP <--> LLM
+MEM <--> FS
+SKILLS <--> FS
+SUB <--> LLM
+SUB <--> FS
+SUB <--> WEB
+CTX --> LLM
+@enduml

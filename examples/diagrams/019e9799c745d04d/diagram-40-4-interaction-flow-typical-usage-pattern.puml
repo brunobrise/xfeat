@@ -1,0 +1,36 @@
+@startuml
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam sequence {
+  ArrowColor #4b5563
+  ActorBorderColor #4b5563
+  LifeLineBorderColor #94a3b8
+  ParticipantBorderColor #4b5563
+  ParticipantBackgroundColor #f8fafc
+  ParticipantFontColor #111827
+}
+    participant "nanobot" as Bot
+    participant "find-sessions.sh" as FS
+    participant "tmux server" as TMUX
+    participant "wait-for-text.sh" as WFT
+    Note over Bot,WFT : Discovery Phase
+    Bot->>FS: Execute with socket dir
+    FS->>FS: Validate tmux dependency
+    FS->>TMUX: List sessions (-L/-S/-A)
+    TMUX-->>FS: Session metadata
+    FS->>FS: Filter by query (optional)
+    FS-->>Bot: Session list (name, status, time)
+    Note over Bot,WFT : Synchronization Phase
+    Bot->>WFT: Execute with target & pattern
+    WFT->>WFT: Validate parameters
+    loop Until timeout or match
+        WFT->>TMUX: capture-pane -J -p
+        TMUX-->>WFT: Pane content
+        WFT->>WFT: Pattern match check
+    end
+    alt Pattern Found
+        WFT-->>Bot: Exit 0 (success)
+    else Timeout
+        WFT-->>Bot: Exit 1 + diagnostics
+    end
+@enduml

@@ -1,0 +1,60 @@
+@startuml
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam defaultTextAlignment center
+skinparam ArrowColor #4b5563
+skinparam PackageBorderColor #64748b
+skinparam PackageBackgroundColor transparent
+skinparam rectangle {
+  BorderColor #4b5563
+  FontColor #111827
+  BackgroundColor #f8fafc
+}
+top to bottom direction
+package "nanobot/cli" as CLI {
+rectangle "__init__.py\nPackage Initializer" as INIT
+rectangle "commands.py\nCLI Implementation" as CMD
+}
+package "User Interface Layer" as Interface {
+rectangle "Command Line Args" as ARGS
+rectangle "Interactive Input" as STDIN
+rectangle "System Signals\n(SIGINT, EOF)" as SIGNALS
+}
+package "Core Feature Modules" as Features {
+rectangle "Chat Engine\n- Session Management\n- Markdown Rendering\n- History Persistence" as CHAT
+rectangle "Gateway Server\n- Port 18790\n- MCP Integration\n- Message Bus" as GATEWAY
+rectangle "Cron Scheduler\n- Interval/Cron/Timestamp\n- Enable/Disable/Force" as SCHEDULER
+rectangle "Provider Manager\n- OAuth Flows\n- API Keys\n- LiteLLM Proxy" as PROVIDER
+rectangle "Onboarding\n- Workspace Setup\n- Config Init\n- Template Sync" as ONBOARD
+}
+package "Multi-Channel Bridges" as Channels {
+rectangle "WhatsApp" as WA
+rectangle "Discord" as DC
+rectangle "Telegram" as TG
+rectangle "Slack" as SL
+rectangle "Feishu" as FS
+rectangle "DingTalk" as DT
+rectangle "Email" as EM
+rectangle "Mochat" as MC
+}
+package "AI Providers" as Providers {
+rectangle "OpenAI" as OAI
+rectangle "GitHub Copilot" as COPILOT
+rectangle "OpenAI Codex" as CODEX
+rectangle "Local Models" as LOCAL
+rectangle "Custom Endpoints" as CUSTOM
+}
+ARGS --> CMD
+STDIN --> CMD
+SIGNALS --> CMD
+INIT ..> CMD
+CMD --> CHAT
+CMD --> GATEWAY
+CMD --> SCHEDULER
+CMD --> PROVIDER
+CMD --> ONBOARD
+GATEWAY --> WA
+PROVIDER --> OAI
+CHAT --> CMD : Single Message\n(-m flag)
+GATEWAY --> CMD : Daemon Mode\n(--gateway)
+@enduml

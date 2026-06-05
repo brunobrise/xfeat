@@ -1,0 +1,130 @@
+@startuml
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam class {
+  BorderColor #4b5563
+  BackgroundColor #f8fafc
+  FontColor #111827
+  ArrowColor #4b5563
+}
+top to bottom direction
+
+    package "Public API" {
+        class InitModule {
+            <<module>>
+            +Tool
+            +ToolRegistry
+        }
+    }
+
+    package "Core Framework" {
+        class ToolBase {
+            <<abstract>>
+            +name: str
+            +description: str
+            +parameters: dict
+            +execute()* async
+            +validate_params()
+            +get_schema()
+            -_validate_json_schema()
+        }
+
+        class ToolRegistry {
+            -_tools: dict
+            +register(tool)
+            +unregister(name)
+            +get(name)
+            +execute(name, params)
+            +get_definitions()
+            +list_tools()
+        }
+    }
+
+    package "Built-in Tools" {
+        class FilesystemTool {
+            +read_file()
+            +write_file()
+            +edit_file()
+            +list_directory()
+            -_resolve_path()
+            -_validate_path()
+        }
+
+        class MessageTool {
+            +send_message()
+            +set_context()
+            +reset_turn()
+            -_send_callback()
+        }
+
+        class WebTool {
+            +web_search()
+            +fetch_url()
+            -_html_to_markdown()
+            -_extract_content()
+        }
+
+        class CronTool {
+            +add_job()
+            +list_jobs()
+            +remove_job()
+            -_validate_timezone()
+        }
+
+        class ShellTool {
+            +execute_command()
+            -_check_denylist()
+            -_extract_paths()
+            -_validate_workspace()
+        }
+
+        class SpawnTool {
+            +spawn_subagent()
+            -_create_session_key()
+        }
+    }
+
+    package "External Integration" {
+        class MCPClient {
+            +connect_servers()
+            +discover_tools()
+            +wrap_mcp_tool()
+            -_handle_stdio_transport()
+            -_handle_http_transport()
+        }
+    }
+
+    package "External Services" {
+        class CronService {
+            <<external>>
+        }
+        class SubagentManager {
+            <<external>>
+        }
+        class BraveSearchAPI {
+            <<external>>
+        }
+        class MCPServers {
+            <<external>>
+        }
+    }
+
+    ' Relationships
+    InitModule --> ToolBase : exposes
+    InitModule --> ToolRegistry : exposes
+
+    ToolRegistry "1" --> "*" ToolBase : manages
+    ToolBase <|-- FilesystemTool : extends
+    ToolBase <|-- MessageTool : extends
+    ToolBase <|-- WebTool : extends
+    ToolBase <|-- CronTool : extends
+    ToolBase <|-- ShellTool : extends
+    ToolBase <|-- SpawnTool : extends
+
+    MCPClient --> ToolRegistry : registers wrapped tools
+    MCPClient --> MCPServers : connects
+
+    CronTool --> CronService : uses
+    SpawnTool --> SubagentManager : uses
+    WebTool --> BraveSearchAPI : queries
+@enduml

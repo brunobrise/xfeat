@@ -1,0 +1,51 @@
+@startuml
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam sequence {
+  ArrowColor #4b5563
+  ActorBorderColor #4b5563
+  LifeLineBorderColor #94a3b8
+  ParticipantBorderColor #4b5563
+  ParticipantBackgroundColor #f8fafc
+  ParticipantFontColor #111827
+}
+    participant "Client" as Client
+    participant "CronService" as CronService
+    participant "JobStore" as JobStore
+    participant "Timer" as Timer
+    participant "Agent/Channel" as Agent_Channel
+    Note over CronService : Service Initialization
+    CronService->>JobStore: Load persisted jobs
+    JobStore-->>CronService: Return jobs list
+    CronService->>CronService: Compute next run times
+    CronService->>Timer: Arm timer for next job
+    Note over Client : Schedule New Job
+    Client->>CronService: schedule(name, schedule, payload)
+    CronService->>CronService: Validate schedule
+    CronService->>CronService: Create CronJob with ID
+    CronService->>CronService: Compute next_run
+    CronService->>JobStore: Save jobs to disk
+    CronService->>Timer: Rearm timer if earlier
+    CronService-->>Client: Return job_id
+    Note over Timer : Timer Fires
+    Timer->>CronService: Execute pending job
+    CronService->>CronService: Check if enabled
+    alt Job Enabled
+        CronService->>Agent_Channel: Execute payload
+        Agent_Channel-->>CronService: Result
+        alt Success
+            CronService->>CronService: Update state (status: success)
+        else Error
+            CronService->>CronService: Update state (status: error, message)
+        end
+    else Job Disabled
+        CronService->>CronService: Skip execution
+    end
+    alt One-shot Job
+        CronService->>CronService: Disable or delete job
+    else Recurring/Cron Job
+        CronService->>CronService: Compute next_run
+    end
+    CronService->>JobStore: Save updated state
+    CronService->>Timer: Rearm for next job
+@enduml

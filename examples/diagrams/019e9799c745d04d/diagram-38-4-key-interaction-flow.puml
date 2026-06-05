@@ -1,0 +1,41 @@
+@startuml
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam sequence {
+  ArrowColor #4b5563
+  ActorBorderColor #4b5563
+  LifeLineBorderColor #94a3b8
+  ParticipantBorderColor #4b5563
+  ParticipantBackgroundColor #f8fafc
+  ParticipantFontColor #111827
+}
+    participant "Nanobot" as N
+    participant "tmux Skill" as T
+    participant "tmux Server" as S
+    participant "Coding Agent" as A
+    Note over N,A : Parallel Agent Orchestration Flow
+    N->>T: Request: Run 3 agents in parallel
+    T->>T: Generate isolated socket paths
+    loop For each agent
+        T->>S: Create session (isolated socket)
+        S-->>T: Session created
+        T->>S: Send startup command (send-keys)
+        S->>A: Execute agent CLI
+    end
+    T-->>N: Sessions ready
+    Note over N,A : Output Monitoring
+    loop Until completion
+        T->>S: Capture pane output
+        S-->>T: Terminal buffer
+        T->>T: Check for prompt/pattern
+        alt Pattern found
+            T-->>N: Command completed
+        else Timeout
+            T-->>N: Timeout error
+        end
+    end
+    Note over N,A : Cleanup
+    N->>T: Kill sessions
+    T->>S: Terminate sessions
+    S-->>T: Confirmed
+@enduml

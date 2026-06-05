@@ -1,0 +1,52 @@
+@startuml
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam defaultTextAlignment center
+skinparam ArrowColor #4b5563
+skinparam PackageBorderColor #64748b
+skinparam PackageBackgroundColor transparent
+skinparam rectangle {
+  BorderColor #4b5563
+  FontColor #111827
+  BackgroundColor #f8fafc
+}
+top to bottom direction
+package "Skill Creator Component" as Skill_Creator_Component {
+rectangle "SKILL.md\nDesign Specification & Workflow Guide" as SKILL_MD
+rectangle "init_skill.py\nScaffolding Tool" as INIT
+rectangle "package_skill.py\nValidation & Packaging Tool" as PACKAGE
+}
+package "Skill Creation Workflow" as Skill_Creation_Workflow {
+rectangle "/'1. UNDERSTAND\nGather examples & validate requirements'/" as STEP1
+rectangle "/'2. PLAN\nIdentify scripts, references, assets'/" as STEP2
+rectangle "/'3. INITIALIZE\nGenerate structure'/" as STEP3
+rectangle "/'4. EDIT\nImplement resources & write SKILL.md'/" as STEP4
+rectangle "/'5. PACKAGE\nValidate & create .skill file'/" as STEP5
+rectangle "/'6. ITERATE\nReal-world testing & refinement'/" as STEP6
+}
+package "Generated Skill Structure" as Generated_Skill_Structure {
+rectangle "skill-name/SKILL.md\nYAML frontmatter + Markdown body" as NEW_SKILL_MD
+rectangle "scripts/\nExecutable code" as SCRIPTS
+rectangle "references/\nLoadable documentation" as REFS
+rectangle "assets/\nOutput templates" as ASSETS
+}
+package "Output" as Output {
+rectangle "skill-name.skill\nDistributable zip package" as SKILL_FILE
+}
+STEP1 --> STEP2
+STEP2 --> STEP3
+STEP3 --> STEP4
+STEP4 --> STEP5
+STEP5 --> STEP6
+STEP6 ..> STEP4 : feedback loop
+SKILL_MD ..> STEP1 : guides all steps
+SKILL_MD ..> STEP2 : Degrees of Freedom\nFramework
+INIT --> STEP3 : auto-generates
+PACKAGE --> STEP5 : validates & bundles
+STEP3 --> NEW_SKILL_MD
+STEP3 --> SCRIPTS
+STEP3 --> REFS
+STEP3 --> ASSETS
+NEW_SKILL_MD --> STEP5
+STEP5 --> SKILL_FILE
+@enduml

@@ -1,0 +1,62 @@
+@startuml
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam defaultTextAlignment center
+skinparam ArrowColor #4b5563
+skinparam PackageBorderColor #64748b
+skinparam PackageBackgroundColor transparent
+skinparam rectangle {
+  BorderColor #4b5563
+  FontColor #111827
+  BackgroundColor #f8fafc
+}
+top to bottom direction
+package "External Systems" as External {
+rectangle "Coding Agents\n(Claude Code, Codex)" as AGENT_CLIS
+rectangle "Shell Environment\n(bash/zsh/fish)" as SHELL
+rectangle "File System\n(Git Worktrees, Socket Dir)" as FS
+}
+package "Nanobot System" as Nanobot {
+rectangle "Skill Interface" as SKILL_INTF
+}
+package "nanobot/skills/tmux" as TmuxSkill {
+package "Configuration Layer" as Config {
+rectangle "Environment Variables\nNANOBOT_TMUX_SOCKET_DIR\nPYTHON_BASIC_REPL" as ENV
+rectangle "SKILL.md\nCapability Definition" as SKILL_MD
+}
+package "Core Capabilities" as Core {
+rectangle "Session Manager\n• Create/Kill Sessions\n• List/Discover Sessions\n• Socket Isolation" as SESSION_MGR
+rectangle "Input Controller\n• Send Keys (literal mode)\n• Control Sequences\n• Safe Input Handling" as INPUT_CTRL
+rectangle "Output Monitor\n• Pane Scraping\n• Pattern Waiting\n• Prompt Detection" as OUTPUT_MON
+rectangle "Targeting Engine\n• session:window.pane\n• Multi-pane Support" as TARGET
+}
+package "Orchestration Layer" as Orchestration {
+rectangle "Parallel Agent Runner\n• Multi-session coordination\n• Independent worktrees" as PARALLEL
+rectangle "Helper Scripts\n• find-sessions.sh\n• wait-for-text.sh" as HELPERS
+}
+}
+package "tmux Server(s)" as TmuxServer {
+rectangle "Session 1\nAgent A" as SES1
+rectangle "Session 2\nAgent B" as SES2
+rectangle "Session N\nAgent N" as SES3
+}
+SKILL_INTF --> SKILL_MD : Invokes Skill
+SKILL_MD --> SESSION_MGR
+SKILL_MD --> INPUT_CTRL
+SKILL_MD --> OUTPUT_MON
+SESSION_MGR --> TmuxServer : Creates/Manages
+INPUT_CTRL --> TmuxServer : Sends Keystrokes
+OUTPUT_MON --> TmuxServer : Scrapes Output
+TARGET --> TmuxServer : Addresses Panes
+PARALLEL --> SESSION_MGR
+PARALLEL --> INPUT_CTRL
+PARALLEL --> OUTPUT_MON
+HELPERS --> OUTPUT_MON
+HELPERS --> SESSION_MGR
+ENV ..> SESSION_MGR : Configures
+ENV ..> INPUT_CTRL : Configures
+TmuxServer --> AGENT_CLIS : Hosts
+TmuxServer --> SHELL : Runs in
+SESSION_MGR --> FS : Socket Storage
+PARALLEL --> FS : Uses Worktrees
+@enduml

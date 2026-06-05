@@ -1,0 +1,49 @@
+@startuml
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam sequence {
+  ArrowColor #4b5563
+  ActorBorderColor #4b5563
+  LifeLineBorderColor #94a3b8
+  ParticipantBorderColor #4b5563
+  ParticipantBackgroundColor #f8fafc
+  ParticipantFontColor #111827
+}
+    participant "Python Backend" as Python
+    participant "server.ts" as Server
+    participant "whatsapp.ts" as WA
+    participant "WhatsApp Servers" as WhatsApp
+    participant "End User" as User
+    Note over Python,User : Authentication Flow
+    WA->>WhatsApp: Connect
+    WhatsApp-->>WA: Request QR
+    WA->>Server: QR callback
+    Server->>Python: Broadcast {type: 'qr', data}
+    Python->>User: Display QR code
+    User->>WhatsApp: Scan QR
+    WhatsApp-->>WA: Authenticated
+    WA->>Server: Status callback
+    Server->>Python: Broadcast {type: 'status', connected}
+    Note over Python,User : Inbound Message Flow
+    User->>WhatsApp: Send message
+    WhatsApp-->>WA: Message event
+    WA->>WA: Extract content
+    WA->>Server: onMessage callback
+    Server->>Python: Broadcast {type: 'message', ...}
+    Note over Python,User : Outbound Message Flow
+    Python->>Server: {type: 'send', to, text}
+    Server->>Server: Validate & route
+    Server->>WA: sendMessage(to, text)
+    WA->>WhatsApp: Send via socket
+    WhatsApp-->>WA: Delivery confirm
+    WA-->>Server: Success
+    Server->>Python: {type: 'sent', id}
+    Note over Python,User : Graceful Shutdown
+    group Phase rgb(60, 60, 60)
+        participant "SIGINT/SIGTERM" as Process
+        Process->>Server: Signal received
+        Server->>Python: Close connections
+        Server->>WA: disconnect()
+        WA->>WhatsApp: Close socket
+    end
+@enduml

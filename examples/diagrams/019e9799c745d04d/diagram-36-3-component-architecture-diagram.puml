@@ -1,0 +1,40 @@
+@startuml
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam defaultTextAlignment center
+skinparam ArrowColor #4b5563
+skinparam PackageBorderColor #64748b
+skinparam PackageBackgroundColor transparent
+skinparam rectangle {
+  BorderColor #4b5563
+  FontColor #111827
+  BackgroundColor #f8fafc
+}
+top to bottom direction
+package "Nanobot System" as NB {
+package "Memory Component" as Memory {
+rectangle "MEMORY.md\nStructured Template" as MD
+rectangle "__init__.py\nModule Interface" as PY
+}
+package "Nanobot Core" as Core {
+rectangle "Interaction Engine" as ENG
+rectangle "Context Processor" as PROC
+}
+}
+package "Persistent Layer" as Storage {
+rectangle "File System\n.md Storage" as FS
+}
+package "External Interactions" as External {
+rectangle "User Sessions" as USER
+}
+USER --> ENG : Session Data
+ENG --> PROC : Significant Info
+PROC --> PY : Write Memory
+PY --> MD : Render Template
+MD --> FS : Persist
+FS --> MD : Read on Init
+MD --> PY : Load Context
+PY --> PROC : Provide Memory
+PROC --> ENG : Contextual Response
+ENG --> USER : Personalized Reply
+@enduml

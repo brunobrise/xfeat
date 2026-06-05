@@ -1,0 +1,65 @@
+@startuml
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam defaultTextAlignment center
+skinparam ArrowColor #4b5563
+skinparam PackageBorderColor #64748b
+skinparam PackageBackgroundColor transparent
+skinparam rectangle {
+  BorderColor #4b5563
+  FontColor #111827
+  BackgroundColor #f8fafc
+}
+top to bottom direction
+package "External Consumers" as External {
+rectangle "Nanobot Core Application" as APP
+rectangle "CLI Commands" as CLI
+rectangle "Agent Modules" as AGENTS
+}
+package "nanobot/utils Component" as Utils {
+package "__init__.py" as Init {
+rectangle "Public API Exports\n(__all__)" as ALLEXPORT
+}
+package "helpers.py" as Helpers {
+package "Path Management" as PathMgmt {
+rectangle "get_workspace_path()" as GETWP
+rectangle "get_data_path()" as GETDP
+}
+package "File Operations" as FileOps {
+rectangle "ensure_dir()" as ENSURE
+rectangle "sanitize_filename()" as SANITIZE
+rectangle "sync_templates()" as SYNC
+}
+package "Utilities" as Utilities {
+rectangle "get_timestamp()" as TIMESTAMP
+}
+}
+}
+package "Filesystem Layer" as FileSystem {
+rectangle "~/.nanobot/\n(Data Directory)" as DATA_DIR
+rectangle "~/.nanobot/workspace/\n(Workspace Root)" as WORKSPACE
+rectangle "memory/" as MEMORY
+rectangle "skills/" as SKILLS
+rectangle "Bundled Templates\n(Package Resources)" as TEMPLATES
+}
+APP --> ALLEXPORT
+CLI --> ALLEXPORT
+AGENTS --> ALLEXPORT
+ALLEXPORT --> GETWP
+ALLEXPORT --> GETDP
+ALLEXPORT --> ENSURE
+ALLEXPORT --> SANITIZE
+ALLEXPORT --> SYNC
+GETWP --> ENSURE
+GETWP --> WORKSPACE
+GETDP --> ENSURE
+GETDP --> DATA_DIR
+SYNC --> TEMPLATES
+SYNC --> ENSURE
+SYNC --> MEMORY
+SYNC --> SKILLS
+SYNC --> WORKSPACE
+ENSURE --> WORKSPACE
+ENSURE --> DATA_DIR
+SANITIZE --> WORKSPACE : Safe Filenames
+@enduml

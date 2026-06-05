@@ -1,0 +1,35 @@
+@startuml
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam defaultTextAlignment center
+skinparam ArrowColor #4b5563
+skinparam PackageBorderColor #64748b
+skinparam PackageBackgroundColor transparent
+skinparam rectangle {
+  BorderColor #4b5563
+  FontColor #111827
+  BackgroundColor #f8fafc
+}
+top to bottom direction
+package "nanobot/templates\nConfiguration Layer" as Templates {
+rectangle "SOUL.md\nPersonality & Values\n━━━━━━━━━━━━━━\n• Identity Definition\n• Communication Style\n• Core Values Framework" as SOUL
+rectangle "USER.md\nUser Profile\n━━━━━━━━━━━━━━\n• Identity & Preferences\n• Technical Expertise\n• Work Context" as USER
+rectangle "AGENTS.md\nAgent Instructions\n━━━━━━━━━━━━━━\n• Reminder Management\n• Heartbeat Task Rules\n• Behavior Guidelines" as AGENTS
+rectangle "HEARTBEAT.md\nTask Queue\n━━━━━━━━━━━━━━\n• Active Tasks\n• Completed Tasks\n• 30-min Cycle" as HEARTBEAT
+rectangle "TOOLS.md\nSafety Constraints\n━━━━━━━━━━━━━━\n• Command Timeouts\n• Dangerous Command Block\n• Workspace Limits" as TOOLS
+}
+package "Nanobot Runtime\nAgent Execution Engine" as Runtime {
+rectangle "🤖 AI Agent\nExecution Core" as ENGINE
+rectangle "⏰ Cron\nScheduler" as CRON
+rectangle "📤 Delivery\nChannels" as CHANNEL
+}
+SOUL --> ENGINE : Shapes Persona
+USER --> ENGINE : Personalizes Responses
+TOOLS --> ENGINE : Enforces Safety
+AGENTS --> ENGINE : Defines Task Rules
+ENGINE --> HEARTBEAT : Reads/Writes Tasks
+HEARTBEAT --> ENGINE : Triggers Every 30min
+AGENTS --> CRON : Schedules Reminders
+CRON --> CHANNEL : Triggers Delivery
+ENGINE --> CHANNEL : Routes to User
+@enduml

@@ -1,0 +1,92 @@
+@startuml
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam defaultTextAlignment center
+skinparam ArrowColor #4b5563
+skinparam PackageBorderColor #64748b
+skinparam PackageBackgroundColor transparent
+skinparam rectangle {
+  BorderColor #4b5563
+  FontColor #111827
+  BackgroundColor #f8fafc
+}
+top to bottom direction
+package "👥 Users" as Users {
+rectangle "📱 Mobile Apps" as U1
+rectangle "💻 Desktop Clients" as U2
+}
+package "📡 Chat Platform Channels" as ChatPlatforms {
+rectangle "Telegram" as TG
+rectangle "Discord" as DC
+rectangle "WhatsApp" as WA
+rectangle "Slack" as SL
+rectangle "Feishu/Lark" as FS
+rectangle "DingTalk" as DT
+rectangle "Matrix" as MX
+rectangle "Email" as EM
+rectangle "Mochat" as MC
+}
+package "🌉 Protocol Bridges" as BridgeLayer {
+rectangle "WhatsApp Bridge\n(Node.js/Baileys)\nbridge/src" as WABRIDGE
+}
+package "🤖 Nanobot AI Framework" as NanobotCore {
+package "Channel Adapters" as ChannelLayer {
+rectangle "ChannelManager\nnanobot/channels" as CHMGR
+}
+package "Message Bus" as BusLayer {
+rectangle "MessageBus\nnanobot/bus\nAsync Event Queue" as BUS
+}
+package "Core Agent (~4k LOC)" as AgentCore {
+rectangle "Agent Loop\nnanobot/agent" as AG
+rectangle "Context Builder" as CTX
+rectangle "Memory Store\n(MEMORY.md + HISTORY.md)" as MEM
+rectangle "Subagent Manager" as SUB
+}
+package "Tool System" as ToolLayer {
+rectangle "ToolRegistry\nnanobot/agent/tools" as TOOLS
+rectangle "Filesystem" as FS_TOOL
+rectangle "Web Search" as WEB_TOOL
+rectangle "Shell" as SHELL_TOOL
+rectangle "MCP Bridge" as MCP_TOOL
+}
+package "Skill System" as SkillLayer {
+rectangle "SkillsLoader\nnanobot/skills" as SKILLS
+rectangle "ClawHub Registry" as SKILL_REGISTRY
+}
+package "LLM Provider Registry" as ProviderLayer {
+rectangle "Provider Router\nnanobot/providers\n(LiteLLM)" as PR
+}
+package "Security Layer" as SecurityLayer {
+rectangle "Access Control" as AC
+rectangle "Command Filter" as SCMD
+rectangle "Path Sanitizer" as PSAN
+}
+package "Infrastructure" as InfraLayer {
+rectangle "Config Manager\nnanobot/config" as CFG
+rectangle "Session Manager\nnanobot/session" as SESS
+rectangle "Cron Scheduler\nnanobot/cron" as CRON
+rectangle "Heartbeat Service\nnanobot/heartbeat" as HB
+rectangle "Templates\nnanobot/templates" as TPL
+}
+}
+package "🧠 LLM Providers" as LLMProviders {
+rectangle "OpenAI" as OAI
+rectangle "Anthropic" as ANT
+rectangle "Google Gemini" as GEM
+rectangle "DeepSeek" as DSK
+rectangle "Groq" as GRQ
+rectangle "vLLM/Local" as VLL
+rectangle "OpenRouter" as OR
+}
+package "🔧 External Tools (MCP)" as ExternalTools {
+rectangle "MCP Server 1" as MCP1
+rectangle "MCP Server 2" as MCP2
+}
+package "📦 Deployment" as Deployment {
+rectangle "Docker Container\nPython 3.12 + Node 20" as DK
+rectangle "docker-compose.yml" as DCY
+}
+package "💾 Persistent Storage" as Storage {
+rectangle "~/.nanobot/workspace/\n• MEMORY.md\n• HISTORY.md\n• skills" as WORKSPACE
+}
+@enduml

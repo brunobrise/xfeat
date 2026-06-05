@@ -1,0 +1,61 @@
+@startuml
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam defaultTextAlignment center
+skinparam ArrowColor #4b5563
+skinparam PackageBorderColor #64748b
+skinparam PackageBackgroundColor transparent
+skinparam rectangle {
+  BorderColor #4b5563
+  FontColor #111827
+  BackgroundColor #f8fafc
+}
+top to bottom direction
+package "External Sources" as External_Sources {
+rectangle "Web URLs" as WEB
+rectangle "Local Files / PDFs" as FS
+rectangle "YouTube Videos" as YT
+}
+package "summarize Component" as summarize_Component {
+rectangle "CLI Interface / Entry Point" as CLI
+package "Ingestion Layer" as Ingestion_Layer {
+rectangle "HTTP / Firecrawl Handler" as WEB_HANDLER
+rectangle "File Parser" as FILE_PARSER
+rectangle "YouTube Transcript Extractor" as YT_EXTRACT
+}
+rectangle "Text Normalizer" as TEXT_NORMALIZER
+package "AI Provider Gateway" as AI_Provider_Gateway {
+rectangle "Provider Router" as PROV_ROUTER
+rectangle "OpenAI API" as OPENAI
+rectangle "Anthropic API" as ANTHROPIC
+rectangle "xAI API" as XAI
+rectangle "Google Gemini API" as GEMINI
+}
+rectangle "Configuration Manager" as CONFIG
+rectangle "Config Store\n~/.summarize/config.json" as DB
+}
+package "Outputs" as Outputs {
+rectangle "Human-Readable Summary" as HUMAN_OUT
+rectangle "JSON Output" as JSON_OUT
+rectangle "Raw Extracted Text" as RAW_TEXT
+}
+WEB --> WEB_HANDLER
+FS --> FILE_PARSER
+YT --> YT_EXTRACT
+WEB_HANDLER --> TEXT_NORMALIZER
+FILE_PARSER --> TEXT_NORMALIZER
+YT_EXTRACT --> TEXT_NORMALIZER
+CLI --> TEXT_NORMALIZER
+TEXT_NORMALIZER --> PROV_ROUTER
+PROV_ROUTER --> OPENAI
+PROV_ROUTER --> ANTHROPIC
+PROV_ROUTER --> XAI
+PROV_ROUTER --> GEMINI
+CONFIG --> DB
+CONFIG ..> PROV_ROUTER
+CONFIG ..> CLI
+OPENAI --> HUMAN_OUT
+ANTHROPIC --> JSON_OUT
+rectangle "Extract" as Extract
+TEXT_NORMALIZER -- Extract
+@enduml

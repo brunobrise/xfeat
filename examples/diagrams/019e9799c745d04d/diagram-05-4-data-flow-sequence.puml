@@ -1,0 +1,54 @@
+@startuml
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam sequence {
+  ArrowColor #4b5563
+  ActorBorderColor #4b5563
+  LifeLineBorderColor #94a3b8
+  ParticipantBorderColor #4b5563
+  ParticipantBackgroundColor #f8fafc
+  ParticipantFontColor #111827
+}
+    participant "User" as User
+    participant "AgentLoop" as Loop
+    participant "ContextBuilder" as Context
+    participant "MemoryStore" as Memory
+    participant "SkillsLoader" as Skills
+    participant "LLM" as LLM
+    participant "SubagentManager" as Subagent
+    User->>Loop: Send Message
+    group Phase rgb(240, 249, 255)
+        Note over Loop,Skills : Context Assembly Phase
+        Loop->>Context: Build context
+        Context->>Memory: Get long-term memory
+        Memory-->>Context: Return MEMORY.md content
+        Context->>Skills: Get always-active skills
+        Skills-->>Context: Return validated skills
+        Context->>Context: Load bootstrap files
+        Context->>Context: Inject runtime metadata
+        Context-->>Loop: Complete message list
+    end
+    group Phase rgb(240, 255, 240)
+        Note over Loop,LLM : Reasoning Phase
+        Loop->>LLM: Send context + messages
+        LLM-->>Loop: Response with tool calls
+    end
+    group Phase rgb(255, 250, 240)
+        Note over Loop,Subagent : Delegation Phase (Optional)
+        alt Complex Task Detected
+            Loop->>Subagent: Spawn background task
+            Subagent->>Subagent: Execute 15-iteration loop
+            Subagent->>Subagent: Use tools (fs, shell, web)
+            Subagent-->>Loop: Report result via message bus
+        end
+    end
+    group Phase rgb(255, 240, 245)
+        Note over Loop,Memory : Consolidation Phase
+        Loop->>Memory: Trigger consolidation
+        Memory->>LLM: Extract key information
+        LLM-->>Memory: Structured updates
+        Memory->>Memory: Append to HISTORY.md
+        Memory->>Memory: Merge into MEMORY.md
+    end
+    Loop-->>User: Response
+@enduml

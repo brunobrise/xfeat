@@ -1,0 +1,33 @@
+@startuml
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam componentStyle rectangle
+top to bottom direction
+skinparam component {
+  BorderColor #4b5563
+  BackgroundColor #f8fafc
+  FontColor #111827
+}
+skinparam rectangle {
+  BorderColor #4b5563
+  BackgroundColor #f8fafc
+  FontColor #111827
+}
+title Bridge Component - Container Diagram
+actor "End User\nSends/receives WhatsApp messages" as user
+rectangle "WhatsApp Servers\nMeta's WhatsApp infrastructure" as whatsapp
+package "bridge/src Component" as bridge {
+component "index.ts\nEntry Point\nProcess lifecycle, config loading, crypto polyfill" as index
+component "server.ts\nWebSocket Server\nClient connections, auth, message routing, broadcasting" as server
+component "whatsapp.ts\nWhatsApp Client\nBaileys wrapper, QR auth, message send/receive" as whatsapp_client
+database "types.d.ts\nType Definitions\nTypeScript declarations for qrcode-terminal" as types
+}
+component "Python Backend\nnanobot core\nConnects via WebSocket to bridge" as python_backend
+user --> whatsapp : Uses
+whatsapp_client --> whatsapp : WebSocket\n(WhatsApp Protocol)
+index --> server : Initializes
+index --> whatsapp_client : Initializes
+server --> whatsapp_client : Calls send()\nReceives callbacks
+server --> types : Uses types
+python_backend --> server : WebSocket\n(ws://127.0.0.1:3001)
+@enduml

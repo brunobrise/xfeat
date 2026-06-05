@@ -1,0 +1,42 @@
+@startuml
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam sequence {
+  ArrowColor #4b5563
+  ActorBorderColor #4b5563
+  LifeLineBorderColor #94a3b8
+  ParticipantBorderColor #4b5563
+  ParticipantBackgroundColor #f8fafc
+  ParticipantFontColor #111827
+}
+    participant "User" as User
+    participant "commands.py" as CLI
+    participant "Configuration" as Config
+    participant "AI Provider" as AI
+    participant "Multi-Channel Bus" as Channels
+    alt First Run / Onboarding
+        User->>CLI: nanobot
+        CLI->>Config: Check if initialized
+        Config-->>CLI: Not initialized
+        CLI->>Config: Create workspace & templates
+        CLI-->>User: Display setup instructions
+    else Interactive Chat
+        User->>CLI: nanobot chat -m 'Hello
+        CLI->>AI: Send message with session context
+        AI-->>CLI: Stream response
+        CLI-->>User: Render markdown response
+    else Gateway Mode
+        User->>CLI: nanobot --gateway --port 18790
+        CLI->>Channels: Initialize enabled channels
+        loop Message Processing
+            Channels->>CLI: Incoming message
+            CLI->>AI: Process with context
+            AI-->>CLI: Response
+            CLI->>Channels: Deliver to channel
+        end
+    else Cron Management
+        User->>CLI: nanobot cron add --interval 3600
+        CLI->>Config: Store scheduled job
+        CLI-->>User: Confirm job creation
+    end
+@enduml
