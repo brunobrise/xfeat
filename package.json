@@ -28,6 +28,77 @@
       "prettier --write"
     ]
   },
+  "overrides": {
+    "@eslint/eslintrc": {
+      "brace-expansion": "1.1.15"
+    },
+    "@humanwhocodes/config-array": {
+      "brace-expansion": "1.1.15"
+    },
+    "@semantic-release/npm": {
+      "npm": "11.16.0"
+    },
+    "conventional-changelog-writer": {
+      "handlebars": "4.7.9"
+    },
+    "eslint": {
+      "brace-expansion": "1.1.15"
+    },
+    "flat-cache": {
+      "flatted": "3.4.2"
+    },
+    "glob": {
+      "brace-expansion": "2.0.3"
+    },
+    "jest-util": {
+      "picomatch": "4.0.4"
+    },
+    "lint-staged": {
+      "yaml": "2.9.0"
+    },
+    "micromatch": {
+      "picomatch": "2.3.2"
+    },
+    "minimatch": {
+      "brace-expansion": "5.0.6"
+    },
+    "nodemon": {
+      "brace-expansion": "5.0.6"
+    },
+    "readdirp": {
+      "picomatch": "2.3.2"
+    },
+    "rimraf": {
+      "brace-expansion": "1.1.15"
+    },
+    "semantic-release": {
+      "lodash-es": "4.18.1"
+    },
+    "test-exclude": {
+      "brace-expansion": "1.1.15"
+    },
+    "@semantic-release/commit-analyzer": {
+      "lodash-es": "4.18.1"
+    },
+    "@semantic-release/git": {
+      "lodash": "4.18.1",
+      "picomatch": "2.3.2"
+    },
+    "@semantic-release/github": {
+      "lodash-es": "4.18.1",
+      "picomatch": "4.0.4",
+      "undici": "8.3.0"
+    },
+    "@semantic-release/release-notes-generator": {
+      "lodash-es": "4.18.1"
+    },
+    "@actions/http-client": {
+      "undici": "6.26.0"
+    },
+    "tinyglobby": {
+      "picomatch": "4.0.4"
+    }
+  },
   "keywords": [],
   "author": "",
   "license": "MIT",
