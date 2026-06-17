@@ -1,14 +1,5 @@
 @startuml
-skinparam backgroundColor transparent
-skinparam shadowing false
-skinparam sequence {
-  ArrowColor #4b5563
-  ActorBorderColor #4b5563
-  LifeLineBorderColor #94a3b8
-  ParticipantBorderColor #4b5563
-  ParticipantBackgroundColor #f8fafc
-  ParticipantFontColor #111827
-}
+!include professional-theme.iuml
     participant "Nanobot Agent" as Agent
     participant "ToolRegistry" as Registry
     participant "Tool Instance" as Tool

@@ -1,15 +1,5 @@
 @startuml
-skinparam backgroundColor transparent
-skinparam shadowing false
-skinparam defaultTextAlignment center
-skinparam ArrowColor #4b5563
-skinparam PackageBorderColor #64748b
-skinparam PackageBackgroundColor transparent
-skinparam rectangle {
-  BorderColor #4b5563
-  FontColor #111827
-  BackgroundColor #f8fafc
-}
+!include professional-theme.iuml
 top to bottom direction
 package "Users" as Users {
 rectangle "📱 Mobile Apps" as U1

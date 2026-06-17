@@ -1,15 +1,5 @@
 @startuml
-skinparam backgroundColor transparent
-skinparam shadowing false
-skinparam defaultTextAlignment center
-skinparam ArrowColor #4b5563
-skinparam PackageBorderColor #64748b
-skinparam PackageBackgroundColor transparent
-skinparam rectangle {
-  BorderColor #4b5563
-  FontColor #111827
-  BackgroundColor #f8fafc
-}
+!include professional-theme.iuml
 top to bottom direction
 package "External Messaging Platforms" as External {
 rectangle "Telegram" as TG
@@ -20,13 +10,14 @@ rectangle "DingTalk" as DT
 rectangle "WhatsApp" as WA
 rectangle "Email\nIMAP/SMTP" as EM
 rectangle "Matrix" as MX
+rectangle "QQ" as QQ
 rectangle "Mochat" as MC
 }
 package "nanobot/channels Component" as Channels {
 package "Core Infrastructure" as Core {
+rectangle "__init__.py\nPublic API" as INIT
 rectangle "BaseChannel\nAbstract Interface" as BC
 rectangle "ChannelManager\nLifecycle & Routing" as CM
-rectangle "__init__.py\nPublic API" as INIT
 }
 package "Channel Implementations" as Implementations {
 rectangle "TelegramChannel" as TG_C
@@ -45,47 +36,11 @@ package "Nanobot Core System" as Internal {
 rectangle "Message Bus\nEvent Queue" as BUS
 rectangle "Bot Core\nProcessing Logic" as CORE
 }
-TG <--> TG_C
-DC <--> DC_C
-SL <--> SL_C
-FS <--> FS_C
-DT <--> DT_C
-WA <--> WA_C
-EM <--> EM_C
-MX <--> MX_C
-rectangle "QQ" as QQ
-QQ <--> QQ_C
-MC <--> MC_C
-TG_C ..> BC : extends
-DC_C ..> BC : extends
-SL_C ..> BC : extends
-FS_C ..> BC : extends
-DT_C ..> BC : extends
-WA_C ..> BC : extends
-EM_C ..> BC : extends
-MX_C ..> BC : extends
-QQ_C ..> BC : extends
-MC_C ..> BC : extends
-CM --> TG_C
-CM --> DC_C
-CM --> SL_C
-CM --> FS_C
-CM --> DT_C
-CM --> WA_C
-CM --> EM_C
-CM --> MX_C
-CM --> QQ_C
-CM --> MC_C
-TG_C <--> BUS
-DC_C <--> BUS
-SL_C <--> BUS
-FS_C <--> BUS
-DT_C <--> BUS
-WA_C <--> BUS
-EM_C <--> BUS
-MX_C <--> BUS
-QQ_C <--> BUS
-MC_C <--> BUS
-CM <--> BUS
-BUS <--> CORE
+External <--> Implementations : platform messages
+Implementations ..> BC : implement interface
+CM --> Implementations : lifecycle & routing
+Implementations <--> BUS : inbound/outbound events
+CM <--> BUS : route events
+BUS <--> CORE : process messages
+INIT --> CM : exports API
 @enduml

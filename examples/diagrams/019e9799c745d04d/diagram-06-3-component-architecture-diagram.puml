@@ -1,18 +1,6 @@
 @startuml
-skinparam backgroundColor transparent
-skinparam shadowing false
-skinparam componentStyle rectangle
+!include professional-theme.iuml
 top to bottom direction
-skinparam component {
-  BorderColor #4b5563
-  BackgroundColor #f8fafc
-  FontColor #111827
-}
-skinparam rectangle {
-  BorderColor #4b5563
-  BackgroundColor #f8fafc
-  FontColor #111827
-}
 title Bridge Component - Container Diagram
 actor "End User\nSends/receives WhatsApp messages" as user
 rectangle "WhatsApp Servers\nMeta's WhatsApp infrastructure" as whatsapp

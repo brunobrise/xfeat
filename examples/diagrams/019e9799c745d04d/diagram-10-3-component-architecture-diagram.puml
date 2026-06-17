@@ -1,15 +1,5 @@
 @startuml
-skinparam backgroundColor transparent
-skinparam shadowing false
-skinparam defaultTextAlignment center
-skinparam ArrowColor #4b5563
-skinparam PackageBorderColor #64748b
-skinparam PackageBackgroundColor transparent
-skinparam rectangle {
-  BorderColor #4b5563
-  FontColor #111827
-  BackgroundColor #f8fafc
-}
+!include professional-theme.iuml
 top to bottom direction
 package "External Sources" as External {
 rectangle "Environment Variables\n(NANOBOT_*)" as ENV
@@ -44,29 +34,16 @@ rectangle "Agent Runtime" as AGENT_RUNNER
 rectangle "Channel Managers" as CHANNEL_MGR
 rectangle "LLM Client" as LLM_CLIENT
 }
-ENV --> VALIDATE
-FILE --> READ
-LEGACY --> MIGRATE
-READ --> MIGRATE
-MIGRATE --> VALIDATE
-VALIDATE --> CONFIG : Success
-VALIDATE --> FALLBACK : Failure
-FALLBACK --> CONFIG
-RESOLVE --> READ
-WRITE --> FILE
-CONFIG --> CHANNELS
-CONFIG --> LLMS
-CONFIG --> AGENT
-CONFIG --> TOOLS
-CONFIG --> GATEWAY
-LOAD --> RESOLVE
-LOAD --> READ
-LOAD --> VALIDATE
-GETPATH --> RESOLVE
-CONFIG --> APP
-CHANNELS --> CHANNEL_MGR
-LLMS --> LLM_CLIENT
-AGENT --> AGENT_RUNNER
-TOOLS --> AGENT_RUNNER
-GATEWAY --> APP
+External --> CoreLogic : config inputs
+LOAD --> CoreLogic : load request
+GETPATH --> RESOLVE : path lookup
+RESOLVE --> READ : locate file
+READ --> MIGRATE : parse JSON
+MIGRATE --> VALIDATE : upgrade schema
+VALIDATE --> CONFIG : success
+VALIDATE --> FALLBACK : failure
+FALLBACK --> CONFIG : safe defaults
+WRITE --> FILE : persist updates
+CONFIG --> DataModel : typed sections
+DataModel --> Consumers : runtime configuration
 @enduml

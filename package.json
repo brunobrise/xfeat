@@ -15,6 +15,7 @@
     "dev": "nodemon index.js",
     "lint": "eslint .",
     "format": "prettier --write .",
+    "render:diagrams": "node scripts/render-plantuml-diagrams.js examples/diagrams/019e9799c745d04d",
     "pre-commit": "npx lint-staged && npm test && npm audit --audit-level=critical && npm run build",
     "build": "echo 'No build step required for this Node.js script'",
     "prepare": "husky"

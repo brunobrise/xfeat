@@ -1,14 +1,6 @@
 @startuml
-skinparam backgroundColor transparent
-skinparam shadowing false
-skinparam class {
-  BorderColor #4b5563
-  BackgroundColor #f8fafc
-  FontColor #111827
-  ArrowColor #4b5563
-}
+!include professional-theme.iuml
 top to bottom direction
-
     package "Public API" {
         class InitModule {
             <<module>>

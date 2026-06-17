@@ -1,18 +1,6 @@
 @startuml
-skinparam backgroundColor transparent
-skinparam shadowing false
-skinparam componentStyle rectangle
+!include professional-theme.iuml
 top to bottom direction
-skinparam component {
-  BorderColor #4b5563
-  BackgroundColor #f8fafc
-  FontColor #111827
-}
-skinparam rectangle {
-  BorderColor #4b5563
-  BackgroundColor #f8fafc
-  FontColor #111827
-}
 title Component Interaction: ClawHub Skill Manager
 actor "User\nInteracts via natural language or CLI" as user
 package "Nanobot System" as nanobot {

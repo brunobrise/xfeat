@@ -1,0 +1,88 @@
+' Professional PlantUML theme for documentation diagrams.
+' Intent: white-background SVGs with print-friendly contrast, predictable spacing,
+' and low-noise routing for architecture, sequence, class, and component diagrams.
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 14
+skinparam defaultFontColor #0F172A
+skinparam defaultTextAlignment center
+skinparam RoundCorner 8
+skinparam nodesep 42
+skinparam ranksep 64
+skinparam linetype polyline
+
+skinparam ArrowColor #64748B
+skinparam ArrowThickness 1.1
+skinparam ArrowFontColor #334155
+skinparam ArrowFontSize 12
+skinparam ArrowFontName Helvetica
+
+skinparam PackageBorderColor #CBD5E1
+skinparam PackageBackgroundColor #F8FAFC
+skinparam PackageFontColor #0F172A
+skinparam PackageFontStyle bold
+skinparam PackageFontSize 15
+
+skinparam rectangle {
+  BackgroundColor #FFFFFF
+  BorderColor #64748B
+  FontColor #0F172A
+  FontName Helvetica
+  FontSize 14
+  RoundCorner 8
+}
+
+skinparam component {
+  BackgroundColor #FFFFFF
+  BorderColor #64748B
+  FontColor #0F172A
+  FontName Helvetica
+  FontSize 14
+}
+
+skinparam database {
+  BackgroundColor #FFFFFF
+  BorderColor #64748B
+  FontColor #0F172A
+  FontName Helvetica
+  FontSize 14
+}
+
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #64748B
+  FontColor #0F172A
+  FontName Helvetica
+  FontSize 14
+  AttributeFontColor #334155
+  AttributeFontSize 12
+  ArrowColor #64748B
+}
+
+skinparam note {
+  BackgroundColor #FFF7ED
+  BorderColor #FDBA74
+  FontColor #7C2D12
+  FontName Helvetica
+}
+
+skinparam sequence {
+  ArrowColor #64748B
+  ArrowThickness 1.1
+  MessageAlign center
+  ParticipantBorderColor #475569
+  ParticipantBackgroundColor #F8FAFC
+  ParticipantFontColor #0F172A
+  ParticipantFontName Helvetica
+  ParticipantFontSize 14
+  LifeLineBorderColor #94A3B8
+  LifeLineBackgroundColor #FFFFFF
+  GroupBorderColor #CBD5E1
+  GroupBackgroundColor #F8FAFC
+  GroupFontColor #334155
+  BoxBorderColor #CBD5E1
+  BoxBackgroundColor #F8FAFC
+}
