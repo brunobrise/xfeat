@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-18.x-green.svg)](https://nodejs.org/)
 
-**@brunobrise/xfeat** is an automated, AI-driven CLI engine that deeply analyzes your codebase to extract product-level features, component architectures, and global system scopes. By combining precise AST-based structural parsing (via `web-tree-sitter`) with the reasoning capabilities of Anthropic's Claude Sonnet 4.6, this tool auto-generates comprehensive, human-readable documentation of what your code _actually_ does.
+**@brunobrise/xfeat** is a documentation CLI for codebase understanding. It can generate AI-assisted architecture and feature maps, and it now includes a deterministic professional documentation workflow for source-grounded docs, freshness audits, and CI verification.
 
 ## Key Features
 
@@ -12,6 +12,8 @@
 - **Automated Mermaid Diagrams:** Visually maps out how files interact at macro and global architecture levels.
 - **Structured Markdown Deliverables:** Produces a neat, hierarchical `FEATURES.md` report encompassing everything from the executive summary to granular file logic.
 - **Smart Directory Traversal:** Adheres to your local `.gitignore` and optional custom `.xfeatignore` rules to avoid processing build artifacts and generic dependencies.
+- **Source-Grounded Professional Docs:** Generates deterministic `docs/` pages with claim evidence, source files, symbols, and line numbers.
+- **Documentation Audit & CI Gate:** Detects stale code references, broken relative Markdown links, missing generated docs, and missing source evidence without requiring an LLM API key.
 
 ## How It Works
 
@@ -74,6 +76,57 @@ npx @brunobrise/xfeat
 npx @brunobrise/xfeat /path/to/your/custom/project
 ```
 
+## Professional Documentation Workflow
+
+Use these commands when you need documentation that can run in onboarding, pull requests, and CI without interactive prompts.
+
+### Initialize Documentation Policy
+
+```bash
+npx @brunobrise/xfeat init
+```
+
+This creates `.xfeat.yml`, `.xfeat/`, and the professional documentation folders if they do not already exist.
+
+### Generate Source-Grounded Docs
+
+```bash
+npx @brunobrise/xfeat scan
+```
+
+The scan command writes:
+
+- `docs/architecture/overview.md`
+- `docs/components/*.md`
+- `docs/onboarding.md`
+- `docs/adr-index.md`
+- `.xfeat/status.json`
+- `xfeat-report.md`
+
+### Audit Documentation Freshness
+
+```bash
+npx @brunobrise/xfeat audit --changed
+```
+
+The audit command reports stale backticked code references and broken relative Markdown links. The `--changed` flag is accepted for CI compatibility; the current MVP audits all Markdown files.
+
+### Verify Generated Evidence
+
+```bash
+npx @brunobrise/xfeat verify
+```
+
+The verify command checks that generated documents exist and that every claim in `.xfeat/status.json` points to a current source file.
+
+### Run CI Gate
+
+```bash
+npx @brunobrise/xfeat ci --changed
+```
+
+The CI command runs audit and verify together, prints a JSON report, and exits nonzero when blocking findings exist.
+
 ### Development Tooling
 
 For developers contributing to this tool, standard npm scripts are available:
@@ -89,6 +142,8 @@ The script concludes by generating a structured `FEATURES.md` record at your exe
 1. **Global Architecture Overview** _(Executive Summary, Application Pillars, Main System Diagram)_
 2. **Component Breakdown** _(Directory-by-Directory Insights, Narrow Context Diagrams)_
 3. **File-Level Details** _(Deeply granular feature lists)_
+
+The professional workflow writes source-grounded docs under `docs/` and machine-readable verification metadata under `.xfeat/status.json`.
 
 ## Supported Languages
 

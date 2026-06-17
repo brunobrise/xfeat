@@ -1223,7 +1223,28 @@ async function main() {
 }
 
 if (require.main === module) {
-  main().catch(console.error);
+  const professionalCommands = new Set([
+    "init",
+    "scan",
+    "audit",
+    "verify",
+    "ci",
+  ]);
+  const firstArg = process.argv[2];
+
+  if (professionalCommands.has(firstArg)) {
+    const { runProfessionalCommand } = require("./lib/professional-docs");
+    runProfessionalCommand(process.argv.slice(2))
+      .then((result) => {
+        process.exit(result.exitCode || 0);
+      })
+      .catch((err) => {
+        console.error(err.message);
+        process.exit(1);
+      });
+  } else {
+    main().catch(console.error);
+  }
 }
 
 module.exports = {
