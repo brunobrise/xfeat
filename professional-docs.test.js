@@ -1,5 +1,6 @@
 const path = require("path");
 const fs = require("fs/promises");
+const { spawnSync } = require("child_process");
 const {
   initProfessionalDocs,
   scanProfessionalDocs,
@@ -110,5 +111,22 @@ describe("Professional documentation workflow", () => {
 
     expect(result.exitCode).toBe(1);
     expect(result.audit.staleReferences).toHaveLength(1);
+  });
+
+  it("prints machine-readable JSON from the CLI without dotenv banners", async () => {
+    await scanProfessionalDocs(workspace);
+
+    const result = spawnSync(
+      process.execPath,
+      [path.join(__dirname, "index.js"), "verify", workspace],
+      {
+        cwd: __dirname,
+        encoding: "utf8",
+      },
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.stdout.trim().startsWith("{")).toBe(true);
+    expect(() => JSON.parse(result.stdout)).not.toThrow();
   });
 });
