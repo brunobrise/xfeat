@@ -101,6 +101,7 @@ symbols, local imports, scripts, and tests. It writes:
 - `docs/components/*.md`
 - `docs/onboarding.md`
 - `docs/how-to/*.md`
+- `docs/reference/*.md`
 - `docs/adr-index.md`
 - `.xfeat/status.json`
 - `xfeat-report.md`
@@ -111,6 +112,7 @@ The generated documentation follows Diátaxis roles:
 - Component pages: reference docs for responsibilities, public APIs, important files, data flow, and source excerpts.
 - Onboarding: a practical first reading path and first commands inferred from repository metadata.
 - How-to guides: task guides inferred from package scripts and test files.
+- Reference appendices: complete generated inventories for claims, files, exported symbols, and import/dependency edges.
 
 ### Audit Documentation Freshness
 

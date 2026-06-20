@@ -74,7 +74,7 @@ machine-readable status file that CI can verify.
 - `xfeat init` is idempotent. Existing `.xfeat.yml` is not overwritten.
 - `xfeat scan` writes `docs/architecture/overview.md`,
   `docs/components/*.md`, `docs/onboarding.md`, `docs/adr-index.md`,
-  `docs/how-to/*.md`,
+  `docs/how-to/*.md`, `docs/reference/*.md`,
   `.xfeat/status.json`, and `xfeat-report.md`.
 - `xfeat audit --changed` accepts the flag for CI compatibility. MVP behavior
   audits all Markdown because changed-file detection can be added later without
@@ -108,6 +108,10 @@ machine-readable status file that CI can verify.
 - Generate how-to guides from package scripts and test files. Each guide must
   include the command, why the task exists, and evidence links to the defining
   metadata or test file.
+- Generate complete reference appendices for all claims, scanned source files,
+  exported symbols, and import/dependency graph edges. Overview and component
+  pages may summarize for readability, but must link to the complete appendices
+  rather than silently dropping evidence.
 - Mark heuristic statements with source evidence and avoid claiming runtime
   behavior that cannot be traced to package metadata, imports, tests, or source
   excerpts.
@@ -120,6 +124,9 @@ machine-readable status file that CI can verify.
   flow, component docs include responsibilities and public APIs, onboarding docs
   rank package metadata and source entrypoints, and how-to docs are inferred from
   scripts/tests with evidence links.
+- Focused tests prove generated reference appendices are complete enough to
+  include claims, files, exported symbols, import targets, and test evidence that
+  would previously have been truncated.
 - Existing feature-map tests keep passing.
 - Commands are noninteractive.
 - New non-Markdown files stay below 420 lines.

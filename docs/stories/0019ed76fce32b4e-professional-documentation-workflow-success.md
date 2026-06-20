@@ -36,12 +36,17 @@ and how-to guides. A symbol inventory alone is trustworthy but not sufficient.
   runtime flow, public APIs, and common tasks.
 - Keeping evidence links beside each generated claim preserves reviewer trust
   even when semantic wording is heuristic.
+- Splitting readable narrative pages from complete reference appendices keeps
+  onboarding usable while still preserving every generated claim, file, exported
+  symbol, and import/dependency edge.
 
 ## Evidence
 
 - Focused Jest coverage validates init, scan, audit, verify, and CI behavior.
 - Focused Jest coverage validates semantic architecture, component, onboarding,
   and how-to docs generated from a package workspace fixture.
+- Focused Jest coverage validates complete reference docs and prevents silent
+  truncation of exported APIs, claims, import targets, and test evidence.
 - Existing Jest tests continue to pass after the workflow is added.
 - Lint, format, and build remain green before commit.
 
@@ -54,6 +59,10 @@ human-readable document is hard to adopt.
 Prefer deterministic semantic extraction before optional LLM synthesis. Package
 metadata, public exports, import graphs, scripts, and tests cover many useful
 documentation claims while remaining auditable in CI.
+
+For larger repositories, write compact explanation pages plus exhaustive
+reference appendices. Completeness belongs in appendices; orientation belongs in
+overview, component, onboarding, and how-to pages.
 
 ## Limits
 

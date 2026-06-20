@@ -216,6 +216,70 @@ describe("Professional documentation workflow", () => {
     expect(testHowTo).toContain("`package.json:");
   });
 
+  it("generates complete reference docs without truncating evidence", async () => {
+    await fs.writeFile(
+      path.join(workspace, "packages", "billing", "src", "many-exports.js"),
+      Array.from(
+        { length: 90 },
+        (_, index) =>
+          `export function billingExport${index}() { return ${index}; }`,
+      ).join("\n"),
+    );
+    await fs.writeFile(
+      path.join(workspace, "src", "billing.test.js"),
+      "import { buildInvoice } from './billing.js';\ntest('invoice', () => buildInvoice('1'));\n",
+    );
+
+    const scan = await scanProfessionalDocs(workspace);
+    const status = JSON.parse(
+      await fs.readFile(path.join(workspace, ".xfeat", "status.json"), "utf8"),
+    );
+    const component = await fs.readFile(
+      path.join(workspace, "docs", "components", "acme-billing.md"),
+      "utf8",
+    );
+    const claims = await fs.readFile(
+      path.join(workspace, "docs", "reference", "claims.md"),
+      "utf8",
+    );
+    const symbols = await fs.readFile(
+      path.join(workspace, "docs", "reference", "symbols.md"),
+      "utf8",
+    );
+    const files = await fs.readFile(
+      path.join(workspace, "docs", "reference", "files.md"),
+      "utf8",
+    );
+    const imports = await fs.readFile(
+      path.join(workspace, "docs", "reference", "import-graph.md"),
+      "utf8",
+    );
+    const testHowTo = await fs.readFile(
+      path.join(workspace, "docs", "how-to", "test.md"),
+      "utf8",
+    );
+
+    expect(status.documents).toEqual(
+      expect.arrayContaining([
+        "docs/reference/claims.md",
+        "docs/reference/files.md",
+        "docs/reference/import-graph.md",
+        "docs/reference/symbols.md",
+      ]),
+    );
+    expect(component).toContain("billingExport89");
+    expect(component).not.toContain("additional exported symbols omitted");
+    expect(claims).toContain("billingExport89 is a function");
+    expect(symbols).toContain("billingExport89");
+    expect(files).toContain("packages/billing/src/many-exports.js");
+    expect(imports).toContain("packages/billing/src/index.js");
+    expect(imports).toContain("packages/ledger/src/index.js");
+    expect(testHowTo).toContain("src/billing.test.js");
+    expect((claims.match(/\| /g) || []).length).toBeGreaterThan(
+      scan.claims.length,
+    );
+  });
+
   it("audits stale code references and broken relative markdown links", async () => {
     await scanProfessionalDocs(workspace);
     await fs.writeFile(
