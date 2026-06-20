@@ -12,7 +12,7 @@
 - **Automated Mermaid Diagrams:** Visually maps out how files interact at macro and global architecture levels.
 - **Structured Markdown Deliverables:** Produces a neat, hierarchical `FEATURES.md` report encompassing everything from the executive summary to granular file logic.
 - **Smart Directory Traversal:** Adheres to your local `.gitignore` and optional custom `.xfeatignore` rules to avoid processing build artifacts and generic dependencies.
-- **Source-Grounded Professional Docs:** Generates deterministic `docs/` pages with claim evidence, source files, symbols, and line numbers.
+- **Source-Grounded Professional Docs:** Generates deterministic Diátaxis-style `docs/` pages with claim evidence, source files, symbols, package metadata, runtime flow, and line numbers.
 - **Documentation Audit & CI Gate:** Detects stale code references, broken relative Markdown links, missing generated docs, and missing source evidence without requiring an LLM API key.
 
 ## How It Works
@@ -94,14 +94,23 @@ This creates `.xfeat.yml`, `.xfeat/`, and the professional documentation folders
 npx @brunobrise/xfeat scan
 ```
 
-The scan command writes:
+The scan command reads package metadata, README content, source excerpts, public
+symbols, local imports, scripts, and tests. It writes:
 
 - `docs/architecture/overview.md`
 - `docs/components/*.md`
 - `docs/onboarding.md`
+- `docs/how-to/*.md`
 - `docs/adr-index.md`
 - `.xfeat/status.json`
 - `xfeat-report.md`
+
+The generated documentation follows Diátaxis roles:
+
+- Architecture overview: explanation of system purpose, component map, runtime flow, and important public APIs.
+- Component pages: reference docs for responsibilities, public APIs, important files, data flow, and source excerpts.
+- Onboarding: a practical first reading path and first commands inferred from repository metadata.
+- How-to guides: task guides inferred from package scripts and test files.
 
 ### Audit Documentation Freshness
 

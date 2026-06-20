@@ -15,6 +15,29 @@ describe("Professional documentation workflow", () => {
   beforeEach(async () => {
     await fs.rm(workspace, { recursive: true, force: true });
     await fs.mkdir(path.join(workspace, "src"), { recursive: true });
+    await fs.mkdir(path.join(workspace, "scripts"), { recursive: true });
+    await fs.mkdir(path.join(workspace, "packages", "billing", "src"), {
+      recursive: true,
+    });
+    await fs.mkdir(path.join(workspace, "packages", "ledger", "src"), {
+      recursive: true,
+    });
+    await fs.writeFile(
+      path.join(workspace, "package.json"),
+      JSON.stringify(
+        {
+          name: "billing-workspace",
+          description: "Billing automation workspace",
+          workspaces: ["packages/*"],
+          scripts: {
+            build: "node scripts/build.js",
+            test: "jest --runInBand",
+          },
+        },
+        null,
+        2,
+      ),
+    );
     await fs.writeFile(
       path.join(workspace, "src", "billing.js"),
       `
@@ -32,8 +55,63 @@ describe("Professional documentation workflow", () => {
       `,
     );
     await fs.writeFile(
+      path.join(workspace, "scripts", "build.js"),
+      "console.log('build billing workspace');\n",
+    );
+    await fs.writeFile(
+      path.join(workspace, "packages", "billing", "package.json"),
+      JSON.stringify(
+        {
+          name: "@acme/billing",
+          description: "Billing package for account charges and invoices",
+          main: "src/index.js",
+          exports: {
+            ".": "./src/index.js",
+          },
+        },
+        null,
+        2,
+      ),
+    );
+    await fs.writeFile(
+      path.join(workspace, "packages", "billing", "src", "index.js"),
+      `
+      import { createLedger } from "../../ledger/src/index.js";
+      export { BillingService, buildInvoice } from "../../../src/billing.js";
+
+      export function chargeWithLedger(customerId, amount) {
+        const ledger = createLedger();
+        return ledger.record(customerId, amount);
+      }
+      `,
+    );
+    await fs.writeFile(
+      path.join(workspace, "packages", "ledger", "package.json"),
+      JSON.stringify(
+        {
+          name: "@acme/ledger",
+          description: "Ledger package for recording charge events",
+          main: "src/index.js",
+        },
+        null,
+        2,
+      ),
+    );
+    await fs.writeFile(
+      path.join(workspace, "packages", "ledger", "src", "index.js"),
+      `
+      export function createLedger() {
+        return {
+          record(customerId, amount) {
+            return { customerId, amount, status: "recorded" };
+          },
+        };
+      }
+      `,
+    );
+    await fs.writeFile(
       path.join(workspace, "README.md"),
-      "# Billing Workspace\n\nUse `BillingService` to charge accounts.\n",
+      "# Billing Workspace\n\n---\n\nUse `BillingService` to charge accounts.\n",
     );
   });
 
@@ -65,14 +143,77 @@ describe("Professional documentation workflow", () => {
     const verify = await verifyProfessionalDocs(workspace);
 
     expect(scan.claims.length).toBeGreaterThanOrEqual(2);
-    expect(status.claims[0]).toEqual(
-      expect.objectContaining({
-        file: "src/billing.js",
-        line: expect.any(Number),
-      }),
+    expect(status.claims).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          file: "src/billing.js",
+          line: expect.any(Number),
+        }),
+      ]),
     );
     expect(overview).toContain("BillingService");
     expect(verify.ok).toBe(true);
+  });
+
+  it("generates semantic Diataxis docs from metadata, symbols, imports, and scripts", async () => {
+    await scanProfessionalDocs(workspace);
+
+    const status = JSON.parse(
+      await fs.readFile(path.join(workspace, ".xfeat", "status.json"), "utf8"),
+    );
+    const overview = await fs.readFile(
+      path.join(workspace, "docs", "architecture", "overview.md"),
+      "utf8",
+    );
+    const component = await fs.readFile(
+      path.join(workspace, "docs", "components", "acme-billing.md"),
+      "utf8",
+    );
+    const onboarding = await fs.readFile(
+      path.join(workspace, "docs", "onboarding.md"),
+      "utf8",
+    );
+    const buildHowTo = await fs.readFile(
+      path.join(workspace, "docs", "how-to", "build.md"),
+      "utf8",
+    );
+    const testHowTo = await fs.readFile(
+      path.join(workspace, "docs", "how-to", "test.md"),
+      "utf8",
+    );
+
+    expect(status.documents).toEqual(
+      expect.arrayContaining([
+        "docs/how-to/build.md",
+        "docs/how-to/test.md",
+        "docs/components/acme-billing.md",
+      ]),
+    );
+    expect(overview).toContain("Billing Workspace");
+    expect(overview).toContain("Use `BillingService` to charge accounts.");
+    expect(overview).toContain("Billing automation workspace");
+    expect(overview).toContain("## Runtime Flow");
+    expect(overview).toContain("packages/billing/src/index.js");
+    expect(overview).toContain("packages/ledger/src/index.js");
+    expect(component).toContain("# Component: @acme/billing");
+    expect(component).toContain("## Responsibilities");
+    expect(component).toContain("Billing package for account charges");
+    expect(component).toContain("## Public APIs");
+    expect(component).toContain("chargeWithLedger");
+    expect(component).toContain("## Important Files");
+    expect(component).toContain("## Data Flow");
+    expect(component).toContain("## Source Excerpts");
+    expect(component).toContain("`packages/billing/package.json:");
+    expect(onboarding).toContain("# Onboarding");
+    expect(onboarding).toContain("npm install");
+    expect(onboarding).toContain("npm run build");
+    expect(onboarding).toContain("packages/billing/src/index.js");
+    expect(buildHowTo).toContain("# How To Build");
+    expect(buildHowTo).toContain("npm run build");
+    expect(buildHowTo).toContain("`package.json:");
+    expect(testHowTo).toContain("# How To Test");
+    expect(testHowTo).toContain("npm run test");
+    expect(testHowTo).toContain("`package.json:");
   });
 
   it("audits stale code references and broken relative markdown links", async () => {

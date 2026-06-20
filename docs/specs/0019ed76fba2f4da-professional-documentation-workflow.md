@@ -1,5 +1,5 @@
 ---
-date: 2026-06-17
+date: 2026-06-20
 status: implemented
 owner: codex
 ---
@@ -17,6 +17,8 @@ freshness checks becomes difficult to review and easy to distrust.
 
 Add an MVP workflow that turns `xfeat` into a source-grounded documentation
 compiler and verifier while preserving the existing AI feature-map pipeline.
+The scan output must be useful as human engineering documentation, not only as a
+symbol inventory.
 
 ## User Outcome
 
@@ -36,6 +38,11 @@ requiring an Anthropic API key.
 - Add `xfeat ci [target]` as a noninteractive audit plus verify gate.
 - Keep generated claims source-grounded with file paths, symbols, and line
   numbers.
+- Infer semantic architecture, component, onboarding, and how-to docs from
+  repository metadata, source excerpts, public symbols, and import relationships.
+- Organize generated docs using Diátaxis roles: explanation for architecture,
+  reference for components, tutorial-style onboarding, and task-focused how-to
+  guides.
 
 ## Non-Goals
 
@@ -44,6 +51,7 @@ requiring an Anthropic API key.
 - No Backstage plugin package.
 - No automatic PR comments.
 - No new production dependency.
+- No required LLM or provider credential for the professional scan path.
 
 ## Workflow Diagram
 
@@ -66,6 +74,7 @@ machine-readable status file that CI can verify.
 - `xfeat init` is idempotent. Existing `.xfeat.yml` is not overwritten.
 - `xfeat scan` writes `docs/architecture/overview.md`,
   `docs/components/*.md`, `docs/onboarding.md`, `docs/adr-index.md`,
+  `docs/how-to/*.md`,
   `.xfeat/status.json`, and `xfeat-report.md`.
 - `xfeat audit --changed` accepts the flag for CI compatibility. MVP behavior
   audits all Markdown because changed-file detection can be added later without
@@ -84,10 +93,33 @@ machine-readable status file that CI can verify.
 - Empty repositories still generate status and a report, but verification warns
   about no source claims.
 
+## Semantic Scan Behavior
+
+- Read root package metadata, workspace package manifests, README files, scripts,
+  tests, and source files.
+- Prefer package/workspace boundaries for components. Fall back to top-level
+  folders when package metadata is absent.
+- Extract public APIs from exported symbols, package `exports`, package `main`,
+  package `bin`, and source entrypoints.
+- Build a lightweight symbol graph from local `import`, `export from`, and
+  `require` references so docs can describe runtime flow between components.
+- Rank important files using package entrypoints, scripts, tests, public
+  symbols, and import fan-in.
+- Generate how-to guides from package scripts and test files. Each guide must
+  include the command, why the task exists, and evidence links to the defining
+  metadata or test file.
+- Mark heuristic statements with source evidence and avoid claiming runtime
+  behavior that cannot be traced to package metadata, imports, tests, or source
+  excerpts.
+
 ## Acceptance Criteria
 
 - Focused tests cover init, scan output, audit findings, verify success, and CI
   failure behavior.
+- Focused tests prove that architecture docs include real purpose and runtime
+  flow, component docs include responsibilities and public APIs, onboarding docs
+  rank package metadata and source entrypoints, and how-to docs are inferred from
+  scripts/tests with evidence links.
 - Existing feature-map tests keep passing.
 - Commands are noninteractive.
 - New non-Markdown files stay below 420 lines.
