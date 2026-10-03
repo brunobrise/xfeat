@@ -1,0 +1,38 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam rectangle {
+  BorderColor #486581
+  FontColor #102A43
+  BackgroundColor #F0F4F8
+}
+skinparam database {
+  BorderColor #486581
+  FontColor #102A43
+  BackgroundColor #D9E2EC
+}
+skinparam arrowColor #334E68
+skinparam ArrowThickness 1.2
+skinparam nodesep 50
+skinparam ranksep 50
+
+left to right direction
+
+rectangle "Selection\n(xfeat.portfolio.json\nor repo paths)" as selection
+rectangle "Repo fact collector\n(read-only, per repo)" as collect
+rectangle "Edge resolver\n(declared deps only)" as edges
+rectangle "Renderer\n(orientation pages)" as render
+database "Output dir\nindex, landscape,\nrepos/*, gaps" as out
+database "portfolio.json\nclaims + fingerprints" as status
+rectangle "portfolio verify\n(stale evidence gate)" as verify
+
+selection --> collect
+collect --> edges
+collect --> render
+edges --> render
+render --> out
+render --> status
+status --> verify
+out --> verify
+@enduml
