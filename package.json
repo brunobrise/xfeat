@@ -37,7 +37,7 @@
       "brace-expansion": "1.1.15"
     },
     "@semantic-release/npm": {
-      "npm": "11.16.0"
+      "npm": "11.21.0"
     },
     "conventional-changelog-writer": {
       "handlebars": "4.7.9"
