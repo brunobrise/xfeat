@@ -20,8 +20,10 @@ date: 2026-10-04
 
 ## Stories
 
-| Document                                                                                                                           | Type    | Description                                                     |
-| ---------------------------------------------------------------------------------------------------------------------------------- | ------- | --------------------------------------------------------------- |
-| [Professional Documentation Workflow Success](./stories/0019ed76fce32b4e-professional-documentation-workflow-success.md)           | Success | Captures the source-grounded docs workflow delivery pattern.    |
-| [Professional PlantUML Diagram Generation Success](./stories/019f5e2f0f02b7c2-professional-plantuml-diagram-generation-success.md) | Success | Captures the verified shared-theme SVG generation pattern.      |
-| [PlantUML Diagram Generation Failure](./stories/019f5e2f0f03c8d3-plantuml-diagram-generation-failure.md)                           | Failure | Captures failed theme/layout experiments and corrective checks. |
+| Document                                                                                                                           | Type    | Description                                                                                                                   |
+| ---------------------------------------------------------------------------------------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| [Professional Documentation Workflow Success](./stories/0019ed76fce32b4e-professional-documentation-workflow-success.md)           | Success | Captures the source-grounded docs workflow delivery pattern.                                                                  |
+| [Professional PlantUML Diagram Generation Success](./stories/019f5e2f0f02b7c2-professional-plantuml-diagram-generation-success.md) | Success | Captures the verified shared-theme SVG generation pattern.                                                                    |
+| [PlantUML Diagram Generation Failure](./stories/019f5e2f0f03c8d3-plantuml-diagram-generation-failure.md)                           | Failure | Captures failed theme/layout experiments and corrective checks.                                                               |
+| [Portfolio Documentation Success](./stories/01a103e77d3b7396-portfolio-documentation-success.md)                                   | Success | Records the evidence-first multi-repository pattern and its real-repository results; read before extending `xfeat portfolio`. |
+| [Portfolio Documentation Failures](./stories/01a103e77d697ab1-portfolio-documentation-failures.md)                                 | Failure | Lists nine defects found by tests and a 74-repository dogfood run, with fixes and prevention rules.                           |
