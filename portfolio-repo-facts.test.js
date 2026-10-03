@@ -3,6 +3,9 @@ const fs = require("fs/promises");
 const { collectRepoFacts } = require("./lib/portfolio-repo-facts");
 const { createPortfolioFixture } = require("./test_files/portfolio-fixture");
 
+// These suites create real git repositories; allow for slow CI runners.
+jest.setTimeout(30000);
+
 describe("Portfolio repository facts", () => {
   const root = path.join(__dirname, "__portfolio_facts__");
 

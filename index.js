@@ -1238,7 +1238,17 @@ if (require.main === module) {
   ]);
   const firstArg = process.argv[2];
 
-  if (professionalCommands.has(firstArg)) {
+  if (firstArg === "portfolio") {
+    const { runPortfolioCommand } = require("./lib/portfolio-cli");
+    runPortfolioCommand(process.argv.slice(3))
+      .then((result) => {
+        process.exit(result.exitCode || 0);
+      })
+      .catch((err) => {
+        console.error(err.message);
+        process.exit(1);
+      });
+  } else if (professionalCommands.has(firstArg)) {
     const { runProfessionalCommand } = require("./lib/professional-docs");
     runProfessionalCommand(process.argv.slice(2))
       .then((result) => {

@@ -23,6 +23,9 @@ function git(cwd, args) {
   ).trim();
 }
 
+// These suites create real git repositories; allow for slow CI runners.
+jest.setTimeout(30000);
+
 describe("Portfolio git metadata", () => {
   const root = path.join(__dirname, "__portfolio_git__");
 

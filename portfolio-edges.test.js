@@ -4,6 +4,9 @@ const { collectRepoFacts } = require("./lib/portfolio-repo-facts");
 const { resolvePortfolioGraph } = require("./lib/portfolio-edges");
 const { createPortfolioFixture } = require("./test_files/portfolio-fixture");
 
+// These suites create real git repositories; allow for slow CI runners.
+jest.setTimeout(30000);
+
 describe("Portfolio cross-repository graph", () => {
   const root = path.join(__dirname, "__portfolio_edges__");
   let graph;

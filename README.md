@@ -14,6 +14,7 @@
 - **Smart Directory Traversal:** Adheres to your local `.gitignore` and optional custom `.xfeatignore` rules to avoid processing build artifacts and generic dependencies.
 - **Source-Grounded Professional Docs:** Generates deterministic Diátaxis-style `docs/` pages with claim evidence, source files, symbols, package metadata, runtime flow, and line numbers.
 - **Documentation Audit & CI Gate:** Detects stale code references, broken relative Markdown links, missing generated docs, and missing source evidence without requiring an LLM API key.
+- **Multi-Repository Portfolio Docs:** Documents a selection of repositories as one system: owners, status, clone order, declared commands, cross-repository dependencies with typed confidence, and gaps, with every statement pinned to a source line and commit.
 
 ## How It Works
 
@@ -138,7 +139,74 @@ npx @brunobrise/xfeat ci --changed
 
 The CI command runs audit and verify together, prints a JSON report, and exits nonzero when blocking findings exist.
 
-### Development Tooling
+## Portfolio Documentation
+
+`xfeat portfolio` documents a selection of repositories as one system. It reads each repository without modifying it and writes a separate output folder. No API key is required. Design decisions and their evidence are recorded in [the research](docs/research/01a103e77ce2751b-multi-repo-documentation-research.md) and [the spec](docs/specs/01a103e77d0e706f-portfolio-documentation.md).
+
+### Select Repositories
+
+Create a reviewable selection from a parent folder of git repositories:
+
+```bash
+npx @brunobrise/xfeat portfolio init --from ~/code/acme --exclude "legacy-*"
+```
+
+This writes `xfeat.portfolio.json`, which can be edited to add owners, systems, lifecycle, and notes:
+
+```json
+{
+  "name": "Billing Platform",
+  "output": "xfeat-portfolio",
+  "repos": [
+    {
+      "path": "../billing-api",
+      "system": "billing",
+      "owner": "@acme/payments"
+    },
+    { "path": "../billing-web" }
+  ]
+}
+```
+
+Repository paths can also be passed directly: `xfeat portfolio scan ../billing-api ../billing-web --out portfolio-docs`.
+
+### Generate Portfolio Docs
+
+```bash
+npx @brunobrise/xfeat portfolio scan
+npx @brunobrise/xfeat portfolio scan --render-diagrams
+```
+
+| Output                     | Content                                                                                  |
+| -------------------------- | ---------------------------------------------------------------------------------------- |
+| `index.md`                 | Repository table grouped by system: purpose, owner, status, languages, verified commit.  |
+| `getting-started.md`       | Clone order with providers first, and declared commands per repository.                  |
+| `landscape.md`             | Cross-repository dependencies and a PlantUML landscape diagram.                          |
+| `repos/{slug}.md`          | One page per repository: ownership, modules, interfaces, commands, dependencies, gaps.   |
+| `integrations/{a}--{b}.md` | One page per connected pair, with consumer and provider evidence.                        |
+| `gaps.md`                  | Coverage of owners, purpose, test commands, CI, and licenses, plus ambiguous names.      |
+| `dependencies.md`          | Shared external dependencies with version drift, and shared protobuf contracts.          |
+| `packages.md`              | Which repository defines each package or module name.                                    |
+| `decisions.md`             | Architecture decision records found across repositories.                                 |
+| `llms.txt`                 | A link index for coding agents, under 8 KB.                                              |
+| `portfolio.json`           | The complete model, including every claim with its source line hash and repository SHAs. |
+
+Evidence links point to commit permalinks on GitHub, GitLab, and Bitbucket when the repository is clean, and to local files otherwise. Re-running `scan` on unchanged repositories produces byte-identical output.
+
+Cross-repository edges are detected only from declarations: path and git dependencies, Go module paths, git submodules, GitHub Actions `uses:`, and Terraform module sources. A dependency that only matches a package name provided by another selected repository is labeled `name-match`, because the registry it resolves from is not verified. Runtime calls through HTTP, queues, or service registries are not detected.
+
+### Verify Portfolio Freshness
+
+```bash
+npx @brunobrise/xfeat portfolio verify
+npx @brunobrise/xfeat portfolio ci
+```
+
+`verify` re-reads every cited line. It fails when a cited line changed, a cited file or repository disappeared, or a generated page is missing, and it warns when a cited line only moved. `ci` adds a check of relative links inside the output. Both print JSON and exit nonzero on blocking findings.
+
+The output exposes internal package names, owners, and hosts. Treat it as internal documentation. Git remote credentials are always removed.
+
+## Development Tooling
 
 For developers contributing to this tool, standard npm scripts are available:
 
