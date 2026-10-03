@@ -73,6 +73,9 @@ describe("xfeat portfolio end to end", () => {
     );
     expect(result.edges).toBe(4);
     expect(result.ambiguous).toBe(1);
+    expect(result.warnings).toEqual([
+      expect.stringMatching(/sync-worker.*local files/),
+    ]);
   });
 
   it("produces byte-identical output when repositories do not change", async () => {
@@ -132,6 +135,17 @@ describe("xfeat portfolio end to end", () => {
     );
     expect(web).toContain(
       "| Status | active: last commit within 365 days of the newest commit in this portfolio |",
+    );
+    expect(web).toContain("`pnpm run seo:smoke`");
+    expect(start).not.toContain("seo:smoke");
+    const ledger = await readOut(outDir, "repos/ledger.md");
+    expect(ledger).toContain("## Modules");
+    expect(ledger).toContain("| Name | Ecosystem | Path | Role | Source |");
+    expect(ledger).toContain("`bindings/cli/src/main.rs`");
+    expect(ledger).not.toContain("| go package |");
+    const dependencies = await readOut(outDir, "dependencies.md");
+    expect(dependencies).toMatch(
+      /`\^18\.2\.0`: \[billing-web\]\(https:\/\/github\.com/,
     );
   });
 

@@ -186,15 +186,15 @@ byte-identical files.
 
 ## Cross-Repository Edges
 
-| Kind               | Detection                                                                     | Confidence   |
-| ------------------ | ----------------------------------------------------------------------------- | ------------ |
-| `path-dependency`  | A manifest dependency path resolves inside another selected repository.       | `declared`   |
-| `git-dependency`   | A dependency git URL matches another repository's remote.                     | `declared`   |
-| `go-module`        | A `go.mod` requirement starts with another repository's module path.          | `declared`   |
-| `git-submodule`    | A `.gitmodules` URL matches another repository's remote.                      | `declared`   |
-| `github-action`    | A workflow `uses:` references another repository's remote.                    | `declared`   |
-| `terraform-module` | A Terraform `source` references another repository's remote.                  | `declared`   |
-| `package-name`     | A dependency name equals a package another repository provides, by ecosystem. | `name-match` |
+| Kind               | Detection                                                                                                     | Confidence   |
+| ------------------ | ------------------------------------------------------------------------------------------------------------- | ------------ |
+| `path-dependency`  | A manifest dependency path resolves inside another selected repository.                                       | `declared`   |
+| `git-dependency`   | A dependency git URL matches another repository's remote.                                                     | `declared`   |
+| `go-module`        | A `go.mod` requirement starts with another repository's module path.                                          | `declared`   |
+| `git-submodule`    | A `.gitmodules` URL, resolved like git resolves relative URLs, matches another repository's remote or folder. | `declared`   |
+| `github-action`    | A workflow `uses:` references another repository's remote.                                                    | `declared`   |
+| `terraform-module` | A Terraform `source` references another repository's remote.                                                  | `declared`   |
+| `package-name`     | A dependency name equals a package another repository provides, by ecosystem.                                 | `name-match` |
 
 - Names are compared per ecosystem after normalization (PEP 503 for Python,
   `_` and `-` equivalence for Cargo, lowercase for npm and Composer, exact for
@@ -203,6 +203,21 @@ byte-identical files.
   internal and is not an edge.
 - A name provided by several selected repositories is reported as ambiguous in
   `gaps.md` and is not drawn.
+
+## Commands
+
+- Sources: CI `run:` steps and GitLab `script:` entries, package scripts,
+  Makefile targets, and justfile recipes. CI wins on duplicates because it is
+  evidence the command runs.
+- Workflows whose file name mentions release, publish, deploy, backup, pages,
+  labeler, stale, pr-title, or dependabot are skipped for commands. They are
+  still read for `uses:` references.
+- CI lines with workflow expressions (`${{ }}`, `$GITHUB_*`), shell control
+  fragments, file chores, and toolchain installers are dropped.
+- Categories (setup, build, test, lint, run, other) are matched with flags
+  removed, so `--output-format` does not read as a lint command.
+- `getting-started.md` shows one command per essential category. Repository
+  pages list every declared command.
 
 ## Status, Ownership, And Systems
 
@@ -229,6 +244,9 @@ command, CI, and a license.
 - At most 200 protobuf files per repository are read for package names.
 - Lines are hashed after trimming whitespace, so indentation changes do not mark
   evidence stale.
+- Links for repositories with uncommitted changes, no commits, or no supported
+  remote point to local files and only work on the machine that ran the scan.
+  `scan` reports them as a warning.
 
 ## Acceptance Criteria
 

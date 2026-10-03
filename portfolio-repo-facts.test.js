@@ -52,6 +52,7 @@ describe("Portfolio repository facts", () => {
       ["pnpm test", "ci"],
       ["pnpm run dev", "script"],
       ["pnpm run build", "script"],
+      ["pnpm run seo:smoke", "script"],
     ]);
     expect(facts.commands[1].evidence.hash).toMatch(/^[0-9a-f]{16}$/);
     expect(facts.references.actions.map((a) => a.ref)).toEqual([

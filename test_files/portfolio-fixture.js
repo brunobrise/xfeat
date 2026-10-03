@@ -41,7 +41,12 @@ const REPOS = {
         name: "@acme/billing-web",
         description: "Customer billing portal",
         license: "MIT",
-        scripts: { dev: "vite", test: "vitest run", build: "vite build" },
+        scripts: {
+          dev: "vite",
+          test: "vitest run",
+          build: "vite build",
+          "seo:smoke": "node scripts/seo-smoke.mjs",
+        },
         dependencies: { "@acme/ui-kit": "^3.0.0", react: "^18.2.0" },
       }),
       "pnpm-lock.yaml": "lockfileVersion: '9.0'\n",
@@ -100,6 +105,9 @@ const REPOS = {
       "proto/billing/v1/invoice.proto":
         'syntax = "proto3";\npackage billing.v1;\n',
       "ledger.go": "package ledger\n",
+      "bindings/cli/Cargo.toml":
+        '[package]\nname = "ledger-cli"\n\n[[bin]]\nname = "ledger"\npath = "src/main.rs"\n',
+      "bindings/cli/src/main.rs": "fn main() {}\n",
     },
   },
   "platform-workflows": {
