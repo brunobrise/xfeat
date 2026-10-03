@@ -1,5 +1,5 @@
 ---
-date: 2026-06-17
+date: 2026-10-04
 ---
 
 # Documentation Index
@@ -10,6 +10,12 @@ date: 2026-06-17
 | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
 | [Professional Documentation Workflow](./specs/0019ed76fba2f4da-professional-documentation-workflow.md) | Defines init, scan, audit, verify, and CI behavior for source-grounded professional docs.    |
 | [PlantUML Diagram Generation Quality](./specs/019f5e2f0f01a6b1-plantuml-diagram-generation-quality.md) | Rendering, layout, theme, and verification requirements for generated PlantUML SVG diagrams. |
+
+## Research
+
+| Document                                                                                                    | Description                                                                                                                           |
+| ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| [Multi-Repository Documentation Research](./research/01a103e77ce2751b-multi-repo-documentation-research.md) | Sourced successes and failures of AI doc generators, developer portals, and doc frameworks; open it before changing portfolio output. |
 
 ## Stories
 
