@@ -114,4 +114,37 @@ describe("Portfolio command extraction", () => {
       },
     ]);
   });
+
+  it("drops release workflows, CI expressions, shell fragments, and tool installers", () => {
+    const workflow = `jobs:
+  build:
+    steps:
+      - run: |
+          if ! command -v cargo > /dev/null 2>&1; then
+            curl --proto '=https' -sSf https://sh.rustup.rs | sh -s -- -y
+          fi
+      - run: \${{ matrix.install_dist.run }}
+      - run: dist build --output-format=json > "$GITHUB_OUTPUT"
+      - run: chmod +x ~/.cargo/bin/dist
+      - run: git config --global core.longpaths true
+      - run: cargo test --workspace
+`;
+
+    expect(ciCommands(".github/workflows/ci.yml", workflow)).toEqual([
+      {
+        command: "cargo test --workspace",
+        file: ".github/workflows/ci.yml",
+        line: 12,
+      },
+    ]);
+    expect(ciCommands(".github/workflows/release.yml", workflow)).toEqual([]);
+    expect(ciCommands(".github/workflows/deploy-prod.yml", workflow)).toEqual(
+      [],
+    );
+  });
+
+  it("ignores flags when categorizing", () => {
+    expect(categorizeCommand("dist build --output-format=json")).toBe("build");
+    expect(categorizeCommand("tool sync --format json")).toBe("other");
+  });
 });

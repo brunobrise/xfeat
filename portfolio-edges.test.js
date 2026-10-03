@@ -118,4 +118,45 @@ describe("Portfolio cross-repository graph", () => {
       }),
     ]);
   });
+
+  it("resolves relative submodule URLs against the superproject remote or folder", () => {
+    const repo = (slug, remoteUrl, submodules = []) => ({
+      slug,
+      path: `/work/${slug}`,
+      git: { remoteUrl, prefix: "" },
+      manifests: [],
+      contracts: [],
+      references: { actions: [], terraform: [], submodules },
+    });
+    const evidence = {
+      repo: "legi-france",
+      file: ".gitmodules",
+      line: 3,
+      hash: "x",
+    };
+    const remoteGraph = resolvePortfolioGraph([
+      repo("legi-france", "https://github.com/brunobrise/legi-france", [
+        { name: "legi", path: "vendor/legi", url: "../legi.py", evidence },
+      ]),
+      repo("legi-py", "https://github.com/brunobrise/legi.py"),
+    ]);
+    const localGraph = resolvePortfolioGraph([
+      repo("site", "", [
+        { name: "t", path: "theme", url: "../theme", evidence },
+      ]),
+      repo("theme", ""),
+    ]);
+
+    expect(remoteGraph.edges).toEqual([
+      expect.objectContaining({
+        from: "legi-france",
+        to: "legi-py",
+        kind: "git-submodule",
+        confidence: "declared",
+      }),
+    ]);
+    expect(localGraph.edges.map((edge) => [edge.from, edge.to])).toEqual([
+      ["site", "theme"],
+    ]);
+  });
 });
