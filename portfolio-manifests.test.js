@@ -209,6 +209,27 @@ describe("Portfolio manifest reader", () => {
     ]);
   });
 
+  it("reports unparseable manifests instead of dropping them", async () => {
+    await write(root, "package.json", "{ broken json");
+    await write(root, "Cargo.toml", '[package]\nname = "ok"\nbroken = [1, 2\n');
+
+    const manifests = await readRepoManifests(root);
+
+    expect(manifests).toEqual([
+      expect.objectContaining({
+        file: "Cargo.toml",
+        name: "ok",
+        parseErrors: 1,
+      }),
+      expect.objectContaining({
+        file: "package.json",
+        invalid: true,
+        parseErrors: 1,
+        dependencies: [],
+      }),
+    ]);
+  });
+
   it("normalizes package names per ecosystem", () => {
     expect(normalizePackageName("python", "Legi_Sync.Core")).toBe(
       "legi-sync-core",
