@@ -187,6 +187,18 @@ describe("Professional docs scan file ownership", () => {
     expect(output.facts.some((fact) => "text" in fact)).toBe(false);
   });
 
+  it("reports an unreadable status as a verify finding instead of crashing", async () => {
+    await scanProfessionalDocs(workspace);
+    await write(workspace, ".xfeat/status.json", '{ "documents": [');
+
+    const verify = await verifyProfessionalDocs(workspace);
+
+    expect(verify.ok).toBe(false);
+    expect(verify.findings).toEqual([
+      { type: "invalid-status", path: ".xfeat/status.json" },
+    ]);
+  });
+
   it("includes skipped files in the CLI JSON result", async () => {
     await write(workspace, "docs/onboarding.md", HAND_WRITTEN);
     const lines = [];

@@ -186,5 +186,11 @@ describe("Public API detection", () => {
     expect(
       apiNamed("billing/__init__.py", text, "create_invoice"),
     ).toMatchObject({ type: "function", line: 8 });
+    expect(
+      names(
+        "billing/api.py",
+        '__all__ = (\n    "create_invoice",  # see docs (billing)\n    "Invoice",\n)\n',
+      ),
+    ).toEqual(["create_invoice", "Invoice"]);
   });
 });
