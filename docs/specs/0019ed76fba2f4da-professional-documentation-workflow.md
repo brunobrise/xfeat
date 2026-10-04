@@ -272,6 +272,11 @@ listing every skipped path, and exit with code 1 when any path resolves
 outside the repository, because the output is then incomplete for a reason
 the user must look at.
 
+Reading follows the same rule: `scan` and `audit` skip a source file whose real
+path is outside the repository, whether the file itself or a folder above it is
+a symlink, so content from elsewhere on the machine never reaches a generated
+page.
+
 ## Acceptance Criteria
 
 - Focused tests cover init, scan output, audit findings, verify success, and CI

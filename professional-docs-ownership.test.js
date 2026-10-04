@@ -268,6 +268,32 @@ describe("Professional docs scan file ownership", () => {
     }
   });
 
+  it("never reads source files through links that leave the repository", async () => {
+    const outside = await fs.mkdtemp(path.join(os.tmpdir(), "xfeat-outside-"));
+    await fs.writeFile(
+      path.join(outside, "secret.js"),
+      'export const TOKEN = "ghp_outsideRepositoryToken";\n',
+    );
+    await fs.symlink(
+      path.join(outside, "secret.js"),
+      path.join(workspace, "src", "linked.js"),
+    );
+    await fs.symlink(outside, path.join(workspace, "vendor-link"));
+
+    try {
+      const scan = await scanProfessionalDocs(workspace);
+      const files = scan.facts.map((fact) => fact.file);
+      const pages = await Promise.all(
+        scan.documents.map((doc) => read(workspace, doc)),
+      );
+
+      expect(files).toEqual(["src/billing.js"]);
+      expect(pages.join("\n")).not.toContain("ghp_outsideRepositoryToken");
+    } finally {
+      await fs.rm(outside, { recursive: true, force: true });
+    }
+  });
+
   it("prints complete scan JSON through a pipe without source text", async () => {
     for (let index = 0; index < 120; index += 1) {
       await write(
