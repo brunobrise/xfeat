@@ -103,6 +103,14 @@ existing npm workspace suite, all pass.
    and `npm test` failed with "No tests found". Anchoring with `<rootDir>`
    fixed it.
 
+7. **Truncated CLI JSON.** The `scan` JSON embedded every source file's text
+   (452 KB for crevette), and the CLI called `process.exit()` before stdout
+   drained. On macOS, where pipe writes are asynchronous, `xfeat scan | jq`
+   received 512 bytes of invalid JSON, so the new `skipped` list was
+   unreachable. The JSON now omits source text, and the exit code is set
+   without forcing an exit. Linux CI cannot catch this, because pipes are
+   synchronous there.
+
 ## Reusable Pattern
 
 - Before adding a reader, check whether `portfolio` already parses the format.
@@ -111,6 +119,8 @@ existing npm workspace suite, all pass.
 - After a change that touches extraction, run `scan` on scratch clones of real
   repositories and read the evidence lines, not only the counts.
 - Any test or tool that spawns `git` must drop inherited `GIT_*` variables.
+- Test machine-readable CLI output through a real pipe, with output larger than
+  the pipe buffer, on macOS as well as Linux.
 
 ## Limits
 

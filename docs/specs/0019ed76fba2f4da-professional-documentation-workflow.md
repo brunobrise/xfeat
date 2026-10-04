@@ -83,7 +83,9 @@ machine-readable status file that CI can verify.
   `.xfeat/status.json`, and `xfeat-report.md`. It never overwrites a file it
   did not generate; see [Generated File Ownership](#generated-file-ownership).
 - The `scan` JSON result lists `documents` that were written and `skipped`
-  entries (`{ "path", "reason" }`) for generated paths left untouched.
+  entries (`{ "path", "reason" }`) for generated paths left untouched. Its
+  `facts` list files, components, line counts, and symbols, never source text,
+  and the JSON is complete when stdout is a pipe.
 - `xfeat audit --changed` accepts the flag for CI compatibility. MVP behavior
   audits all Markdown because changed-file detection can be added later without
   changing command shape.
