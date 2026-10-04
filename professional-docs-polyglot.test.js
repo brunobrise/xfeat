@@ -334,6 +334,18 @@ describe("Professional docs scan on polyglot repositories", () => {
     ]);
   });
 
+  it("keeps a plain folder apart from a package with the same name", async () => {
+    await writeTree(workspace, {
+      "packages/tools/package.json": JSON.stringify({ name: "tools" }),
+      "packages/tools/index.js": "export function lint() {}\n",
+      "tools/release.sh": "#!/bin/sh\necho release\n",
+    });
+
+    const scan = await scanProfessionalDocs(workspace);
+
+    expect(scan.semantic.components).toEqual(["tools", "tools (folder)"]);
+  });
+
   it("keeps fresh docs audit-clean when package names contain underscores", async () => {
     await writeTree(workspace, {
       "Cargo.toml": '[package]\nname = "ledger_tools"\nversion = "0.1.0"\n',

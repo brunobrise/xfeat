@@ -281,4 +281,31 @@ describe("Public API detection", () => {
       names("billing/constants.py", text.replace(/__all__.*\n/g, "")),
     ).toEqual(["REAL", "create", "refund"]);
   });
+
+  it("skips private packages, test-only Rust code, and Go comments and raw strings", () => {
+    expect(
+      names("billing/_internal/helpers.py", "def warm():\n    pass\n"),
+    ).toEqual([]);
+    expect(names("tests/common/mod.rs", "pub fn setup() {}\n")).toEqual([]);
+    expect(
+      names(
+        "src/lib.rs",
+        "#[cfg(test)]\npub mod test_support {\n    pub fn fixture() {}\n}\npub fn real() {}\n",
+      ),
+    ).toEqual(["real"]);
+    const go = [
+      "package payments",
+      "",
+      "/*",
+      "func Hidden() {}",
+      "*/",
+      "var help = `",
+      "func RawHidden() {}",
+      "`",
+      "",
+      "func Visible() {}",
+    ].join("\n");
+    expect(names("payments.go", go)).toEqual(["Visible"]);
+    expect(apiNamed("payments.go", go, "Visible")).toMatchObject({ line: 10 });
+  });
 });
