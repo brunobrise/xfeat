@@ -113,6 +113,29 @@ existing npm workspace suite, all pass.
    without forcing an exit. Linux CI cannot catch this, because pipes are
    synchronous there.
 
+## Independent Review
+
+A reviewer in an isolated clone reproduced seven more defects before merge.
+All are fixed and tested:
+
+- `.xfeat/status.json` and the folders `init` creates could be written through
+  symlinks that leave the repository, for example to `~/.bashrc`.
+- Trusting the old status file let a tampered or stale list overwrite a
+  hand-written page, and a clone without `.xfeat/` skipped old generated pages
+  forever. Pre-marker pages are now recognized by their exact opening lines.
+- Rust `pub` items inside private modules, `#[cfg(test)]` modules, function
+  bodies, comments, and raw strings counted as public API.
+- Go `internal/` packages, `package main`, and methods on unexported types
+  counted as public; so did Python `_private.py` modules, `tests/` helpers, and
+  names in docstrings, and a second `__all__ +=` was ignored.
+- Cargo `workspace.exclude` was ignored.
+- Same-named packages merged into one component, and `docs/requirements.txt`
+  produced an empty component page.
+
+Lesson: the spec listed the Rust limitation as acceptable, and the reviewer
+showed it was cheap to fix. Treat a documented limitation as a defect until a
+reproduction shows the fix costs more than the error.
+
 ## Reusable Pattern
 
 - Before adding a reader, check whether `portfolio` already parses the format.
