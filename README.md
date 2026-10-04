@@ -244,6 +244,12 @@ The output exposes internal package names, owners, and hosts. Treat it as intern
 
 The output folder must resolve outside every selected repository. `scan` never writes through symlinks, and on a rescan it removes only pages it generated earlier. Hand-written files in the output folder are kept.
 
+## Writing Rules
+
+Every page that `xfeat scan` and `xfeat portfolio scan` write follows STE-lite, a subset of ASD-STE100 Issue 9 Simplified Technical English: descriptive sentences of 25 words or fewer, numbered steps of 20 words or fewer with one instruction each, paragraphs of six sentences or fewer, active voice, and no semicolons or contractions. Commands and identifiers stay verbatim in backticks. Text quoted from a repository, such as a README summary or a maintainer note, appears as a blockquote and is never rewritten, because it must keep matching the line it cites.
+
+xfeat does not use the STE dictionary and makes no STE compliance claim: the dictionary cannot be embedded under its licence, and it bans core software verbs such as `run` and `return`. The rules and their sources are in [the spec](docs/specs/01a10804fd3272c3-portfolio-learning-path-and-checks.md).
+
 ## Development Tooling
 
 For developers contributing to this tool, standard npm scripts are available:

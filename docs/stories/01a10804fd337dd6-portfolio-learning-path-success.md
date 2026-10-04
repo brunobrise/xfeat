@@ -137,6 +137,25 @@ The kill criterion was "drop the learning path if harder questions show no
 accuracy or cost gain". The cost gain held across three runs per arm, so the
 feature stays. An accuracy gain remains unshown.
 
+## STE-Lite On Every Generated Page
+
+After Andrej Karpathy recommended ASD-STE100 for LLM output in October 2026,
+the STE-lite rules spread from `learn.md` to every page that `xfeat scan` and
+`xfeat portfolio scan` write. The rules come from the Issue 9 text, not from
+the reference sheet attached to the post, which contains dictionary errors.
+
+- Before the change, real pages carried 53 semicolons and 9 passive sentences
+  in xfeat's own templates, and one two-sentence step. Quoted README text
+  produced 11 sentences over 25 words that xfeat must not rewrite.
+- Quoted source text now renders as blockquotes. That exempts it from the
+  rules and tells readers whose words they read.
+- After the template fixes, 213 generated pages from real repositories (the
+  75- and 30-repository portfolios and four single-repository scans) have 0
+  findings. A manual review for phrasal verbs, which the tests cannot check,
+  found one ("Set up") and replaced it.
+- The checks are tests on rendered fixture pages. No model is asked to comply,
+  and no STE dictionary or compliance claim is involved.
+
 ## Reusable Pattern
 
 When a feature needs to teach or evaluate, derive questions from the same

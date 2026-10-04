@@ -152,6 +152,17 @@ local repositories after the scanner rewrite removed 617 lines, all of them
 assignments, the `test` builtin, embedded scripts and JSON, or heredoc bodies,
 and recovered complete multi-line commands such as `mypy ... | sed -E '...'`.
 
+### STE-Lite Extension
+
+Extending the writing rules to every generated page surfaced four problems.
+
+| #   | Problem                                                                                                                                               | Found by                                | Fix                                                                                                                         |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| 1   | The first real-data lint read every `docs/**/*.md`, including a repository's own design notes, and reported 1,740 findings that were not xfeat's      | The gstack findings were human prose    | The lint covers only pages with the `xfeat:generated` marker; the page test had the same gap, hidden by a short fixture ADR |
+| 2   | A step for a repository without a git remote had two sentences, and the scan overview wrote an eight-sentence README summary as xfeat's own paragraph | Real data; the fixture had neither case | One-sentence step; README summaries render as blockquotes                                                                   |
+| 3   | The lint split sentences at colons, so "(evidence: `x`)" counted as a second instruction                                                              | Template review                         | Only `.`, `?`, and `!` end a sentence for the one-instruction rule                                                          |
+| 4   | A previous round wrote "Set up" into the Run step goal, a phrasal verb that rule 9.3 forbids and no test can see                                      | Manual review                           | Replaced with "Prepare"                                                                                                     |
+
 ## Contributing Factors
 
 - The fixture was built for the portfolio spec, where every repository has at
