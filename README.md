@@ -125,6 +125,13 @@ visibility rules: JavaScript and TypeScript `export`, Rust `pub` items (not
 `__all__`. The README summary is the first prose paragraph, with wrapped lines
 joined.
 
+`scan` never overwrites a file it did not generate. Every generated page starts
+with an `<!-- xfeat:generated ... -->` marker line. An existing file at a
+generated path without that marker, a symbolic link, or a path that resolves
+outside the repository is left untouched and listed under `skipped` in the JSON
+output and in `xfeat-report.md`. Delete the marker line from a generated page to
+keep manual edits; later scans then skip it.
+
 ### Audit Documentation Freshness
 
 ```bash
