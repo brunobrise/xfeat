@@ -1,0 +1,23 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam activity {
+  BorderColor #486581
+  FontColor #102A43
+  BackgroundColor #F0F4F8
+}
+skinparam arrowColor #334E68
+
+start
+:Read manifests\n(package.json, Cargo.toml, pyproject.toml,\nrequirements.txt, go.mod, composer.json);
+:Pick one primary manifest per folder;
+:For each source file;
+if (inside a folder with a package manifest?) then (yes)
+  :component = deepest package\n(virtual workspace roots own no files);
+else (no)
+  :component = top-level folder,\nor root for top-level files;
+endif
+:Rank workspace members first;
+stop
+@enduml

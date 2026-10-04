@@ -1,7 +1,12 @@
 ---
 date: 2026-06-20
+updated: 2026-10-04
 status: implemented
 owner: codex
+related_research:
+  - ../research/01a103e77ce2751b-multi-repo-documentation-research.md
+related_stories:
+  - ../stories/01a103e77d697ab1-portfolio-documentation-failures.md
 ---
 
 # Professional Documentation Workflow
@@ -75,7 +80,10 @@ machine-readable status file that CI can verify.
 - `xfeat scan` writes `docs/architecture/overview.md`,
   `docs/components/*.md`, `docs/onboarding.md`, `docs/adr-index.md`,
   `docs/how-to/*.md`, `docs/reference/*.md`,
-  `.xfeat/status.json`, and `xfeat-report.md`.
+  `.xfeat/status.json`, and `xfeat-report.md`. It never overwrites a file it
+  did not generate; see [Generated File Ownership](#generated-file-ownership).
+- The `scan` JSON result lists `documents` that were written and `skipped`
+  entries (`{ "path", "reason" }`) for generated paths left untouched.
 - `xfeat audit --changed` accepts the flag for CI compatibility. MVP behavior
   audits all Markdown because changed-file detection can be added later without
   changing command shape.
@@ -89,18 +97,30 @@ machine-readable status file that CI can verify.
   findings.
 - Broken relative Markdown links are audit findings.
 - Stale backticked code references are audit findings only when the token looks
-  code-specific and cannot be found in scanned source text.
+  code-specific and cannot be found in scanned source text or package
+  manifests. Manifests count because generated pages cite package names such
+  as `ledger_tools` that source files may never mention.
 - Empty repositories still generate status and a report, but verification warns
   about no source claims.
 
 ## Semantic Scan Behavior
 
-- Read root package metadata, workspace package manifests, README files, scripts,
-  tests, and source files.
+- Read package manifests, README files, scripts, tests, and source files.
+  Manifests are read with the shared portfolio readers, so `scan` and
+  `portfolio scan` agree: `package.json`, `Cargo.toml`, `pyproject.toml`,
+  `requirements.txt`, `go.mod`, and `composer.json`. Manifests under test and
+  fixture folders are ignored.
 - Prefer package/workspace boundaries for components. Fall back to top-level
-  folders when package metadata is absent.
-- Extract public APIs from exported symbols, package `exports`, package `main`,
-  package `bin`, and source entrypoints.
+  folders when package metadata is absent. See
+  [Polyglot Repositories](#polyglot-repositories).
+- Extract public APIs from language visibility rules (see
+  [Public API Rules](#public-api-rules)) and rank them by package entrypoints:
+  npm `exports`, `main`, and `bin`; Cargo `src/lib.rs`, `src/main.rs`, and
+  `[[bin]]` paths; Python package `__init__.py`; Go `main.go`.
+- Take the README summary from the first prose paragraph after the title.
+  Hard-wrapped lines are joined, Markdown links and inline HTML are reduced to
+  text, and summaries longer than 320 characters stop at a sentence boundary.
+  The claim cites the paragraph's first line.
 - Build a lightweight symbol graph from local `import`, `export from`, and
   `require` references so docs can describe runtime flow between components.
 - Rank important files using package entrypoints, scripts, tests, public
@@ -116,6 +136,119 @@ machine-readable status file that CI can verify.
   behavior that cannot be traced to package metadata, imports, tests, or source
   excerpts.
 
+## Polyglot Repositories
+
+A repository can mix ecosystems, for example a Cargo workspace with a Node.js
+sidecar. `scan` treats every supported manifest as package metadata.
+
+### Diagram: Component Resolution
+
+![Component resolution](./diagrams/0019ed76fba2f4da/component-resolution.svg)
+
+This diagram shows how a source file is assigned to a component. Read it when
+a generated component map groups files unexpectedly.
+
+- Main entities: manifests are read from the whole repository. When one folder
+  holds several manifests (for example `pyproject.toml` and
+  `requirements.txt`), the first named manifest is the folder's primary
+  manifest and the others only add metadata.
+- Flow: 1. Read manifests. 2. Pick one primary manifest per folder. 3. Assign
+  each source file to the deepest folder with a package manifest. 4. Assign
+  remaining files to their top-level folder, or `root` for top-level files. 5. Rank workspace members first in the component map.
+- Edge paths: a virtual workspace root (a `Cargo.toml` with `[workspace]` and
+  no `[package]`) declares members but owns no files, so loose scripts keep
+  their folder component instead of collapsing into `root`. Unnamed manifests
+  such as a nested `requirements.txt` name their component after the folder.
+- References: [manifest adapter](../../lib/professional-docs-manifests.js),
+  [shared readers](../../lib/portfolio-manifest-readers.js),
+  [semantic model](../../lib/professional-docs-semantics.js),
+  [tests](../../professional-docs-polyglot.test.js).
+
+Rules:
+
+- Workspace members come from npm `workspaces` and Cargo `workspace.members`.
+  Globs (`*`, `**`) and npm negations (`!path`) are resolved against manifest
+  folders. Members rank before other components.
+- The architecture overview states package metadata for each root manifest:
+  the package name with its name line, or, for a virtual workspace, the member
+  count with the `members` line. "No package metadata detected." appears only
+  when the repository has no supported manifest.
+- Cross-component dependency flows come from runtime dependencies in any
+  ecosystem, matched by normalized package name within the same ecosystem.
+  Cargo `workspace = true` and `path` dependencies resolve to member crates.
+  A virtual workspace's `[workspace.dependencies]` table declares versions,
+  not usage, so it produces no flows.
+- Onboarding suggests `npm install` and npm scripts only when the repository
+  root has a `package.json`, and how-to guides come only from root
+  `package.json` scripts because their steps run from the repository root.
+  Other ecosystems get no invented commands.
+- Dependency evidence cites the line that declares the dependency, including
+  TOML dotted keys such as `protocol.workspace = true`.
+- A component whose manifest has no description says so and cites the name
+  line, instead of rendering an empty responsibility.
+- Source scanning ignores Cargo `target/` output alongside the existing build
+  folders.
+
+## Public API Rules
+
+| Language              | Public                                                                                                                                                               | Not public                                                                                               |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| JavaScript/TypeScript | `export` declarations and `export { }` lists.                                                                                                                        | Everything not exported.                                                                                 |
+| Rust                  | `pub` items: `fn` (including `const`, `async`, `unsafe`, `extern` functions), `struct`, `enum`, `trait`, `type`, `const`, `static`, `mod`, and `pub use` re-exports. | `pub(crate)`, `pub(super)`, `pub(in path)`, `pub(self)`, private items, glob re-exports.                 |
+| Go                    | Top-level `func`, methods, `type`, `const`, and `var` whose name starts with an uppercase letter, including grouped `const ( )` and `var ( )` blocks.                | Lowercase identifiers and every symbol in `_test.go` files.                                              |
+| Python                | Module-level `def`, `async def`, `class`, and `UPPER_CASE` constants. When the module declares `__all__`, exactly the listed names.                                  | Names starting with `_`, nested definitions, and test modules (`test_*.py`, `*_test.py`, `conftest.py`). |
+
+These are static, line-based rules. They can count a `pub fn` inside a private
+module or a `#[cfg(test)]` block. Files under test, example, and script folders
+rank lowest so those cases sink below real entrypoints.
+
+## Generated File Ownership
+
+`scan` writes into the target repository, so it must not destroy hand-written
+pages that happen to use a generated path such as `docs/onboarding.md`.
+
+Every generated Markdown file starts with this marker line. It is an HTML
+comment rather than YAML frontmatter (which portfolio pages use) so that
+GitHub does not render a metadata table at the top of each scan page:
+
+```markdown
+<!-- xfeat:generated. xfeat scan overwrites this file; delete this line to keep manual edits. -->
+```
+
+### Diagram: Scan File Ownership
+
+![Scan file ownership](./diagrams/0019ed76fba2f4da/scan-file-ownership.svg)
+
+This diagram shows the write-or-skip decision for each generated path. Read it
+before changing which files `scan` writes or how it detects its own output.
+
+- Main entities: the previous `.xfeat/status.json` records which pages the
+  last scan wrote and whether that scan wrote markers. The marker line is the
+  durable ownership signal inside each page.
+- Flow: 1. Read the previous status, if any. 2. For each generated path that
+  resolves inside the repository, write
+  it when it does not exist, when its first line is the marker, or when a
+  legacy status (written before markers existed) lists it. 3. Otherwise skip
+  it. 4. Record written pages in `status.documents` and skipped paths in the
+  result.
+- Edge paths: directories and symbolic links at a generated path are skipped
+  (`not a regular file`), and a path whose parent folder resolves outside the
+  repository, for example a symlinked `docs/reference`, is skipped
+  (`resolves outside the repository`). `scan` never writes outside the
+  repository through a link. A legacy status also covers `xfeat-report.md`, which every
+  earlier scan wrote but never listed. Once a status records the marker,
+  deleting the marker line is how a team takes ownership of a page: later
+  scans skip it. An unreadable status counts as no status.
+- Skipped pages are not added to `status.documents`, so `verify` never treats a
+  hand-written page as generated output. Links from generated pages to a
+  skipped path still resolve, but point at the hand-written page.
+- References: [writer](../../lib/professional-docs-writer.js),
+  [scan](../../lib/professional-docs.js),
+  [tests](../../professional-docs-ownership.test.js).
+
+`.xfeat/status.json` is always rewritten because `.xfeat/` belongs to xfeat.
+`.xfeat.yml` is still only created when missing.
+
 ## Acceptance Criteria
 
 - Focused tests cover init, scan output, audit findings, verify success, and CI
@@ -127,7 +260,28 @@ machine-readable status file that CI can verify.
 - Focused tests prove generated reference appendices are complete enough to
   include claims, files, exported symbols, import targets, and test evidence that
   would previously have been truncated.
+- Focused tests prove a Cargo workspace yields one component per member crate,
+  package metadata from `Cargo.toml`, Rust public APIs, dependency flows
+  between crates, and a README summary joined across wrapped lines.
+- Focused tests prove Python and Go public API rules, including `__all__`,
+  private names, and Go test files.
+- Focused tests prove `scan` skips hand-written files at generated paths,
+  reports them in `skipped`, overwrites marked and legacy-listed files, and
+  respects a removed marker.
 - Existing feature-map tests keep passing.
 - Commands are noninteractive.
 - New non-Markdown files stay below 420 lines.
 - README documents the professional workflow.
+
+## Test Plan
+
+- [professional-docs.test.js](../../professional-docs.test.js): npm workspace
+  behavior, audit, verify, and CLI output.
+- [professional-docs-polyglot.test.js](../../professional-docs-polyglot.test.js):
+  Cargo workspace, Python, and Go repositories in temporary folders.
+- [professional-docs-exports.test.js](../../professional-docs-exports.test.js):
+  per-language public API rules.
+- [professional-docs-ownership.test.js](../../professional-docs-ownership.test.js):
+  write-or-skip decisions and the `skipped` result.
+- Dogfood: run `scan` on a scratch clone of a real polyglot Rust workspace and
+  check the component map, public API counts, and README summary.
