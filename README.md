@@ -115,6 +115,16 @@ The generated documentation follows Diátaxis roles:
 - How-to guides: task guides inferred from package scripts and test files.
 - Reference appendices: complete generated inventories for claims, files, exported symbols, and import/dependency edges.
 
+Package metadata comes from `package.json`, `Cargo.toml`, `pyproject.toml`,
+`requirements.txt`, `go.mod`, and `composer.json`, so polyglot repositories are
+documented across ecosystems. Each workspace member (npm `workspaces`, Cargo
+`workspace.members`) becomes its own component, and runtime dependencies between
+packages appear as dependency flows. Public APIs follow each language's
+visibility rules: JavaScript and TypeScript `export`, Rust `pub` items (not
+`pub(crate)`), exported Go identifiers, and Python module-level names or
+`__all__`. The README summary is the first prose paragraph, with wrapped lines
+joined.
+
 ### Audit Documentation Freshness
 
 ```bash
