@@ -106,6 +106,24 @@ scan that combined `--manifest` with extra paths reported every check of the
 extra repositories as stale. The rebuild now always passes the stored
 repository paths as well, and a test covers the combined case.
 
+## Multi-Hop Follow-Up
+
+Adding multi-hop questions and repeating the evaluation surfaced six more
+problems. None was caught by the fixture suite.
+
+| #   | Defect                                                                                                                                                                                                      | Found by                                       | Fix                                                                                                                                           |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | CI command extraction kept shell conditions (`test -f dist/app`), variable assignments, multi-line message strings, and Python and Node scripts embedded in heredocs; some were classified as test commands | Dogfood on 75 repositories                     | Heredoc bodies, multi-line strings, the `test` builtin, and bare assignments are dropped; 537 lines on 410 repositories, no real command lost |
+| 2   | The first heredoc rule treated `echo "log<<EOF"` as a heredoc and swallowed every command after it                                                                                                          | Diff of extracted commands on 410 repositories | `<<` inside a quoted string no longer opens a heredoc                                                                                         |
+| 3   | Test-command joins were guessable: answering `npm run test` to every one was right 6 times out of 6                                                                                                         | A guess baseline written for the evaluation    | `grade` reports a baseline; sibling joins, which cannot be guessed, were added                                                                |
+| 4   | The first baseline leaked answers: a question that was the only one of its kind was "guessed" from its own answer                                                                                           | Inspecting the baseline answers                | The baseline leaves the question itself out                                                                                                   |
+| 5   | The grader drifted again: the new join kind skipped the `npm test` = `npm run test` rule and case rules, so a correct agent scored 10/12                                                                    | Grading the first repositories-only run        | Normalization follows what the answer names, read from the check's format                                                                     |
+| 6   | The local corpora cannot test dependency multi-hop: 396 repositories hold 2 declared cross-repository edges and no chain                                                                                    | Scanning every local repository                | Transitive questions are tested on fixtures; the limit is stated in the spec and the success story                                            |
+
+Defect 5 is the third grading bias in this feature, and the second in the same
+rule. Each time, a correct answer in different words was graded wrong, and each
+time the bias favoured the arm that read xfeat's own wording.
+
 ## Contributing Factors
 
 - The fixture was built for the portfolio spec, where every repository has at
@@ -153,6 +171,13 @@ repository paths as well, and a test covers the combined case.
   sentence for a claim xfeat cannot verify.
 - Re-run dogfood on the `brunobrise/` folder: it is the selection with a
   declared cross-repository edge.
+- Report the guess baseline beside every evaluation score. A question that a
+  reader can answer without reading cannot show understanding.
+- When adding a check kind, grade one correct answer in different words, such
+  as `npm test` for `npm run test`, before trusting any score.
+- When changing command extraction, diff the extracted commands on the whole
+  local tree before and after, and read every removed line that had a
+  category.
 
 ## Follow-Up Validation
 
