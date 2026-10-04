@@ -212,10 +212,14 @@ and agents that understand the portfolio from those that only search well.
   75-repository dogfood set, answering `npm run test` to every test-command
   join was right 6 times out of 6. `grade` therefore reports a baseline (see
   Grading).
-- `transitive-dependencies` is the forward closure over declared edges. It is
-  generated only when the closure reaches past the direct dependencies, and
+- `transitive-dependencies` is the forward closure over declared edges,
+  without the subject itself even when a cycle leads back to it. It is
+  generated only when some repository in it is two or more hops away, and
   skipped under the same completeness rule as `dependencies`.
-- `impact` keeps its question; its `hops` is the longest path in the closure.
+- For both closures, `hops` is the longest of the shortest chains, measured
+  over every dependency xfeat saw. A package-name shortcut therefore makes a
+  repository one hop away even when the cited path takes two, and then no
+  transitive question is asked.
 - Real portfolios may lack dependency chains. A scan of all 396 readable local
   repositories found 16 cross-repository edges, of which 2 are declared, and
   no declared chain of two or more hops. Dependency multi-hop questions are

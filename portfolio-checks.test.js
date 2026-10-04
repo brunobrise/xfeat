@@ -307,6 +307,22 @@ describe("buildChecks on synthetic models", () => {
     expect(find(m, "impact:api").hops).toBe(1);
   });
 
+  it("counts hops over every dependency, so a name-match shortcut is one hop", () => {
+    // web declares api and, by package name only, ledger directly.
+    const shortcut = {
+      ...edge("web", "ledger", "@acme/ledger"),
+      kind: "package-name",
+      confidence: "name-match",
+    };
+    const m = model([
+      edge("web", "api", "github.com/acme/api-client"),
+      edge("api", "ledger", "github.com/acme/money"),
+      shortcut,
+    ]);
+    expect(ids(m)).not.toContain("transitive-dependencies:web");
+    expect(find(m, "impact:ledger").hops).toBe(1);
+  });
+
   it("skips transitive dependencies a name match would make incomplete", () => {
     const nameMatch = {
       ...edge("api", "ui", "@acme/ui"),
