@@ -149,12 +149,15 @@ the reference sheet attached to the post, which contains dictionary errors.
   produced 11 sentences over 25 words that xfeat must not rewrite.
 - Quoted source text now renders as blockquotes. That exempts it from the
   rules and tells readers whose words they read.
-- After the template fixes, 213 generated pages from real repositories (the
-  75- and 30-repository portfolios and four single-repository scans) have 0
-  findings. A manual review for phrasal verbs, which the tests cannot check,
-  found one ("Set up") and replaced it.
-- The checks are tests on rendered fixture pages. No model is asked to comply,
-  and no STE dictionary or compliance claim is involved.
+- After the template fixes and an independent review, 213 generated pages from
+  real repositories (the 75- and 30-repository portfolios and four
+  single-repository scans) have 0 findings under the stricter lint. Phrasal
+  verbs, which the tests cannot check, were reviewed by hand: "Set up" was
+  found by that review, "fit together" and "Calls into" by the independent
+  reviewer, and all three were replaced.
+- The checks are tests on rendered pages from the fixtures and nine edge
+  cases. No model is asked to comply, and no STE dictionary or compliance
+  claim is involved.
 
 ## Reusable Pattern
 

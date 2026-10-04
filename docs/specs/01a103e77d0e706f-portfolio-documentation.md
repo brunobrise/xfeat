@@ -180,6 +180,12 @@ Every Markdown page starts with frontmatter declaring `type` and `generator`.
 Output contains no timestamps, so re-running on unchanged repositories produces
 byte-identical files.
 
+Each gap in `portfolio.json` has `repo`, `code`, and `message`, which is
+xfeat's own sentence. A gap can also have `quote`, the source text it rests
+on, such as the README line that declares a repository deprecated. The field
+is optional and additive, so `schemaVersion` stays 1. Repository pages show the
+quote as a blockquote under the gap, and `gaps.md` shows it after the message.
+
 ## Output Safety
 
 - The output folder must resolve, after following symlinks, outside every
