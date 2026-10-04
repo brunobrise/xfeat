@@ -1,0 +1,28 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam rectangle {
+  BorderColor #486581
+  FontColor #102A43
+  BackgroundColor #F0F4F8
+}
+skinparam arrowColor #334E68
+left to right direction
+
+rectangle "Portfolio model\n(claims with line hashes)" as model
+rectangle "Check builder" as builder
+rectangle "checks.json\n(questions + answers)" as checks
+rectangle "learn.md\n(ordered path)" as learn
+rectangle "portfolio questions\n(no answers)" as questions
+rectangle "portfolio grade\n(score answers)" as grade
+rectangle "portfolio verify\n(re-read claims)" as verify
+
+model --> builder : declared facts only
+builder --> checks
+builder --> learn : max 3 checks per step
+checks --> questions
+checks --> grade
+checks --> verify : claim ids
+model --> verify : line hashes
+@enduml

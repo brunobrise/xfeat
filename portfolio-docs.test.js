@@ -287,8 +287,10 @@ describe("xfeat portfolio end to end", () => {
     await fs.rm(manifest);
 
     expect(result.ok).toBe(false);
+    // The new owner also changes the recorded answer to "Who owns billing-web?".
     expect(result.findings).toEqual([
       expect.objectContaining({ type: "changed-manifest" }),
+      { type: "stale-check", check: "owner:billing-web", reason: "changed" },
     ]);
   });
 
@@ -307,6 +309,25 @@ describe("xfeat portfolio end to end", () => {
     expect(scan.repos).not.toContain("sync-worker");
     expect(await readOut(outDir, "index.md")).toContain("# Acme Billing");
     await fs.rm(path.join(root, "xfeat.portfolio.json"));
+  });
+
+  it("creates a missing manifest folder and keeps --out relative to the working folder", async () => {
+    const manifest = path.join("config", "portfolios", "billing.json");
+    const init = await initPortfolio({
+      from: path.join(root, "repos"),
+      manifest,
+      cwd: root,
+      out: "portfolio-out",
+    });
+    const written = JSON.parse(
+      await fs.readFile(path.join(root, manifest), "utf8"),
+    );
+    const scan = await scanPortfolio({ manifest, cwd: root });
+
+    expect(init.created).toBe(true);
+    expect(written.output).toBe("../../portfolio-out");
+    expect(scan.outDir).toBe(await fs.realpath(outDir));
+    await fs.rm(path.join(root, "config"), { recursive: true, force: true });
   });
 
   it("reports CLI errors and results as JSON", async () => {

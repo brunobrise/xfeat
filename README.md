@@ -170,7 +170,7 @@ Create a reviewable selection from a parent folder of git repositories:
 npx @brunobrise/xfeat portfolio init --from ~/code/acme --exclude "legacy-*"
 ```
 
-This writes `xfeat.portfolio.json`, which can be edited to add owners, systems, lifecycle, and notes:
+This writes `xfeat.portfolio.json`, or the path given with `--manifest`, creating missing folders. Paths in the manifest, including `--out`, are stored relative to the manifest. The manifest can be edited to add owners, systems, lifecycle, and notes:
 
 ```json
 {
@@ -196,19 +196,21 @@ npx @brunobrise/xfeat portfolio scan
 npx @brunobrise/xfeat portfolio scan --render-diagrams
 ```
 
-| Output                     | Content                                                                                  |
-| -------------------------- | ---------------------------------------------------------------------------------------- |
-| `index.md`                 | Repository table grouped by system: purpose, owner, status, languages, verified commit.  |
-| `getting-started.md`       | Clone order with providers first, and declared commands per repository.                  |
-| `landscape.md`             | Cross-repository dependencies and a PlantUML landscape diagram.                          |
-| `repos/{slug}.md`          | One page per repository: ownership, modules, interfaces, commands, dependencies, gaps.   |
-| `integrations/{a}--{b}.md` | One page per connected pair, with consumer and provider evidence.                        |
-| `gaps.md`                  | Coverage of owners, purpose, test commands, CI, and licenses, plus ambiguous names.      |
-| `dependencies.md`          | Shared external dependencies with version drift, and shared protobuf contracts.          |
-| `packages.md`              | Which repository defines each package or module name.                                    |
-| `decisions.md`             | Architecture decision records found across repositories.                                 |
-| `llms.txt`                 | A link index for coding agents, under 8 KB.                                              |
-| `portfolio.json`           | The complete model, including every claim with its source line hash and repository SHAs. |
+| Output                     | Content                                                                                      |
+| -------------------------- | -------------------------------------------------------------------------------------------- |
+| `index.md`                 | Repository table grouped by system: purpose, owner, status, languages, verified commit.      |
+| `learn.md`                 | Ordered learning path: orient, run, trace, impact, change, with up to three checks per step. |
+| `getting-started.md`       | Clone order with providers first, and declared commands per repository.                      |
+| `landscape.md`             | Cross-repository dependencies and a PlantUML landscape diagram.                              |
+| `repos/{slug}.md`          | One page per repository: ownership, modules, interfaces, commands, dependencies, gaps.       |
+| `integrations/{a}--{b}.md` | One page per connected pair, with consumer and provider evidence.                            |
+| `gaps.md`                  | Coverage of owners, purpose, test commands, CI, and licenses, plus ambiguous names.          |
+| `dependencies.md`          | Shared external dependencies with version drift, and shared protobuf contracts.              |
+| `packages.md`              | Which repository defines each package or module name.                                        |
+| `decisions.md`             | Architecture decision records found across repositories.                                     |
+| `llms.txt`                 | A link index for coding agents, under 8 KB.                                                  |
+| `portfolio.json`           | The complete model, including every claim with its source line hash and repository SHAs.     |
+| `checks.json`              | Questions with answers computed from declared facts, each citing the claims it relies on.    |
 
 Evidence links point to commit permalinks on GitHub, GitLab, and Bitbucket when the repository is clean, and to local files otherwise. Re-running `scan` on unchanged repositories produces byte-identical output.
 
@@ -221,7 +223,22 @@ npx @brunobrise/xfeat portfolio verify
 npx @brunobrise/xfeat portfolio ci
 ```
 
-`verify` re-reads every cited line. It fails when a cited line changed, a cited file or repository disappeared, a generated page is missing, or `xfeat.portfolio.json` was edited after the scan, and it warns when a cited line only moved. `ci` adds a check of relative links inside the output. Both print JSON and exit nonzero on blocking findings. Options a command does not use are rejected rather than ignored.
+`verify` re-reads every cited line. It fails when a cited line changed, a cited file or repository disappeared, a generated page is missing, or `xfeat.portfolio.json` was edited after the scan, and it warns when a cited line only moved. Findings for a changed or missing line list the checks in `checks.json` that rely on it. Because a newly added dependency changes no cited line, `verify` also rebuilds the model read-only and recomputes the checks: a changed or removed answer fails as `stale-check`, while new checks and a new focus repository are warnings. This makes `verify` about as costly as `scan`; on 75 repositories it took 15 seconds. `ci` adds a check of relative links inside the output. Both print JSON and exit nonzero on blocking findings. Options a command does not use are rejected rather than ignored.
+
+### Learn and Evaluate
+
+`learn.md` is an ordered path for engineers who are new to the selection. It picks a focus repository that is active, connected, and testable, then walks through up to five steps: orient, run, trace one dependency, assess impact, and make a change. Each step has one goal and at most three checks. Answers are hidden until opened and link to the cited source line.
+
+The same checks measure whether the docs help a reader or a coding agent:
+
+```bash
+npx @brunobrise/xfeat portfolio questions > questions.json
+npx @brunobrise/xfeat portfolio grade --answers answers.json --min-score 0.8
+```
+
+`questions` prints every check without its answer. `answers.json` maps check ids to a string or a list of strings. Questions whose format starts with "list of" take a list; every other question takes one value, and a list that hedges across several values is graded wrong. `grade` compares answers deterministically, ignoring case for repository names and owners and treating equivalent test invocations such as `npm test` and `npm run test` as equal, and prints a score with one result per check. With `--min-score`, it exits nonzero below the threshold. To compare runs, give an agent the questions once with only the repositories and once with the generated docs, then grade both answer files.
+
+Checks use only declared, cited facts. Package-name matches and ambiguous names are excluded because their answers are not verified. The design rationale, including why generated text follows short-sentence rules instead of ASD-STE100, is recorded in [the research](docs/research/01a10804fd3079f7-explorable-docs-curriculum-research.md).
 
 The output exposes internal package names, owners, and hosts. Treat it as internal documentation. Credentials in git remotes and dependency URLs are always removed.
 
