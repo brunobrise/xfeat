@@ -102,12 +102,14 @@ This diagram shows how steps are chosen. Read it before adding or reordering
 steps.
 
 1. Pick the focus repository: not deprecated or dormant when another choice
-   exists, most declared edges, has a declared test command, then name order.
-2. **Orient**: read the index; ownership and binary checks.
+   exists, has a declared test command, most declared edges, then name order.
+   A test command ranks first because the change step teaches the most.
+2. **Orient**: read the index; ownership and binary checks, focus first.
 3. **Run**: clone the focus repository's providers first, then the focus;
-   test command check.
-4. **Trace**: one declared edge of the focus repository, with consumer and
-   provider evidence; dependency and file checks; one explanation prompt.
+   test command check for the focus only.
+4. **Trace**: one declared edge, preferring the focus repository as consumer,
+   then as provider, then any edge; consumer and provider evidence; dependency
+   and file checks; one explanation prompt.
 5. **Impact**: the repository with the most dependents; cited dependency
    paths; impact check.
 6. **Change**: edit the focus repository, run its test command, re-test its
@@ -157,7 +159,11 @@ Rules:
 - A check is generated only when every answer value has evidence: a claim with
   a line hash, or the hashed portfolio manifest.
 - Dependency, file, provider, and impact checks use `declared` edges only.
-- A binary check is generated only when one repository provides that name.
+- A binary check is generated only when one repository provides that name,
+  and the name differs from the repository name. A question that contains its
+  answer cannot tell a reader who knows the code from one who does not.
+- Run and impact steps only show checks about their own subject. Orientation
+  fills up with other repositories after the focus.
 - Impact is the reverse transitive closure over declared edges, excluding the
   subject.
 - Check ids are stable for unchanged repositories, so answers from one run can
@@ -179,11 +185,11 @@ Normalization before comparison: trim, remove surrounding backticks, collapse
 whitespace, compare repository names and owners case-insensitively, and remove
 a leading `./` or `{repo}/` from file paths.
 
-| Answer type | Correct when                            |
-| ----------- | --------------------------------------- |
-| `value`     | The answer equals the expected value.   |
-| `one-of`    | The answer equals any expected value.   |
-| `set`       | The answer set equals the expected set. |
+| Answer type | Correct when                                                                            |
+| ----------- | --------------------------------------------------------------------------------------- |
+| `value`     | The answer equals the expected value.                                                   |
+| `one-of`    | The answer is one value equal to any expected value. A list of several values is wrong. |
+| `set`       | The answer set equals the expected set.                                                 |
 
 The report lists `score`, `correct`, `total`, and one result per check:
 `correct`, `wrong`, or `missing`, with the expected answer. Unknown ids are

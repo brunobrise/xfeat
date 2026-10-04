@@ -10,11 +10,11 @@ skinparam activity {
 skinparam arrowColor #334E68
 
 start
-:Pick focus repository\n(active, most declared edges, has test command);
+:Pick focus repository\n(active, has test command, most declared edges);
 :1. Orient\nread index, ownership checks;
 :2. Run focus\nclone providers first, test command check;
-if (focus has a declared edge?) then (yes)
-  :3. Trace one edge\nconsumer and provider lines;
+if (any declared edge?) then (yes)
+  :3. Trace one edge\nfocus edge first, consumer and provider lines;
 endif
 if (any repository has dependents?) then (yes)
   :4. Assess impact\ncited dependency paths;

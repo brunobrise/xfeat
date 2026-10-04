@@ -59,6 +59,14 @@ describe("gradeAnswers", () => {
     expect(report.unknown).toEqual(["nope:id"]);
   });
 
+  it("marks a hedged list of several answers to a one-of question wrong", () => {
+    const report = gradeAnswers(checks, {
+      "test-command:api": ["make test", "go test ./..."],
+    });
+    const result = report.results.find((r) => r.id === "test-command:api");
+    expect(result.result).toBe("wrong");
+  });
+
   it("rounds the score and accepts a wrapped answers object", () => {
     const report = gradeAnswers(checks.slice(0, 3), {
       answers: { "owner:api": ["group:core", "@acme/payments"] },
@@ -117,8 +125,13 @@ describe("xfeat portfolio questions and grade", () => {
     const { checks } = JSON.parse(
       await fs.readFile(path.join(outDir, "checks.json"), "utf8"),
     );
+    // One answer per question, as a reader gives it: a set answer lists every
+    // value, any other answer names one value.
     const correct = Object.fromEntries(
-      checks.map((item) => [item.id, item.answer.values]),
+      checks.map((item) => [
+        item.id,
+        item.answer.type === "set" ? item.answer.values : item.answer.values[0],
+      ]),
     );
     const full = await runPortfolioCommand(
       ["grade", "--out", outDir, "--answers", await writeAnswers(correct)],

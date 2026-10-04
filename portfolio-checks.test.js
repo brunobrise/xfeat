@@ -82,12 +82,16 @@ describe("Portfolio checks", () => {
   });
 
   it("asks which repository provides a uniquely named program", () => {
-    expect(check("binary:ledger")).toMatchObject({
+    expect(check("binary:acme-sync")).toMatchObject({
       step: "orient",
-      question: "Which repository provides the program `ledger`?",
-      answer: { type: "value", values: ["ledger"] },
-      claims: ["ledger:bin:ledger"],
+      question: "Which repository provides the program `acme-sync`?",
+      answer: { type: "value", values: ["sync-worker"] },
+      claims: ["sync-worker:bin:acme-sync"],
     });
+  });
+
+  it("skips giveaway questions whose answer repeats the question", () => {
+    expect(check("binary:ledger")).toBeUndefined();
   });
 
   it("builds dependency questions from declared edges only", () => {
@@ -139,6 +143,37 @@ describe("Portfolio checks", () => {
     expect(ids).toEqual([...ids].sort());
     expect(new Set(ids).size).toBe(ids.length);
     expect(JSON.stringify(buildChecks(model))).toBe(JSON.stringify(result));
+  });
+});
+
+describe("selectFocus", () => {
+  const repo = (slug, { test = false, status = "active" } = {}) => ({
+    slug,
+    status: { value: status },
+    commands: test
+      ? [{ category: "test", command: "make test", evidence: { line: 1 } }]
+      : [],
+  });
+  const model = (repos, edges) => ({
+    repos,
+    graph: {
+      edges: edges.map(([from, to]) => ({ from, to, confidence: "declared" })),
+    },
+  });
+
+  it("prefers a testable repository over a connected one without tests", () => {
+    const repos = [repo("a"), repo("b"), repo("c", { test: true })];
+    expect(selectFocus(model(repos, [["a", "b"]]))).toBe("c");
+  });
+
+  it("prefers connected repositories among testable ones", () => {
+    const repos = [repo("a", { test: true }), repo("b", { test: true })];
+    expect(selectFocus(model(repos, [["b", "x"]]))).toBe("b");
+  });
+
+  it("falls back to inactive repositories when nothing else exists", () => {
+    const repos = [repo("old", { status: "deprecated" })];
+    expect(selectFocus(model(repos, []))).toBe("old");
   });
 });
 
