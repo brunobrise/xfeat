@@ -144,9 +144,13 @@ comprehension.
   engineer? This needs a human study.
 - Do agents answer the checks better with the generated docs than with the raw
   repositories? A first run (one run per arm, 12 questions, one model) found
-  equal accuracy and 47% fewer tool calls with the docs, which matches the
-  efficiency-over-success pattern above. Single-hop lookups hit a ceiling;
-  multi-hop questions and repeated runs are needed. See the
+  equal accuracy and 47% fewer tool calls with the docs. A second run, three
+  times per arm with two-hop joins, again found equal accuracy (12/12 in all
+  six runs, against a guess baseline of 4/12), 35% fewer tool calls, and about
+  half the wall time, with non-overlapping ranges. This matches the
+  efficiency-over-success pattern above. Two-hop joins are still one search
+  per hop; questions that need closures over several dependency edges are the
+  open test, and no local portfolio has such chains. See the
   [success story](../stories/01a10804fd337dd6-portfolio-learning-path-success.md).
 - Should a project glossary order steps by term use? Deferred until the
   single-repository scan and the portfolio share one model.

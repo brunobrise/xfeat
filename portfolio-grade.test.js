@@ -77,6 +77,142 @@ describe("gradeAnswers", () => {
     expect(report.unknown).toEqual(["nope:id"]);
   });
 
+  it("reports accuracy per hop count so joins are visible apart from lookups", () => {
+    const join = {
+      ...check("program-test-command:cli", "test-command", "one-of", [
+        "make test",
+      ]),
+      hops: 2,
+    };
+    const report = gradeAnswers([...checks, join], {
+      "owner:api": ["group:core", "@acme/payments"],
+      "program-test-command:cli": "make test",
+    });
+    expect(report.byHops).toEqual({
+      1: { correct: 1, total: 5 },
+      2: { correct: 1, total: 1 },
+    });
+  });
+
+  it("normalizes join and closure answers like the single-hop kind they extend", () => {
+    const join = (id, kind, type, values) => ({
+      ...check(id, kind, type, values),
+      hops: 2,
+    });
+    const report = gradeAnswers(
+      [
+        join("program-test-command:cli", "program-test-command", "one-of", [
+          "npm run test",
+        ]),
+        join("program-owner:cli", "program-owner", "set", ["@acme/tools"]),
+        join("program-siblings:cli", "program-siblings", "set", ["acme-lint"]),
+        join("transitive-dependencies:web", "transitive-dependencies", "set", [
+          "api",
+          "ledger",
+        ]),
+      ],
+      {
+        "program-test-command:cli": "npm test",
+        "program-owner:cli": "@ACME/tools",
+        "program-siblings:cli": ["Acme-Lint"],
+        "transitive-dependencies:web": "Ledger, API",
+      },
+    );
+    expect(report.results.map((r) => r.result)).toEqual([
+      "correct",
+      "correct",
+      "correct",
+      "correct",
+    ]);
+  });
+
+  it("reports the score of always guessing the most common answer", () => {
+    const testCheck = (subject, values) => ({
+      ...check(`test-command:${subject}`, "test-command", "one-of", values),
+      subject,
+    });
+    const portfolio = [
+      testCheck("a", ["npm run test"]),
+      testCheck("b", ["npm run test", "make test"]),
+      testCheck("c", ["npm run test"]),
+      testCheck("d", ["cargo test"]),
+      check("owner:a", "owner", "set", ["@acme/a"]),
+    ];
+    const report = gradeAnswers(portfolio, {});
+    // Leaving each question out, "npm run test" is still the most common
+    // answer for a, b, c, and d; it is right for a, b, and c. The only owner
+    // question has no other owner to guess from.
+    expect(report.baseline).toEqual({
+      score: 0.6,
+      correct: 3,
+      byHops: { 1: { correct: 3, total: 5 } },
+    });
+  });
+
+  describe("guess baseline", () => {
+    const about = (id, kind, type, values, subject, hops = 1) => ({
+      ...check(id, kind, type, values, subject),
+      format: kind.includes("owner") ? "list of owners" : "command",
+      hops,
+    });
+    const baselineResults = (portfolio) => {
+      const graded = gradeAnswers(portfolio, {});
+      return graded.baseline.correct;
+    };
+
+    it("does not guess a repository's answer from copies of the same fact", () => {
+      const owner = (id, value, subject, hops) =>
+        about(id, id.split(":")[0], "set", [value], subject, hops);
+      const portfolio = [
+        owner("owner:tools", "@acme/tools", "tools"),
+        owner("program-owner:p1", "@acme/tools", "tools", 2),
+        owner("program-owner:p2", "@acme/tools", "tools", 2),
+        owner("program-owner:p3", "@acme/tools", "tools", 2),
+        owner("owner:api", "@acme/core", "api"),
+        owner("owner:web", "@acme/core", "web"),
+      ];
+      const report = gradeAnswers(portfolio, {});
+      // Only api and web share an owner; tools' owner appears nowhere else.
+      expect(report.baseline.byHops).toEqual({
+        1: { correct: 2, total: 3 },
+        2: { correct: 0, total: 3 },
+      });
+    });
+
+    it("counts equivalent answers as one vote", () => {
+      const test = (subject, value) =>
+        about(
+          `test-command:${subject}`,
+          "test-command",
+          "one-of",
+          [value],
+          subject,
+        );
+      const portfolio = [
+        test("a", "npm test"),
+        test("b", "npm run test"),
+        test("c", "npm run test"),
+        test("d", "make test"),
+        test("e", "cargo test"),
+      ];
+      // A constant `npm run test` answer is right for a, b, and c.
+      expect(baselineResults(portfolio)).toBe(3);
+    });
+
+    it("guesses a whole set when many repositories share it", () => {
+      const portfolio = ["a", "b", "c", "d"].map((subject) =>
+        about(
+          `owner:${subject}`,
+          "owner",
+          "set",
+          ["@acme/platform", "@acme/security"],
+          subject,
+        ),
+      );
+      expect(baselineResults(portfolio)).toBe(4);
+    });
+  });
+
   it("marks a hedged list of several answers to a one-of question wrong", () => {
     const report = gradeAnswers(checks, {
       "test-command:api": ["make test", "go test ./..."],
