@@ -13,6 +13,7 @@ const RUST_WORKSPACE = {
     "members = [",
     '    "crates/*",',
     "]",
+    'exclude = ["crates/scratch"]',
     "",
     "[workspace.dependencies]",
     'serde = "1"',
@@ -43,6 +44,9 @@ const RUST_WORKSPACE = {
     "fn validate() {}",
     "",
   ].join("\n"),
+  "crates/scratch/Cargo.toml":
+    '[package]\nname = "scratch"\nversion = "0.1.0"\n',
+  "crates/scratch/src/lib.rs": "pub fn experiment() {}\n",
   "crates/ledger-core/src/accounts.rs": "pub struct Account { pub id: u64 }\n",
   "crates/ledger-cli/Cargo.toml": [
     "[package]",
@@ -174,6 +178,7 @@ describe("Professional docs scan on polyglot repositories", () => {
       "ledger-cli",
       "ledger-core",
       "ledger-sidecar",
+      "scratch",
       "scripts",
     ]);
     expect(scan.documents).not.toContain("docs/components/crates.md");
@@ -264,6 +269,38 @@ describe("Professional docs scan on polyglot repositories", () => {
     }
     expect(component).not.toContain("`refund`");
     expect(component).not.toContain("`TestCharge`");
+  });
+
+  it("keeps same-named packages apart and skips manifests without source", async () => {
+    await writeTree(workspace, {
+      "services/api/requirements.txt": "flask==3.0\n",
+      "services/api/app.py": "def handler():\n    pass\n",
+      "tools/api/requirements.txt": "click==8.1\n",
+      "tools/api/run.py": "def main():\n    pass\n",
+      "docs/requirements.txt": "mkdocs==1.6\n",
+      "web/package.json": JSON.stringify({ name: "billing" }),
+      "web/index.js": "export function mount() {}\n",
+      "core/Cargo.toml": '[package]\nname = "billing"\nversion = "0.1.0"\n',
+      "core/src/lib.rs": "pub fn charge() {}\n",
+    });
+
+    const scan = await scanProfessionalDocs(workspace);
+
+    expect(scan.semantic.components).toEqual([
+      "billing (core)",
+      "billing (web)",
+      "services/api",
+      "tools/api",
+    ]);
+    expect(scan.documents).toEqual(
+      expect.arrayContaining([
+        "docs/components/billing-core.md",
+        "docs/components/billing-web.md",
+        "docs/components/services-api.md",
+        "docs/components/tools-api.md",
+      ]),
+    );
+    expect(scan.documents).not.toContain("docs/components/docs.md");
   });
 
   it("keeps fresh docs audit-clean when package names contain underscores", async () => {
