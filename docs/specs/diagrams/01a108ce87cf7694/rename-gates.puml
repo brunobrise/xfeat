@@ -1,0 +1,34 @@
+@startuml
+skinparam backgroundColor white
+skinparam defaultFontName Helvetica
+skinparam ActivityBackgroundColor #ECEEF1
+skinparam ActivityBorderColor #16181E
+skinparam ActivityDiamondBackgroundColor #DDE3FA
+skinparam ActivityDiamondBorderColor #2E4BD1
+skinparam ArrowColor #16181E
+title Graven rename: gates and order
+
+start
+:Name decided (research doc);
+if (Trademark search clear\nin classes 9 and 42?) then (yes)
+else (no)
+  :Pick backup name\n(Cuneo, Solon);
+  stop
+endif
+:Register graven.sh, gravenhq.com,\nnpm @graven scope, GitHub org;
+if (PRs #4 and #5 merged?) then (yes)
+else (no)
+  :Wait; do not rebase\nother sessions' work;
+  detach
+endif
+if (npm publishing works?) then (yes)
+else (no)
+  :Fix trusted publisher\nor NPM_TOKEN;
+endif
+:Label LLM report as uncarved;
+:Rename with old names still read\n(deprecation warning);
+:Release 2.0.0 as @graven/cli;
+:npm deprecate @brunobrise/xfeat;
+:Remove old names in 3.0.0;
+stop
+@enduml
