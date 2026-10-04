@@ -59,6 +59,54 @@ describe("Portfolio command extraction", () => {
     expect(categorizeCommand("make deploy-prod")).toBe("other");
   });
 
+  it("drops shell builtins and case arms from CI run blocks", () => {
+    const commands = ciCommands(
+      ".github/workflows/ci.yml",
+      `jobs:
+  test:
+    steps:
+      - run: |
+          test -n "$identity" || { echo "no identity"; exit 1; }
+          case "$digest" in
+            sha256:*) ;;
+            linux|darwin) npm run build ;;
+            *) echo "Unexpected digest format: $digest"; exit 1 ;;
+          esac
+          local target=dist
+          read -r version < VERSION
+          shift
+          trap cleanup EXIT
+          eval "$setup"
+          return 0
+          test-runner --all
+          npm test
+`,
+    );
+
+    expect(commands.map((entry) => entry.command)).toEqual([
+      "test-runner --all",
+      "npm test",
+    ]);
+  });
+
+  it("categorizes by command words, not redirection targets", () => {
+    expect(
+      categorizeCommand(
+        "security set-key-partition-list -S apple-tool: -k pw kc >/dev/null",
+      ),
+    ).toBe("other");
+    expect(categorizeCommand("codesign --verify app 2> /dev/null")).toBe(
+      "other",
+    );
+    expect(categorizeCommand("npm run dev > dev.log 2>&1")).toBe("run");
+  });
+
+  it("categorizes check commands as lint, except cargo check", () => {
+    expect(categorizeCommand("npm run check")).toBe("lint");
+    expect(categorizeCommand("make check")).toBe("lint");
+    expect(categorizeCommand("cargo check --workspace")).toBe("build");
+  });
+
   it("picks the package runner from lockfiles", () => {
     expect(packageRunner(["pnpm-lock.yaml"], "")).toBe("pnpm");
     expect(packageRunner(["yarn.lock"], "")).toBe("yarn");

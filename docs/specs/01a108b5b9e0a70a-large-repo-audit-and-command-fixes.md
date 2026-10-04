@@ -55,8 +55,9 @@ defects. `scan` and `verify` finished in seconds, but:
   dropped as noise.
 - R6. `case` arms (a line whose first word ends in `)`, such as `*)` or
   `linux|darwin)`) are dropped as noise.
-- R7. Categories are matched against command words only: absolute paths and
-  redirection targets do not count, so `>/dev/null` is not a `run` command.
+- R7. Categories are matched against command words only: redirection targets
+  do not count, so `>/dev/null` is not a `run` command. Other absolute paths
+  still count, because `/usr/local/bin/pytest` is a test command.
 - R8. A command named `check` (such as `npm run check` or `make check`) is
   categorized as `lint`. `cargo check` stays `build`.
 
