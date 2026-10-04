@@ -2,13 +2,16 @@ const path = require("path");
 const fs = require("fs/promises");
 const { buildPortfolioModel, cloneOrder } = require("./lib/portfolio-model");
 const { loadPortfolioSelection } = require("./lib/portfolio-selection");
-const { createPortfolioFixture } = require("./test_files/portfolio-fixture");
+const {
+  createPortfolioFixture,
+  tempRoot,
+} = require("./test_files/portfolio-fixture");
 
 // These suites create real git repositories; allow for slow CI runners.
 jest.setTimeout(30000);
 
 describe("Portfolio model", () => {
-  const root = path.join(__dirname, "__portfolio_model__");
+  const root = tempRoot("portfolio-model");
   let model;
 
   beforeAll(async () => {

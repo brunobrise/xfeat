@@ -2,9 +2,10 @@ const os = require("os");
 const path = require("path");
 const fs = require("fs/promises");
 const { listRepoFiles } = require("./lib/portfolio-files");
+const { tempRoot } = require("./test_files/portfolio-fixture");
 
 describe("Portfolio repository file listing", () => {
-  const root = path.join(__dirname, "__portfolio_files__");
+  const root = tempRoot("portfolio-files");
   let outside;
 
   beforeEach(async () => {

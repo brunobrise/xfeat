@@ -4,10 +4,15 @@ const fs = require("fs/promises");
 const { execFileSync } = require("child_process");
 const {
   gitInfo,
+  hermeticGitEnv,
   normalizeRemote,
   parseGitmodules,
   permalink,
 } = require("./lib/portfolio-git");
+const {
+  createPortfolioFixture,
+  tempRoot,
+} = require("./test_files/portfolio-fixture");
 
 function git(cwd, args) {
   return execFileSync(
@@ -17,17 +22,41 @@ function git(cwd, args) {
       "user.name=xfeat-test",
       "-c",
       "user.email=xfeat@example.com",
+      "-c",
+      "commit.gpgsign=false",
       ...args,
     ],
-    { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
+    {
+      cwd,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+      env: hermeticGitEnv(),
+    },
   ).trim();
+}
+
+// Simulates running inside a pre-commit hook of a linked worktree, where git
+// exports variables that point every child git command at that repository.
+// A `git init` that inherits them rewrites the shared config as bare.
+async function withHookEnv(sentinel, run) {
+  const saved = { ...process.env };
+  process.env.GIT_DIR = path.join(sentinel, ".git", "worktrees", "wt");
+  process.env.GIT_INDEX_FILE = path.join(sentinel, ".git", "index");
+  try {
+    return await run();
+  } finally {
+    for (const key of ["GIT_DIR", "GIT_INDEX_FILE"]) {
+      if (saved[key] === undefined) delete process.env[key];
+      else process.env[key] = saved[key];
+    }
+  }
 }
 
 // These suites create real git repositories; allow for slow CI runners.
 jest.setTimeout(30000);
 
 describe("Portfolio git metadata", () => {
-  const root = path.join(__dirname, "__portfolio_git__");
+  const root = tempRoot("portfolio-git");
 
   beforeEach(async () => {
     await fs.rm(root, { recursive: true, force: true });
@@ -132,6 +161,55 @@ describe("Portfolio git metadata", () => {
       dirty: false,
     });
     expect([...info.tracked]).toEqual(["main.go"]);
+  });
+
+  async function hookRepository() {
+    const sentinel = path.join(root, "hook-repo");
+    await fs.mkdir(sentinel, { recursive: true });
+    git(sentinel, ["init", "-q", "-b", "main"]);
+    git(sentinel, ["commit", "-q", "--allow-empty", "-m", "init"]);
+    git(sentinel, ["worktree", "add", "-q", path.join(root, "wt"), "-b", "wt"]);
+    git(sentinel, ["config", "extensions.worktreeConfig", "true"]);
+    return sentinel;
+  }
+
+  it("ignores repository variables inherited from a git hook", async () => {
+    const sentinel = await hookRepository();
+    const member = path.join(root, "member");
+    for (const dir of [member]) {
+      await fs.mkdir(dir, { recursive: true });
+      git(dir, ["init", "-q", "-b", "main"]);
+      await fs.writeFile(
+        path.join(dir, "README.md"),
+        `# ${path.basename(dir)}\n`,
+      );
+      git(dir, ["add", "README.md"]);
+      git(dir, ["commit", "-q", "-m", "init"]);
+    }
+    const memberHead = git(member, ["rev-parse", "HEAD"]);
+
+    const info = await withHookEnv(sentinel, () => gitInfo(member));
+
+    expect(info.head).toBe(memberHead);
+    expect([...info.tracked]).toEqual(["README.md"]);
+  });
+
+  it("builds fixtures without touching a repository inherited from a git hook", async () => {
+    const sentinel = await hookRepository();
+    const configBefore = await fs.readFile(
+      path.join(sentinel, ".git", "config"),
+      "utf8",
+    );
+
+    await withHookEnv(sentinel, () =>
+      createPortfolioFixture(path.join(root, "fixture")),
+    );
+
+    expect(
+      await fs.readFile(path.join(sentinel, ".git", "config"), "utf8"),
+    ).toBe(configBefore);
+    expect(git(sentinel, ["ls-files", "--stage"])).toBe("");
+    expect(git(sentinel, ["rev-parse", "--is-bare-repository"])).toBe("false");
   });
 
   it("parses .gitmodules entries with line evidence", () => {

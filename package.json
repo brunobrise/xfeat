@@ -20,6 +20,12 @@
     "build": "echo 'No build step required for this Node.js script'",
     "prepare": "husky"
   },
+  "jest": {
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/\\.claude/"
+    ]
+  },
   "lint-staged": {
     "*.{js,jsx}": [
       "eslint --fix",

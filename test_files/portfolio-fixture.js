@@ -1,6 +1,9 @@
+const os = require("os");
 const path = require("path");
 const fs = require("fs/promises");
+const { mkdtempSync, realpathSync } = require("fs");
 const { execFileSync } = require("child_process");
+const { hermeticGitEnv } = require("../lib/portfolio-git");
 
 // Builds a realistic multi-repository selection with real git history:
 // npm (pnpm) web app and UI kit, Go API and ledger with a shared protobuf
@@ -21,14 +24,27 @@ function git(cwd, args, date) {
     {
       cwd,
       stdio: ["ignore", "pipe", "ignore"],
-      env: date
-        ? { ...process.env, GIT_AUTHOR_DATE: date, GIT_COMMITTER_DATE: date }
-        : process.env,
+      env: hermeticGitEnv(
+        date ? { GIT_AUTHOR_DATE: date, GIT_COMMITTER_DATE: date } : {},
+      ),
     },
   );
 }
 
 const json = (value) => `${JSON.stringify(value, null, 2)}\n`;
+
+// Refuses to stage or commit unless `dir` is its own repository root, so a
+// failed `git init` can never add fixture files to an enclosing checkout.
+function assertOwnRepository(dir) {
+  const top = execFileSync("git", ["rev-parse", "--show-toplevel"], {
+    cwd: dir,
+    encoding: "utf8",
+    env: hermeticGitEnv(),
+  }).trim();
+  if (realpathSync(top) !== realpathSync(dir)) {
+    throw new Error(`Fixture ${dir} is not its own git repository (${top}).`);
+  }
+}
 
 const REPOS = {
   "billing-web": {
@@ -144,6 +160,7 @@ async function createPortfolioFixture(root) {
       await fs.writeFile(path.join(dir, file), body);
     }
     git(dir, ["init", "-q", "-b", "main"]);
+    assertOwnRepository(dir);
     if (spec.remote) git(dir, ["remote", "add", "origin", spec.remote]);
     git(dir, ["add", "."]);
     git(dir, ["commit", "-q", "-m", "initial import"], spec.date);
@@ -154,4 +171,10 @@ async function createPortfolioFixture(root) {
   return Object.keys(REPOS).map((name) => path.join(root, name));
 }
 
-module.exports = { createPortfolioFixture, fixtureGit: git };
+// A unique, real (symlink-resolved) temporary folder per test file, so
+// concurrent test runs in one checkout never share fixture state.
+function tempRoot(name) {
+  return realpathSync(mkdtempSync(path.join(os.tmpdir(), `xfeat-${name}-`)));
+}
+
+module.exports = { createPortfolioFixture, fixtureGit: git, tempRoot };

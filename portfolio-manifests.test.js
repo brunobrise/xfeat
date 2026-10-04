@@ -4,6 +4,7 @@ const {
   readRepoManifests,
   normalizePackageName,
 } = require("./lib/portfolio-manifests");
+const { tempRoot } = require("./test_files/portfolio-fixture");
 
 async function write(root, file, body) {
   await fs.mkdir(path.dirname(path.join(root, file)), { recursive: true });
@@ -11,7 +12,7 @@ async function write(root, file, body) {
 }
 
 describe("Portfolio manifest reader", () => {
-  const root = path.join(__dirname, "__portfolio_manifests__");
+  const root = tempRoot("portfolio-manifests");
 
   beforeEach(async () => {
     await fs.rm(root, { recursive: true, force: true });

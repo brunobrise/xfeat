@@ -5,9 +5,10 @@ const {
   evidenceReader,
   lineHash,
 } = require("./lib/portfolio-evidence");
+const { tempRoot } = require("./test_files/portfolio-fixture");
 
 describe("Portfolio evidence hashes", () => {
-  const root = path.join(__dirname, "__portfolio_evidence__");
+  const root = tempRoot("portfolio-evidence");
   const file = path.join(root, "package.json");
 
   beforeEach(async () => {

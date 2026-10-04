@@ -5,9 +5,10 @@ const {
   loadPortfolioSelection,
   writePortfolioManifest,
 } = require("./lib/portfolio-selection");
+const { tempRoot } = require("./test_files/portfolio-fixture");
 
 describe("Portfolio repository selection", () => {
-  const root = path.join(__dirname, "__portfolio_selection__");
+  const root = tempRoot("portfolio-selection");
 
   async function makeRepo(relative, { git = true } = {}) {
     const dir = path.join(root, relative);
