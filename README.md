@@ -225,6 +225,21 @@ npx @brunobrise/xfeat portfolio ci
 
 `verify` re-reads every cited line. It fails when a cited line changed, a cited file or repository disappeared, a generated page is missing, or `xfeat.portfolio.json` was edited after the scan, and it warns when a cited line only moved. Findings for a changed or missing line list the checks in `checks.json` that rely on it. `ci` adds a check of relative links inside the output. Both print JSON and exit nonzero on blocking findings. Options a command does not use are rejected rather than ignored.
 
+### Learn and Evaluate
+
+`learn.md` is an ordered path for engineers who are new to the selection. It picks a focus repository that is active, connected, and testable, then walks through up to five steps: orient, run, trace one dependency, assess impact, and make a change. Each step has one goal and at most three checks. Answers are hidden until opened and link to the cited source line.
+
+The same checks measure whether the docs help a reader or a coding agent:
+
+```bash
+npx @brunobrise/xfeat portfolio questions > questions.json
+npx @brunobrise/xfeat portfolio grade --answers answers.json --min-score 0.8
+```
+
+`questions` prints every check without its answer. `answers.json` maps check ids to a string or a list of strings. `grade` compares answers deterministically, ignoring case for repository names and owners, and prints a score with one result per check. With `--min-score`, it exits nonzero below the threshold. To compare runs, give an agent the questions once with only the repositories and once with the generated docs, then grade both answer files.
+
+Checks use only declared, cited facts. Package-name matches and ambiguous names are excluded because their answers are not verified. The design rationale, including why generated text follows short-sentence rules instead of ASD-STE100, is recorded in [the research](docs/research/01a10804fd3079f7-explorable-docs-curriculum-research.md).
+
 The output exposes internal package names, owners, and hosts. Treat it as internal documentation. Credentials in git remotes and dependency URLs are always removed.
 
 The output folder must resolve outside every selected repository. `scan` never writes through symlinks, and on a rescan it removes only pages it generated earlier. Hand-written files in the output folder are kept.
