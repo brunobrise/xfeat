@@ -52,16 +52,19 @@ Dogfood runs on local repository folders, after the fixes in the
 
 | Selection     | Repositories | Edges | Checks | Steps | Correct answers | Empty answers | Verify     |
 | ------------- | ------------ | ----- | ------ | ----- | --------------- | ------------- | ---------- |
-| `brunobrise/` | 74           | 1     | 60     | 5     | 1.0             | 0             | 0 findings |
+| `brunobrise/` | 75           | 1     | 61     | 5     | 1.0             | 0             | 0 findings |
 | `MaikersHQ/`  | 30           | 0     | 18     | 3     | 1.0             | 0             | 0 findings |
 | `chainsona/`  | 42           | 0     | 24     | 3     | 1.0             | 0             | 0 findings |
 
 - The 42-repository scan took 4.59 seconds with about 109 MB peak memory.
 - "Correct answers" means one value per single-answer question and the full
   list per list question, the way a reader answers.
-- Check kinds on the 74-repository set: 36 test command, 20 program, 1 owner,
-  1 dependency list, 1 dependency file, 1 impact.
-- Full suite: 181 tests pass.
+- Check kinds on the 75-repository set: 37 test command, 20 program, 1 owner,
+  1 dependency list, 1 dependency file, 1 impact. The folder held 74
+  repositories when the first runs were made; one was added during the session.
+- `verify` on the 75-repository set took 15.4 seconds and about 273 MB, because
+  it rebuilds the model to catch stale answers.
+- Full suite: 198 tests pass.
 
 ## Paired Agent Evaluation
 
@@ -72,7 +75,7 @@ repositories. Arm B also had the generated docs, without `checks.json` and
 
 | Arm                   | Score after grader fix | Score before fix | Tool calls | Tokens | Wall time |
 | --------------------- | ---------------------- | ---------------- | ---------- | ------ | --------- |
-| A: repositories       | 12/12                  | 9/12             | 36         | 83,656 | 445 s     |
+| A: repositories       | 12/12                  | 9/12             | 36         | 84,021 | 445 s     |
 | B: repositories, docs | 12/12                  | 12/12            | 19         | 79,459 | 56 s      |
 
 - **Accuracy did not differ.** Both arms answered every question. The first
@@ -86,9 +89,12 @@ repositories. Arm B also had the generated docs, without `checks.json` and
   files changed efficiency more than task success.
 - **The questions hit a ceiling.** Lookups with a named repository are easy to
   answer by searching. They cannot show an accuracy gain.
-- **Limits.** One run per arm, 12 questions, one model. Wall time includes
-  agent scheduling and is the least reliable number. Treat the result as
-  indicative.
+- **Limits.** One run per arm, 12 questions, one model. Wall time is the
+  least reliable number: arm A handed back its answers at 445 s, but its
+  background work kept running until 864 s. Treat the result as indicative.
+- **The sample was taken before the review fixes.** The review later removed
+  some dependency questions as incomplete; none of the 12 sampled questions
+  were affected.
 
 ## Reusable Pattern
 

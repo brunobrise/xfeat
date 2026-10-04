@@ -99,6 +99,25 @@ describe("xfeat portfolio checks and learning path", () => {
     });
   });
 
+  it("fails verify when a new dependency makes recorded answers stale", async () => {
+    await scan();
+    const fresh = await verifyPortfolio({ out: outDir });
+    expect(fresh.ok).toBe(true);
+    // Adding a dependency changes no cited line, so line hashes alone pass.
+    const pkg = path.join(root, "repos", "ui-kit", "package.json");
+    const data = JSON.parse(await fs.readFile(pkg, "utf8"));
+    data.dependencies.ledger = "file:../ledger";
+    await fs.writeFile(pkg, `${JSON.stringify(data, null, 2)}\n`);
+    const verify = await verifyPortfolio({ out: outDir });
+    expect(verify.ok).toBe(false);
+    expect(verify.findings).toContainEqual(
+      expect.objectContaining({ type: "stale-check", check: "impact:ledger" }),
+    );
+    expect(
+      verify.findings.filter((f) => f.type === "changed-evidence"),
+    ).toEqual([]);
+  });
+
   it("reports malformed checks.json as a finding instead of crashing", async () => {
     await scan();
     for (const checks of [[null], [{ id: "owner:x", claims: "abc" }]]) {

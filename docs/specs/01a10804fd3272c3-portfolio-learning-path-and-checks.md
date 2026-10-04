@@ -258,6 +258,11 @@ Generated learning pages follow these rules, checked by tests:
   0, and honours `--min-score`.
 - Changing a cited line makes `portfolio verify` fail and the finding lists the
   affected check ids.
+- Adding a dependency without changing any cited line makes `portfolio verify`
+  fail with `stale-check`. `verify` rebuilds the model read-only from the same
+  selection and compares recomputed checks with `checks.json`; new checks and a
+  new focus repository are warnings. The rebuild costs about as much as a
+  scan.
 
 ## Test Plan
 

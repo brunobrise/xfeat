@@ -287,8 +287,10 @@ describe("xfeat portfolio end to end", () => {
     await fs.rm(manifest);
 
     expect(result.ok).toBe(false);
+    // The new owner also changes the recorded answer to "Who owns billing-web?".
     expect(result.findings).toEqual([
       expect.objectContaining({ type: "changed-manifest" }),
+      { type: "stale-check", check: "owner:billing-web", reason: "changed" },
     ]);
   });
 

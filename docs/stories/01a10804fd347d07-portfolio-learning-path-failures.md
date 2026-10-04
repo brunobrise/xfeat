@@ -18,7 +18,9 @@ Building the learning path and checks surfaced seven defects. Three were found
 by reading the rendered fixture page, three only by running on real
 repositories, and one in the evaluation harness itself. The fixture tests were
 green for all of them. The dogfood setup also exposed two older defects in
-`portfolio init`. All are fixed on `feat/block-model-curriculum`.
+`portfolio init`, the paired agent evaluation exposed a biased grader, and an
+independent review before merge found 14 more. All are fixed on
+`feat/block-model-curriculum`.
 
 ## Impact
 
@@ -72,6 +74,32 @@ green for all of them. The dogfood setup also exposed two older defects in
     equivalent npm, pnpm, and yarn test invocations compare equal, and
     `corepack` is ignored; `bun test` stays distinct. Both arms now score 12/12.
 
+## Independent Review Before Merge
+
+A read-only reviewer reproduced each finding with a script before reporting
+it. All 14 are fixed:
+
+| #   | Severity | Defect                                                                                                                    | Fix                                                                                            |
+| --- | -------- | ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| 1   | high     | "Which repositories does X depend on?" omitted a dependency matched by package name, so a correct reader was graded wrong | Skip dependency, file, provider, and impact checks that a name match or ambiguous name touches |
+| 2   | medium   | The change step said no repository depends on the focus while a name-matched dependent existed                            | Re-test list uses every dependency xfeat saw                                                   |
+| 3   | medium   | A dependency declared in two files kept only the first, so the other file was graded wrong                                | Edges record `alsoDeclaredIn`; the file question is skipped for them                           |
+| 4   | medium   | `verify` passed after a new dependency made recorded answers incomplete                                                   | `verify` recomputes the checks and fails on `stale-check`                                      |
+| 5   | medium   | Run and Change steps dropped the test command's folder                                                                    | Steps name `repo/folder`                                                                       |
+| 6   | medium   | A program name that is not a string crashed the whole scan                                                                | Only string names are used                                                                     |
+| 7   | low      | `--min-score=` with an empty value disabled the gate                                                                      | Empty values are rejected                                                                      |
+| 8   | low      | "No checks" text claimed facts were missing when they were only filtered                                                  | Reworded                                                                                       |
+| 9   | low      | Large answer and re-test lists broke the 25-word rule                                                                     | Lists show ten names and point to `checks.json`                                                |
+| 10  | low      | A malformed `checks.json` crashed `verify` or produced an unhelpful error                                                 | Validated; errors name the file                                                                |
+| 11  | low      | A file path starting with a folder named like the repository accepted a wrong answer                                      | The repository prefix is stripped from the answer only                                         |
+| 12  | low      | Text promised a provider line, a clone, and a link that were not always there                                             | Statements depend on the evidence present                                                      |
+| 13  | low      | "Which repository provides `github.com/acme/ledger`?" gave its answer away                                                | Module paths ending in the repository name are skipped                                         |
+| 14  | low      | An edited manifest did not name the owner checks it affects                                                               | `changed-manifest` lists them                                                                  |
+
+Finding 2 repeated a defect this story already claimed to have fixed (timeline
+step 2). The first fix replaced a wrong sentence with a narrower wrong
+sentence, because it reused the declared-only edge list.
+
 ## Contributing Factors
 
 - The fixture was built for the portfolio spec, where every repository has at
@@ -105,6 +133,12 @@ green for all of them. The dogfood setup also exposed two older defects in
 
 - For any generated question, ask whether a reader who does not know the code
   could answer it from the question alone. If yes, do not generate it.
+- An answer built from a filtered subset of facts must either say so in the
+  question or be skipped when the filter removed something. "Declared" in
+  xfeat's vocabulary is not what a reader means by "declared".
+- When a statement is fixed, check every input it reads, not only its wording.
+- Have an independent, read-only reviewer reproduce findings before merging a
+  feature that grades people or agents.
 - Build "correct" answer files the way a reader answers: one value for
   single-answer questions, a list only for list questions.
 - Before comparing arms, grade each arm's "wrong" answers by hand. A grader

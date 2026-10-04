@@ -223,7 +223,7 @@ npx @brunobrise/xfeat portfolio verify
 npx @brunobrise/xfeat portfolio ci
 ```
 
-`verify` re-reads every cited line. It fails when a cited line changed, a cited file or repository disappeared, a generated page is missing, or `xfeat.portfolio.json` was edited after the scan, and it warns when a cited line only moved. Findings for a changed or missing line list the checks in `checks.json` that rely on it. `ci` adds a check of relative links inside the output. Both print JSON and exit nonzero on blocking findings. Options a command does not use are rejected rather than ignored.
+`verify` re-reads every cited line. It fails when a cited line changed, a cited file or repository disappeared, a generated page is missing, or `xfeat.portfolio.json` was edited after the scan, and it warns when a cited line only moved. Findings for a changed or missing line list the checks in `checks.json` that rely on it. Because a newly added dependency changes no cited line, `verify` also rebuilds the model read-only and recomputes the checks: a changed or removed answer fails as `stale-check`, while new checks and a new focus repository are warnings. This makes `verify` about as costly as `scan`; on 75 repositories it took 15 seconds. `ci` adds a check of relative links inside the output. Both print JSON and exit nonzero on blocking findings. Options a command does not use are rejected rather than ignored.
 
 ### Learn and Evaluate
 
