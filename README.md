@@ -196,20 +196,21 @@ npx @brunobrise/xfeat portfolio scan
 npx @brunobrise/xfeat portfolio scan --render-diagrams
 ```
 
-| Output                     | Content                                                                                   |
-| -------------------------- | ----------------------------------------------------------------------------------------- |
-| `index.md`                 | Repository table grouped by system: purpose, owner, status, languages, verified commit.   |
-| `getting-started.md`       | Clone order with providers first, and declared commands per repository.                   |
-| `landscape.md`             | Cross-repository dependencies and a PlantUML landscape diagram.                           |
-| `repos/{slug}.md`          | One page per repository: ownership, modules, interfaces, commands, dependencies, gaps.    |
-| `integrations/{a}--{b}.md` | One page per connected pair, with consumer and provider evidence.                         |
-| `gaps.md`                  | Coverage of owners, purpose, test commands, CI, and licenses, plus ambiguous names.       |
-| `dependencies.md`          | Shared external dependencies with version drift, and shared protobuf contracts.           |
-| `packages.md`              | Which repository defines each package or module name.                                     |
-| `decisions.md`             | Architecture decision records found across repositories.                                  |
-| `llms.txt`                 | A link index for coding agents, under 8 KB.                                               |
-| `portfolio.json`           | The complete model, including every claim with its source line hash and repository SHAs.  |
-| `checks.json`              | Questions with answers computed from declared facts, each citing the claims it relies on. |
+| Output                     | Content                                                                                      |
+| -------------------------- | -------------------------------------------------------------------------------------------- |
+| `index.md`                 | Repository table grouped by system: purpose, owner, status, languages, verified commit.      |
+| `learn.md`                 | Ordered learning path: orient, run, trace, impact, change, with up to three checks per step. |
+| `getting-started.md`       | Clone order with providers first, and declared commands per repository.                      |
+| `landscape.md`             | Cross-repository dependencies and a PlantUML landscape diagram.                              |
+| `repos/{slug}.md`          | One page per repository: ownership, modules, interfaces, commands, dependencies, gaps.       |
+| `integrations/{a}--{b}.md` | One page per connected pair, with consumer and provider evidence.                            |
+| `gaps.md`                  | Coverage of owners, purpose, test commands, CI, and licenses, plus ambiguous names.          |
+| `dependencies.md`          | Shared external dependencies with version drift, and shared protobuf contracts.              |
+| `packages.md`              | Which repository defines each package or module name.                                        |
+| `decisions.md`             | Architecture decision records found across repositories.                                     |
+| `llms.txt`                 | A link index for coding agents, under 8 KB.                                                  |
+| `portfolio.json`           | The complete model, including every claim with its source line hash and repository SHAs.     |
+| `checks.json`              | Questions with answers computed from declared facts, each citing the claims it relies on.    |
 
 Evidence links point to commit permalinks on GitHub, GitLab, and Bitbucket when the repository is clean, and to local files otherwise. Re-running `scan` on unchanged repositories produces byte-identical output.
 
