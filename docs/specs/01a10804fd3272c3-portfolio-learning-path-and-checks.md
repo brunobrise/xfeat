@@ -112,8 +112,15 @@ steps.
    and file checks; one explanation prompt.
 5. **Impact**: the repository with the most dependents; cited dependency
    paths; impact check.
-6. **Change**: edit the focus repository, run its test command, re-test its
-   dependents.
+6. **Change**: edit the focus repository, run its test command in the folder
+   that declares it, and re-test its dependents. Dependents here include
+   package-name matches and ambiguous names, because re-testing too much is
+   cheap and missing a dependent is not.
+
+Generated sentences only state what xfeat can show: a repository without a
+git remote is "got from its owner", not cloned; the Trace goal mentions a
+provider line only when the edge has provider evidence; lists in answers and
+re-test steps show at most ten names and point to `checks.json` for the rest.
 
 Steps without evidence are not rendered. A portfolio without declared edges
 gets Orient, Run, and Change.
