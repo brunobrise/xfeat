@@ -205,11 +205,15 @@ describe("Professional docs scan on polyglot repositories", () => {
     expect(core).toContain(
       "| `crates/ledger-core/src/lib.rs` | package source entrypoint |",
     );
+    // The manifest description is quoted verbatim under its citation.
     expect(core).toContain(
-      "- Owns Double-entry ledger primitives for account balances. Evidence: [`crates/ledger-core/Cargo.toml:4`]",
+      "- Owns the `ledger-core` package, as its manifest describes it (evidence: [`crates/ledger-core/Cargo.toml:4`]",
+    );
+    expect(core).toContain(
+      "  > Double-entry ledger primitives for account balances\n",
     );
     expect(cli).toContain(
-      "- Owns the `ledger-cli` package under `crates/ledger-cli`; its manifest declares no description. Evidence: [`crates/ledger-cli/Cargo.toml:2`]",
+      "- Owns the `ledger-cli` package under `crates/ledger-cli`. Its manifest declares no description. Evidence: [`crates/ledger-cli/Cargo.toml:2`]",
     );
     expect(onboarding).not.toContain("npm install");
     expect(onboarding).toContain("`Cargo.toml:");
@@ -221,8 +225,12 @@ describe("Professional docs scan on polyglot repositories", () => {
     await scanProfessionalDocs(workspace);
     const overview = await read(workspace, "docs/architecture/overview.md");
 
+    // The wrapped README summary is joined and quoted under its citation.
     expect(overview).toContain(
-      "- Ledger Workspace: Ledger Workspace records double-entry accounting events for finance teams and exposes them through a command-line interface. Balances stay consistent across every service that posts entries. Evidence: [`README.md:3`]",
+      "- Ledger Workspace, as its README describes it (evidence: [`README.md:3`]",
+    );
+    expect(overview).toContain(
+      "  > Ledger Workspace records double-entry accounting events for finance teams and exposes them through a command-line interface. Balances stay consistent across every service that posts entries.",
     );
   });
 
@@ -238,7 +246,11 @@ describe("Professional docs scan on polyglot repositories", () => {
       "- Package metadata identifies this repository as `billing-api` (Python). Evidence: [`pyproject.toml:2`]",
     );
     expect(overview).toContain(
-      "- Billing API: Creates invoices and reports payment status for the billing portal. Evidence: [`README.md:3`]",
+      "- Billing API, as its README describes it (evidence: [`README.md:3`]",
+    );
+    expect(overview).toContain(
+      // Verbatim: the README line has no final period, so the quote has none.
+      "  > Creates invoices and reports payment status for the billing portal\n",
     );
     for (const name of ["create_invoice", "Invoice", "MAX_LINES"]) {
       expect(component).toContain(`| \`${name}\` |`);

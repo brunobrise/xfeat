@@ -48,6 +48,27 @@ one term per concept. Generated sentences come from templates, so the rule is
 enforced by tests on rendered pages, not by prompting. Any future LLM-written
 or human-written text must pass the same lint and keep every cited fact.
 
+### Karpathy's Recommendation (October 2026)
+
+On 2026-10-02, Andrej Karpathy recommended asking an LLM to explain things in
+ASD-STE100, often softened to "80% of the way", then diagrams, HTML pages, and
+explainer videos as ever richer formats.
+[Post](https://x.com/karpathy/status/2105819303471976479)
+
+| Finding                                                                                                                                                                                                                                                                               | Status   |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| The post asks for STE as a style target, often at "80%", not for compliance. Its top replies include Grady Booch pointing at UML for the diagram advice and a user who generated a 3Blue1Brown-style video. [Post](https://x.com/karpathy/status/2105819303471976479)                 | verified |
+| The STE reference sheet attached to the post has dictionary errors: APPROXIMATELY marked unapproved, TEST marked as an approved verb, and an "in order to" entry that Issues 8 and 9 do not contain. [Fact-check](https://max.nardit.com/articles/karpathy-understanding-llm-outputs) | reported |
+| Two 2026 preprints report that models overestimate their own STE compliance and restate rules while breaking them. [Fact-check](https://max.nardit.com/articles/karpathy-understanding-llm-outputs)                                                                                   | reported |
+| ASD's own white paper on STE and AI warns that plausibility must not be confused with verified compliance. [ASD](https://www.asd-ste100.org/assets/files/WhitePaper-ASD-STE100_and_AI.pdf), read through a search summary because the site blocks automated readers                   | reported |
+| Hacker News commenters found a one-line STE prompt as effective as a packaged skill, saw models drift back to their usual style, and cited a benchmark where Orwell's six rules beat an STE skill with fewer tokens. [Hacker News](https://news.ycombinator.com/item?id=49114639)     | reported |
+
+**Consequence for xfeat:** the post supports STE-lite rather than STE. xfeat
+takes its rules from the Issue 9 text, not from the circulating sheet, and
+enforces them on templates with tests instead of asking a model to comply.
+Richer formats persuade more without being more correct, so any HTML or
+diagram output must keep the same citations and `verify` gate as Markdown.
+
 ## Explorable Maps
 
 | Pattern                                                                                                                                                                                                                                                                                                                               | Status   |

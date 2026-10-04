@@ -152,6 +152,36 @@ local repositories after the scanner rewrite removed 617 lines, all of them
 assignments, the `test` builtin, embedded scripts and JSON, or heredoc bodies,
 and recovered complete multi-line commands such as `mypy ... | sed -E '...'`.
 
+### STE-Lite Extension
+
+Extending the writing rules to every generated page surfaced four problems.
+
+| #   | Problem                                                                                                                                               | Found by                                | Fix                                                                                                                         |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| 1   | The first real-data lint read every `docs/**/*.md`, including a repository's own design notes, and reported 1,740 findings that were not xfeat's      | The gstack findings were human prose    | The lint covers only pages with the `xfeat:generated` marker; the page test had the same gap, hidden by a short fixture ADR |
+| 2   | A step for a repository without a git remote had two sentences, and the scan overview wrote an eight-sentence README summary as xfeat's own paragraph | Real data; the fixture had neither case | One-sentence step; README summaries render as blockquotes                                                                   |
+| 3   | The lint split sentences at colons, so "(evidence: `x`)" counted as a second instruction                                                              | Template review                         | Only `.`, `?`, and `!` end a sentence for the one-instruction rule                                                          |
+| 4   | A previous round wrote "Set up" into the Run step goal, a phrasal verb that rule 9.3 forbids and no test can see                                      | Manual review                           | Replaced with "Prepare"                                                                                                     |
+
+An independent review of the STE-lite branch then found nine more problems.
+The first claim, "every generated page follows the rules", was false before
+these fixes.
+
+| #   | Problem                                                                                                                            | Fix                                                                                               |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| 1   | The lint counted words per colon chunk, so a 30-word change step with a list of dependents passed                                  | Only `.`, `?`, and `!` end a sentence; the dependents moved to a nested list of at most ten names |
+| 2   | Package and portfolio descriptions were written into xfeat's own sentences, so an author's semicolon broke the rules               | Both render as blockquotes under a short cited sentence                                           |
+| 3   | A rewritten how-to step told readers to install dependencies only when the repository had none                                     | "Run `npm install` if you did not install the dependencies."                                      |
+| 4   | The scan overview said "as its manifest describes it" but cited the README title, and added a period the source did not have       | Evidence comes from the same source as the quote, and the quote is verbatim                       |
+| 5   | Untested branches still broke rules: dependency cycles, the no-checks page, subfolder manifests, large workspaces, and `llms.txt`  | Templates rewritten, member lists capped at ten, and every branch added to the page tests         |
+| 6   | `gaps.md` lost the README's deprecation advice, and the new `quote` field was undocumented                                         | The table shows the quote after the message, and the portfolio spec documents the field           |
+| 7   | A README heading or fence quoted as a deprecation line rendered as a heading or code block inside the Gaps list                    | Leading Markdown block markers are removed from the quote                                         |
+| 8   | The lint missed irregular participles, "by" fragments, continued steps, `1)` steps, and some contractions, and flagged "read-only" | The patterns cover them, with tests for each case and for the false positives                     |
+| 9   | The README, spec, and story claimed more than the code did                                                                         | Each claim now names its test coverage and the exact edits xfeat makes to quoted text             |
+
+Problem 3 is the reverse of the feature's goal: a rewrite for style changed the
+instruction's meaning, and no lint can see that.
+
 ## Contributing Factors
 
 - The fixture was built for the portfolio spec, where every repository has at
@@ -183,6 +213,11 @@ and recovered complete multi-line commands such as `mypy ... | sed -E '...'`.
 
 ## Prevention Guidance
 
+- When rewriting a sentence for style, read the new sentence for meaning
+  before anything else. A lint checks form, not whether the instruction is
+  still true.
+- Never splice source text into a template sentence. Quote it as a block under
+  a short sentence that cites it.
 - For any generated question, ask whether a reader who does not know the code
   could answer it from the question alone. If yes, do not generate it.
 - An answer built from a filtered subset of facts must either say so in the

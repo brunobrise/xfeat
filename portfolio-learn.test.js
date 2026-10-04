@@ -1,6 +1,6 @@
 const { buildChecks } = require("./lib/portfolio-checks");
 const { renderLearn } = require("./lib/portfolio-learn");
-const { longSentences } = require("./test_files/prose-lint");
+const { longSentences, proseFindings } = require("./test_files/prose-lint");
 
 const links = {
   evidence: (e) => `[\`${e.repo}:${e.file}:${e.line}\`](${e.file}#L${e.line})`,
@@ -152,7 +152,7 @@ describe("renderLearn", () => {
     const text = render(model([repo("solo")], []));
     expect(headings(text)).toEqual(["## 1. Orient", "## 2. Run `solo`"]);
     expect(text).toContain(
-      "No checks could be generated from declared, cited facts.",
+      "xfeat found no declared, cited facts to build checks from.",
     );
     expect(text).toContain("[gaps.md](gaps.md)");
     expect(text).toContain("Each answer cites the source it comes from.");
@@ -185,9 +185,11 @@ describe("renderLearn", () => {
         [["api", "lib"]],
       ),
     );
-    expect(text).toContain("Get `lib` from its owner. It has no git remote.");
-    expect(text).toContain("1. Get `lib`");
+    expect(text).toContain(
+      "1. Get `lib` from its owner, because it has no git remote.",
+    );
     expect(text).toContain("2. Clone `api`.");
+    expect(proseFindings(text)).toEqual([]);
   });
 
   it("only promises a provider line when the edge has provider evidence", () => {
@@ -207,6 +209,12 @@ describe("renderLearn", () => {
       ),
     );
     expect(longSentences(text)).toEqual([]);
+    expect(proseFindings(text)).toEqual([]);
     expect(text).toContain("and 20 more in `checks.json`");
+    // The retest step names ten dependents in a nested list.
+    expect(text).toContain("   - `app-0`");
+    expect(text).toContain(
+      "   - 20 more, listed on [landscape.md](landscape.md)",
+    );
   });
 });

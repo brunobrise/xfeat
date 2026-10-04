@@ -277,13 +277,54 @@ below it.
 
 ## Writing Rules (STE-lite)
 
-Generated learning pages follow these rules, checked by tests:
+Every Markdown page and `llms.txt` that `xfeat portfolio scan` and `xfeat scan`
+write follow a subset of ASD-STE100 Issue 9 (2025-01-15). The rules below are
+paraphrased, not reproduced, and were checked against the Issue 9 text, not
+against summaries that circulate with it.
 
-- Sentences have 25 words or fewer. Inline code counts as one word.
-- One goal per step, written as a sentence that starts with a verb.
-- Identifiers stay verbatim in backticks.
-- No ASD-STE100 dictionary and no STE compliance claim. The research records
-  why.
+| Issue 9 rule | What xfeat checks                                                                                                                                                                                              |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 6.3          | A descriptive sentence has 25 words or fewer. Only `.`, `?`, and `!` end a sentence, so a colon does not split a long one. Abbreviations such as "e.g." do not end one.                                        |
+| 5.1          | A step, meaning a numbered list item that is not a question, has 20 words or fewer, including indented continuation lines.                                                                                     |
+| 5.2          | A step carries one instruction: one sentence, and no ", then", "and then", or "and" followed by a second instruction verb.                                                                                     |
+| 6.6          | A paragraph has six sentences or fewer.                                                                                                                                                                        |
+| 8.1          | No semicolons.                                                                                                                                                                                                 |
+| 3.6          | Active voice. A pattern flags "be" or "get" with a past participle, regular or irregular, and fragments such as "Required by web". Allowed matches are listed in the test with the reason the doer is unknown. |
+| 4.2          | No contractions, with straight, typographic, or modifier-letter apostrophes.                                                                                                                                   |
+| 8.6          | Inline code, such as a command or identifier, counts as one word and stays verbatim in backticks.                                                                                                              |
+
+Not checked: rule 2.1 (noun stacks of three words or fewer) and rule 9.3 (no
+phrasal verbs). Both need part-of-speech tagging or the STE dictionary, so
+templates are reviewed for them by hand.
+
+Tests render every page from the shared fixture, all six fixture repositories
+through `xfeat scan`, and edge cases: a dependency cycle, a folder that is not
+a repository, broken and oversized manifests, twelve dependents of one
+library, a portfolio with no checks, manifests only in subfolders, a
+thirty-member workspace, and a README with only a title. Any finding fails the
+test.
+
+Exempt from the checks:
+
+- Quoted source text: README summaries, package and portfolio descriptions,
+  maintainer notes, and README deprecation lines. They render as Markdown
+  blockquotes, which also marks them as quotations for readers. xfeat keeps
+  the author's wording, so a quote still matches its cited line. Before
+  quoting, xfeat removes images, link markup, HTML tags, and leading Markdown
+  block markers, joins wrapped lines, and cuts a README summary longer than
+  320 characters at a sentence end.
+- Tables, headings, code blocks, HTML comments such as the `xfeat scan`
+  generated-file marker, and link targets. In `llms.txt`, the summary line is a
+  blockquote by that format's convention, but it is xfeat's own text and is
+  checked.
+- The legacy LLM-written `FEATURES.md`, and documentation that a repository's
+  authors wrote. Only pages with the `xfeat:generated` marker, and portfolio
+  output, are xfeat's text.
+
+No STE dictionary and no STE compliance claim. The dictionary cannot be
+embedded under its licence, and it bans core software verbs such as `run` and
+`return`. The research records the evidence, including Andrej Karpathy's
+October 2026 recommendation and its reception.
 
 ## Edge Cases
 
