@@ -187,4 +187,51 @@ describe("xfeat portfolio questions and grade", () => {
     const noAnswers = await runPortfolioCommand(["grade", "--out", outDir], io);
     expect(noAnswers.error).toMatch(/--answers/);
   });
+
+  it("rejects an empty --min-score instead of disabling the gate", async () => {
+    const file = await writeAnswers({});
+    for (const flag of ["--min-score=", "--min-score= "]) {
+      const report = await runPortfolioCommand(
+        ["grade", "--out", outDir, "--answers", file, flag],
+        io,
+      );
+      expect(report.exitCode).toBe(1);
+      expect(report.error).toMatch(/--min-score/);
+    }
+  });
+
+  it("names checks.json when it is corrupt or malformed", async () => {
+    const broken = path.join(root, "broken");
+    await fs.mkdir(broken, { recursive: true });
+    for (const body of ["{not json", "null", '{"checks":[null]}']) {
+      await fs.writeFile(path.join(broken, "checks.json"), body);
+      const report = await runPortfolioCommand(
+        ["questions", "--out", broken],
+        io,
+      );
+      expect(report.exitCode).toBe(1);
+      expect(report.error).toContain(path.join(broken, "checks.json"));
+    }
+  });
+});
+
+describe("dependency file answers", () => {
+  const fileCheck = (subject, values) => ({
+    id: `dependency-file:${subject}->lib`,
+    kind: "dependency-file",
+    subject,
+    answer: { type: "one-of", values },
+  });
+  const grade = (check, answer) =>
+    gradeAnswers([check], { [check.id]: answer }).score;
+
+  it("strips a repository prefix from the answer but not from the expected path", () => {
+    const nested = fileCheck("website", ["website/package.json"]);
+    expect(grade(nested, "package.json")).toBe(0);
+    expect(grade(nested, "website/package.json")).toBe(1);
+    expect(grade(nested, "./website/package.json")).toBe(1);
+    const plain = fileCheck("api", ["go.mod"]);
+    expect(grade(plain, "api/go.mod")).toBe(1);
+    expect(grade(plain, "go.mod")).toBe(1);
+  });
 });

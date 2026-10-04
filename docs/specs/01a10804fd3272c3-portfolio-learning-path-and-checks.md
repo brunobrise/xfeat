@@ -62,8 +62,9 @@ records sources and confidence. The rules it produces:
   listed in `llms.txt`.
 - `xfeat portfolio questions [--manifest <file>] [--out <dir>]`.
 - `xfeat portfolio grade --answers <file> [--min-score <0..1>] [--manifest <file>] [--out <dir>]`.
-- `verify` reports checks that cite unknown claims and names the checks
-  affected by changed or missing evidence.
+- `verify` reports checks that cite unknown claims, reports a malformed
+  `checks.json` as `invalid-checks`, and names the checks affected by changed
+  or missing evidence or by an edited portfolio manifest.
 - An STE-lite sentence rule for generated learning pages, enforced by tests.
 
 ## Non-Goals
@@ -199,7 +200,9 @@ a comma-separated string counts as a list.
 
 Normalization before comparison: trim, remove surrounding backticks, collapse
 whitespace, compare repository names and owners case-insensitively, and remove
-a leading `./` or `{repo}/` from file paths. Test commands that run the same
+a leading `./` from file paths. A leading `{repo}/` is removed from the answer
+only, because an expected path may itself start with a folder named like the
+repository. An empty `--min-score` is rejected. Test commands that run the same
 script compare equal: `npm test`, `npm t`, `npm run-script test`, and
 `npm run test`, the same forms for pnpm and yarn, and a leading `corepack`.
 `bun test` stays distinct from `bun run test`, because it starts Bun's own

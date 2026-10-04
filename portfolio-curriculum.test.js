@@ -99,6 +99,53 @@ describe("xfeat portfolio checks and learning path", () => {
     });
   });
 
+  it("reports malformed checks.json as a finding instead of crashing", async () => {
+    await scan();
+    for (const checks of [[null], [{ id: "owner:x", claims: "abc" }]]) {
+      await fs.writeFile(
+        path.join(outDir, "checks.json"),
+        JSON.stringify({ checks }),
+      );
+      const verify = await verifyPortfolio({ out: outDir });
+      expect(verify.ok).toBe(false);
+      expect(verify.findings).toContainEqual({
+        type: "invalid-checks",
+        path: "checks.json",
+      });
+      expect(
+        verify.findings.filter((f) => f.type === "check-claim-missing"),
+      ).toEqual([]);
+    }
+  });
+
+  it("names owner checks that rely on an edited portfolio manifest", async () => {
+    const manifest = path.join(root, "xfeat.portfolio.json");
+    await fs.writeFile(
+      manifest,
+      JSON.stringify({
+        name: "Acme",
+        output: "portfolio-out",
+        repos: repos.map((repo) =>
+          path.basename(repo) === "sync-worker"
+            ? { path: "repos/sync-worker", owner: "@acme/data" }
+            : { path: `repos/${path.basename(repo)}` },
+        ),
+      }),
+    );
+    await scanPortfolio({ manifest, cwd: root });
+    const edited = JSON.parse(await fs.readFile(manifest, "utf8"));
+    edited.repos.find((r) => r.owner).owner = "@acme/platform";
+    await fs.writeFile(manifest, JSON.stringify(edited));
+    const verify = await verifyPortfolio({ manifest, cwd: root });
+    await fs.rm(manifest);
+    expect(verify.findings).toContainEqual(
+      expect.objectContaining({
+        type: "changed-manifest",
+        checks: ["owner:sync-worker"],
+      }),
+    );
+  });
+
   it("writes an ordered learning path with at most three checks per step", async () => {
     const result = await scan();
     expect(result.documents).toContain("learn.md");
