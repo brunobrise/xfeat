@@ -139,4 +139,16 @@ repeatable benchmark scaffolds.
     expect(languageFor("lib/b.rs")).toBe("Rust");
     expect(languageFor("Makefile")).toBe("");
   });
+
+  it("skips CRLF front matter before the README summary", () => {
+    expect(
+      readmeSummary(
+        "---\r\ntitle: Tool\r\n---\r\n# Tool\r\n\r\nShips invoices to the ledger.\r\n",
+      ),
+    ).toMatchObject({
+      title: "Tool",
+      summary: "Ships invoices to the ledger.",
+      line: 6,
+    });
+  });
 });

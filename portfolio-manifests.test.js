@@ -111,7 +111,7 @@ describe("Portfolio manifest reader", () => {
     expect(workspace.dependencies).toEqual([
       expect.objectContaining({
         name: "shared-proto",
-        git: "https://github.com/acme/proto.git",
+        git: "https://github.com/acme/proto",
       }),
     ]);
     expect(agent).toMatchObject({
@@ -185,7 +185,7 @@ describe("Portfolio manifest reader", () => {
       expect.objectContaining({ path: "../acme-utils", line: 3 }),
       expect.objectContaining({
         name: "acme-parsers",
-        git: "https://github.com/acme/parsers.git",
+        git: "https://github.com/acme/parsers",
         line: 4,
       }),
     ]);
@@ -240,5 +240,99 @@ describe("Portfolio manifest reader", () => {
     expect(normalizePackageName("go", "github.com/Acme/Auth")).toBe(
       "github.com/Acme/Auth",
     );
+  });
+
+  it("never aborts on unexpected manifest shapes", async () => {
+    await write(root, "package.json", "null");
+    await write(
+      root,
+      "composer.json",
+      JSON.stringify({ name: "acme/tool", bin: "bin/tool" }),
+    );
+    await write(
+      root,
+      "pyproject.toml",
+      '[project]\nname = "acme-tool"\n\n[project.dependencies]\nrequests = "2"\n',
+    );
+    await write(root, "go.mod", "x".repeat(1024 * 1024 + 1));
+
+    const manifests = await readRepoManifests(root);
+    const byFile = Object.fromEntries(manifests.map((m) => [m.file, m]));
+
+    expect(byFile["package.json"]).toMatchObject({ invalid: true });
+    expect(byFile["composer.json"].bins).toEqual([
+      expect.objectContaining({ name: "tool", path: "bin/tool" }),
+    ]);
+    expect(byFile["pyproject.toml"]).toMatchObject({
+      name: "acme-tool",
+      dependencies: [],
+    });
+    expect(byFile["go.mod"]).toMatchObject({ invalid: true, tooLarge: true });
+  });
+
+  it("drops credentials and URLs from version specs and keeps relative npm paths", async () => {
+    await write(
+      root,
+      "package.json",
+      JSON.stringify(
+        {
+          name: "@acme/web",
+          dependencies: {
+            "private-lib":
+              "git+https://ghp_SECRET123:x-oauth-basic@github.com/acme/private-lib.git",
+            "ssh-lib": "git+ssh://git@github.com:acme/ssh-lib.git",
+            "ui-kit": "../ui-kit",
+            react: "^19.0.0",
+          },
+        },
+        null,
+        2,
+      ),
+    );
+
+    const [manifest] = await readRepoManifests(root);
+    const dep = (name) => manifest.dependencies.find((d) => d.name === name);
+
+    expect(JSON.stringify(manifest)).not.toContain("ghp_SECRET123");
+    expect(dep("private-lib")).toMatchObject({ version: "" });
+    expect(dep("private-lib").git).toBe("https://github.com/acme/private-lib");
+    expect(dep("ssh-lib").git).toBe("https://github.com/acme/ssh-lib");
+    expect(dep("ui-kit")).toMatchObject({ path: "../ui-kit", version: "" });
+    expect(dep("react").version).toBe("^19.0.0");
+  });
+
+  it("cites the line of each dependency in multi-line pyproject arrays", async () => {
+    await write(
+      root,
+      "pyproject.toml",
+      '[project]\nname = "acme-sync"\ndependencies = [\n  "requests>=2",\n  "acme-common==1.0",\n]\n',
+    );
+
+    const [manifest] = await readRepoManifests(root);
+
+    expect(manifest.dependencies.map((d) => [d.name, d.line])).toEqual([
+      ["requests", 4],
+      ["acme-common", 5],
+    ]);
+  });
+
+  it("orders manifests by code units, not by locale", async () => {
+    await write(
+      root,
+      "packages/aa/package.json",
+      JSON.stringify({ name: "aa" }),
+    );
+    await write(
+      root,
+      "packages/Zeta/package.json",
+      JSON.stringify({ name: "zeta" }),
+    );
+
+    const manifests = await readRepoManifests(root);
+
+    expect(manifests.map((m) => m.dir)).toEqual([
+      "packages/Zeta",
+      "packages/aa",
+    ]);
   });
 });

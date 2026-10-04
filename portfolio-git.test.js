@@ -225,4 +225,13 @@ describe("Portfolio git metadata", () => {
       },
     ]);
   });
+
+  it("normalizes scp-style ssh URLs that npm and Cargo accept", () => {
+    expect(normalizeRemote("ssh://git@github.com:acme/ssh-lib.git")).toBe(
+      "https://github.com/acme/ssh-lib",
+    );
+    expect(normalizeRemote("ssh://git@github.com:2222/acme/lib.git")).toBe(
+      "https://github.com/acme/lib",
+    );
+  });
 });

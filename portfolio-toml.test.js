@@ -88,4 +88,16 @@ value = "still parsed"
     expect(data.package.name).toBe("ok");
     expect(errors.length).toBeGreaterThan(0);
   });
+
+  it("rejects prototype-polluting keys", () => {
+    const { data, errors } = parseToml(
+      '[__proto__]\ninvalid = true\n\n[package]\nname = "ok"\nconstructor.prototype.polluted = 1\n__proto__.flag = 2\n',
+    );
+
+    expect({}.invalid).toBeUndefined();
+    expect({}.polluted).toBeUndefined();
+    expect({}.flag).toBeUndefined();
+    expect(data.package.name).toBe("ok");
+    expect(errors.length).toBe(3);
+  });
 });
