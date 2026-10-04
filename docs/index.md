@@ -6,11 +6,11 @@ date: 2026-10-04
 
 ## Specs
 
-| Document                                                                                               | Description                                                                                                   |
-| ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
-| [Professional Documentation Workflow](./specs/0019ed76fba2f4da-professional-documentation-workflow.md) | Defines init, scan, audit, verify, and CI behavior for source-grounded professional docs.                     |
-| [PlantUML Diagram Generation Quality](./specs/019f5e2f0f01a6b1-plantuml-diagram-generation-quality.md) | Rendering, layout, theme, and verification requirements for generated PlantUML SVG diagrams.                  |
-| [Portfolio Documentation](./specs/01a103e77d0e706f-portfolio-documentation.md)                         | Defines `xfeat portfolio` selection, generated pages, evidence hashes, cross-repo edges, and verify behavior. |
+| Document                                                                                               | Description                                                                                                                                                                     |
+| ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Professional Documentation Workflow](./specs/0019ed76fba2f4da-professional-documentation-workflow.md) | Defines init, scan, audit, verify, and CI behavior for source-grounded docs, including polyglot manifests, public API rules per language, and which files `scan` may overwrite. |
+| [PlantUML Diagram Generation Quality](./specs/019f5e2f0f01a6b1-plantuml-diagram-generation-quality.md) | Rendering, layout, theme, and verification requirements for generated PlantUML SVG diagrams.                                                                                    |
+| [Portfolio Documentation](./specs/01a103e77d0e706f-portfolio-documentation.md)                         | Defines `xfeat portfolio` selection, generated pages, evidence hashes, cross-repo edges, and verify behavior.                                                                   |
 
 ## Research
 
