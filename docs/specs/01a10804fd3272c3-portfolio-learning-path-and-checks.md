@@ -315,9 +315,10 @@ Generated learning pages follow these rules, checked by tests:
   affected check ids.
 - Adding a dependency without changing any cited line makes `portfolio verify`
   fail with `stale-check`. `verify` rebuilds the model read-only from the same
-  selection and compares recomputed checks with `checks.json`; new checks and a
-  new focus repository are warnings. The rebuild costs about as much as a
-  scan.
+  selection and compares recomputed checks with `checks.json`. Only a changed
+  question, answer, or citation is blocking; new checks, a new focus
+  repository, and metadata a newer xfeat adds, such as `hops`, are warnings.
+  The rebuild costs about as much as a scan.
 
 ## Test Plan
 
