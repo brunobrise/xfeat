@@ -332,6 +332,40 @@ describe("Professional documentation workflow", () => {
     ]);
   });
 
+  it("follows CommonMark fence rules for CRLF, indentation, and blockquotes", async () => {
+    await scanProfessionalDocs(workspace);
+    await fs.writeFile(
+      path.join(workspace, "docs", "crlf.md"),
+      "Intro\r\n```md\r\n[inside](./inside.md)\r\n```\r\n[outside](./outside.md)\r\n",
+    );
+    await fs.writeFile(
+      path.join(workspace, "docs", "indented.md"),
+      [
+        "Example:",
+        "",
+        "    ```",
+        "    indented code, not a fence",
+        "",
+        "Prose links to [gone](./gone.md) and mentions `GoneThing`.",
+        "",
+        "> ```md",
+        "> [quoted](./quoted.md)",
+        "> ```",
+        "",
+      ].join("\n"),
+    );
+
+    const audit = await auditProfessionalDocs(workspace);
+
+    expect(audit.brokenLinks).toEqual([
+      { file: "docs/crlf.md", target: "./outside.md", line: 5 },
+      { file: "docs/indented.md", target: "./gone.md", line: 6 },
+    ]);
+    expect(audit.staleReferences).toEqual([
+      { file: "docs/indented.md", token: "GoneThing", line: 6 },
+    ]);
+  });
+
   it("finds code references that occur inside longer source identifiers", async () => {
     await scanProfessionalDocs(workspace);
     await fs.writeFile(
