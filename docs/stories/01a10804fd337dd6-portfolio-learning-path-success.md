@@ -109,7 +109,7 @@ none revealed a join's first hop. All six runs ran at the same time.
 | Arm                        | Score (each run) | Multi-hop | Tool calls, mean (range) | Tokens, mean (range)     | Wall time, mean (range) |
 | -------------------------- | ---------------- | --------- | ------------------------ | ------------------------ | ----------------------- |
 | Guess baseline, no reading | 4/12             | 3/6       | 0                        | 0                        | 0                       |
-| A: repositories            | 12, 12, 12       | 6/6       | 47.3 (42-51)             | 103,025 (90,026-116,115) | 191 s (125-283)         |
+| A: repositories            | 12, 12, 12       | 6/6       | 47.3 (42-51)             | 103,185 (90,026-116,115) | 191 s (125-283)         |
 | B: repositories, docs      | 12, 12, 12       | 6/6       | 30.7 (25-38)             | 94,466 (90,530-99,364)   | 95 s (78-109)           |
 
 - **Accuracy is at the ceiling for joins too.** Every run answered every
