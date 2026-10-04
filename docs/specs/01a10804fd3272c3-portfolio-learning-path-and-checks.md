@@ -183,7 +183,12 @@ a comma-separated string counts as a list.
 
 Normalization before comparison: trim, remove surrounding backticks, collapse
 whitespace, compare repository names and owners case-insensitively, and remove
-a leading `./` or `{repo}/` from file paths.
+a leading `./` or `{repo}/` from file paths. Test commands that run the same
+script compare equal: `npm test`, `npm t`, `npm run-script test`, and
+`npm run test`, the same forms for pnpm and yarn, and a leading `corepack`.
+`bun test` stays distinct from `bun run test`, because it starts Bun's own
+runner instead of the script. Without this rule the grader rewarded copying
+xfeat's wording, which biased an evaluation toward agents that read the docs.
 
 | Answer type | Correct when                                                                            |
 | ----------- | --------------------------------------------------------------------------------------- |

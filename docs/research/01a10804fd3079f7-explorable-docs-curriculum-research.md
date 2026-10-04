@@ -143,7 +143,11 @@ comprehension.
 - Does the generated path shorten time to a first merged change for a new
   engineer? This needs a human study.
 - Do agents answer the checks better with the generated docs than with the raw
-  repositories? The grader makes this measurable; it has not been run at scale.
+  repositories? A first run (one run per arm, 12 questions, one model) found
+  equal accuracy and 47% fewer tool calls with the docs, which matches the
+  efficiency-over-success pattern above. Single-hop lookups hit a ceiling;
+  multi-hop questions and repeated runs are needed. See the
+  [success story](../stories/01a10804fd337dd6-portfolio-learning-path-success.md).
 - Should a project glossary order steps by term use? Deferred until the
   single-repository scan and the portfolio share one model.
 - Should LLM-proposed claims (purpose, invariants) be allowed with a visible

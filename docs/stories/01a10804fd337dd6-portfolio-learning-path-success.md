@@ -61,7 +61,34 @@ Dogfood runs on local repository folders, after the fixes in the
   list per list question, the way a reader answers.
 - Check kinds on the 74-repository set: 36 test command, 20 program, 1 owner,
   1 dependency list, 1 dependency file, 1 impact.
-- Full suite: 179 tests pass.
+- Full suite: 181 tests pass.
+
+## Paired Agent Evaluation
+
+One run per arm on the 74-repository set, same model (Claude Sonnet), same 12
+questions sampled across every check kind, same rules. Arm A saw only the
+repositories. Arm B also had the generated docs, without `checks.json` and
+`learn.md`, which contain the answers.
+
+| Arm                   | Score after grader fix | Score before fix | Tool calls | Tokens | Wall time |
+| --------------------- | ---------------------- | ---------------- | ---------- | ------ | --------- |
+| A: repositories       | 12/12                  | 9/12             | 36         | 83,656 | 445 s     |
+| B: repositories, docs | 12/12                  | 12/12            | 19         | 79,459 | 56 s      |
+
+- **Accuracy did not differ.** Both arms answered every question. The first
+  grading showed 9/12 for arm A only because the grader demanded xfeat's
+  wording (`npm run test`) and rejected the equivalent `npm test`. That bias
+  favoured the arm that read the docs. The grader now treats equivalent test
+  invocations as equal; see the
+  [failure story](./01a10804fd347d07-portfolio-learning-path-failures.md).
+- **The docs cut effort.** Arm B used 47% fewer tool calls and finished about
+  8 times faster, with 5% fewer tokens. This matches the research: context
+  files changed efficiency more than task success.
+- **The questions hit a ceiling.** Lookups with a named repository are easy to
+  answer by searching. They cannot show an accuracy gain.
+- **Limits.** One run per arm, 12 questions, one model. Wall time includes
+  agent scheduling and is the least reliable number. Treat the result as
+  indicative.
 
 ## Reusable Pattern
 
@@ -76,14 +103,24 @@ freshness, teaching, and measurement share one source of truth.
   explanation prompt is the only "why" item, and it is ungraded.
 - Coverage follows declared metadata. Owners were declared for 1 of 74
   repositories, so orientation checks are thin on real portfolios.
-- The paired agent evaluation the grader enables has not been run. There is no
-  evidence yet that the generated docs raise agent scores.
+- One small paired evaluation shows lower effort, not higher accuracy. There
+  is no evidence yet that the generated docs raise agent scores on harder
+  questions.
 - Quoted README sentences in repository pages exceed 25 words in 11 places.
   They are cited source text, so xfeat does not rewrite them; the sentence
   rule applies to generated text only.
 
 ## Follow-Up Check
 
-Run `portfolio questions` for the 74-repository set, answer once with an agent
-that sees only the repositories and once with the generated docs, and grade
-both. Keep the feature only if the docs raise the score at similar cost.
+The original criterion was to keep the feature only if the docs raise the
+score at similar cost. The first run met a weaker version: equal score at
+lower cost. The criterion was stated before the questions were known to hit a
+ceiling, so it is revised rather than ignored:
+
+- Keep the checks, path, and grader: the grader already found a bias in its
+  own scoring and measured a cost difference, which is the evaluation the
+  portfolio research asked for.
+- Add questions that need several hops, such as impact through two or more
+  edges, on a portfolio with more declared edges than `brunobrise/`.
+- Repeat each arm at least three times and report the spread. Drop the
+  learning path if harder questions show no accuracy or cost gain.

@@ -41,6 +41,24 @@ describe("gradeAnswers", () => {
     expect(report).toMatchObject({ score: 1, correct: 5, total: 5 });
   });
 
+  it("treats equivalent package manager test invocations as the same command", () => {
+    const scripts = (values) =>
+      check("test-command:web", "test-command", "one-of", values, "web");
+    const grade = (values, answer) =>
+      gradeAnswers([scripts(values)], { "test-command:web": answer }).score;
+    expect(grade(["npm run test"], "npm test")).toBe(1);
+    expect(grade(["npm run test"], "npm t")).toBe(1);
+    expect(grade(["npm run test"], "npm run-script test")).toBe(1);
+    expect(grade(["pnpm run test"], "pnpm test")).toBe(1);
+    expect(grade(["yarn run test"], "yarn test")).toBe(1);
+    expect(grade(["corepack pnpm test"], "pnpm run test")).toBe(1);
+    expect(grade(["npm run test -- --watch"], "npm test -- --watch")).toBe(1);
+    // `bun test` runs Bun's built-in runner, not the "test" script.
+    expect(grade(["bun run test"], "bun test")).toBe(0);
+    expect(grade(["npm run test"], "pnpm test")).toBe(0);
+    expect(grade(["npm run test:unit"], "npm test")).toBe(0);
+  });
+
   it("marks wrong, missing, and unknown answers", () => {
     const report = gradeAnswers(checks, {
       "owner:api": "@acme/payments",

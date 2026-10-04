@@ -64,6 +64,13 @@ green for all of them. The dogfood setup also exposed two older defects in
     manifest folder, while every other `--out` is relative to the working
     folder. Pre-existing. Fixed: `init` stores `--out` relative to the
     manifest, like repository paths.
+11. Paired agent evaluation: the agent without docs scored 9/12, but all three
+    "wrong" answers were right. It answered `npm test` and `pnpm test`; the
+    grader expected xfeat's wording, `npm run test` and `pnpm run test`. The
+    agent with docs copied xfeat's wording and scored 12/12. The grader was
+    measuring vocabulary overlap with the docs, not knowledge. Fixed:
+    equivalent npm, pnpm, and yarn test invocations compare equal, and
+    `corepack` is ignored; `bun test` stays distinct. Both arms now score 12/12.
 
 ## Contributing Factors
 
@@ -90,7 +97,9 @@ green for all of them. The dogfood setup also exposed two older defects in
 | Answer one-of questions with one value in tests   | TBD   | done   | [portfolio-grade.test.js](../../portfolio-grade.test.js)               |
 | Create the manifest folder in `portfolio init`    | TBD   | done   | [portfolio-docs.test.js](../../portfolio-docs.test.js)                 |
 | Store `init --out` relative to the manifest       | TBD   | done   | [portfolio-docs.test.js](../../portfolio-docs.test.js)                 |
-| Run a paired agent evaluation on a real portfolio | TBD   | open   | [success story](./01a10804fd337dd6-portfolio-learning-path-success.md) |
+| Run a paired agent evaluation on a real portfolio | TBD   | done   | [success story](./01a10804fd337dd6-portfolio-learning-path-success.md) |
+| Grade equivalent test invocations as equal        | TBD   | done   | [portfolio-grade.test.js](../../portfolio-grade.test.js)               |
+| Add multi-hop questions and repeat each arm 3x    | TBD   | open   | [success story](./01a10804fd337dd6-portfolio-learning-path-success.md) |
 
 ## Prevention Guidance
 
@@ -98,6 +107,8 @@ green for all of them. The dogfood setup also exposed two older defects in
   could answer it from the question alone. If yes, do not generate it.
 - Build "correct" answer files the way a reader answers: one value for
   single-answer questions, a list only for list questions.
+- Before comparing arms, grade each arm's "wrong" answers by hand. A grader
+  that keys on the docs' own wording rewards copying, not knowing.
 - Read one rendered page per feature before committing, and check every
   sentence for a claim xfeat cannot verify.
 - Re-run dogfood on the `brunobrise/` folder: it is the selection with a
