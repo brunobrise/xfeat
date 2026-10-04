@@ -162,4 +162,164 @@ describe("Portfolio cross-repository graph", () => {
       ["site", "theme"],
     ]);
   });
+
+  function synthetic(slug, { manifests = [], remoteUrl = "" } = {}) {
+    return {
+      slug,
+      path: `/work/${slug}`,
+      git: { remoteUrl, prefix: "" },
+      manifests: manifests.map((m) => ({
+        dir: ".",
+        role: "module",
+        evidence: {
+          repo: slug,
+          file: `${m.dir || "."}/${m.file || "go.mod"}`,
+          line: 1,
+          hash: "h",
+        },
+        dependencies: [],
+        ...m,
+      })),
+      contracts: [],
+      references: { actions: [], terraform: [], submodules: [] },
+    };
+  }
+  const ev = (repo) => ({ repo, file: "go.mod", line: 3, hash: "h" });
+
+  it("matches the longest Go module path and reports duplicated module paths", () => {
+    const graph = resolvePortfolioGraph([
+      synthetic("api", {
+        manifests: [
+          {
+            ecosystem: "go",
+            name: "github.com/acme/api",
+            dependencies: [
+              {
+                name: "github.com/acme/platform/auth/v2",
+                kind: "runtime",
+                line: 3,
+                evidence: ev("api"),
+              },
+              {
+                name: "github.com/acme/forked/lib",
+                kind: "runtime",
+                line: 4,
+                evidence: ev("api"),
+              },
+            ],
+          },
+        ],
+      }),
+      synthetic("platform", {
+        manifests: [{ ecosystem: "go", name: "github.com/acme/platform" }],
+      }),
+      synthetic("auth", {
+        manifests: [
+          { ecosystem: "go", name: "github.com/acme/platform/auth/v2" },
+        ],
+      }),
+      synthetic("fork-a", {
+        manifests: [{ ecosystem: "go", name: "github.com/acme/forked" }],
+      }),
+      synthetic("fork-b", {
+        manifests: [{ ecosystem: "go", name: "github.com/acme/forked" }],
+      }),
+    ]);
+
+    expect(graph.edges.map((e) => [e.from, e.to, e.kind])).toEqual([
+      ["api", "auth", "go-module"],
+    ]);
+    expect(graph.ambiguous).toEqual([
+      expect.objectContaining({
+        from: "api",
+        dependency: "github.com/acme/forked/lib",
+        candidates: ["fork-a", "fork-b"],
+      }),
+    ]);
+  });
+
+  it("cites the provider manifest at the declared path and reports unresolved local paths", () => {
+    const graph = resolvePortfolioGraph([
+      synthetic("app", {
+        manifests: [
+          {
+            ecosystem: "npm",
+            name: "app",
+            file: "package.json",
+            dependencies: [
+              {
+                name: "@acme/ui",
+                kind: "runtime",
+                path: "../kit/packages/ui",
+                line: 5,
+                evidence: ev("app"),
+              },
+              {
+                name: "@acme/gone",
+                kind: "runtime",
+                path: "../missing-repo",
+                line: 6,
+                evidence: ev("app"),
+              },
+            ],
+          },
+        ],
+      }),
+      synthetic("kit", {
+        manifests: [
+          {
+            ecosystem: "npm",
+            name: "@acme/kit",
+            file: "package.json",
+            dir: ".",
+          },
+          {
+            ecosystem: "npm",
+            name: "@acme/ui",
+            file: "package.json",
+            dir: "packages/ui",
+          },
+        ],
+      }),
+    ]);
+
+    expect(graph.edges).toEqual([
+      expect.objectContaining({
+        from: "app",
+        to: "kit",
+        kind: "path-dependency",
+        provider: expect.objectContaining({ file: "packages/ui/package.json" }),
+      }),
+    ]);
+    expect(graph.unresolved).toEqual([
+      expect.objectContaining({ from: "app", dependency: "../missing-repo" }),
+    ]);
+  });
+
+  it("does not resolve remotes shared by several selected repositories", () => {
+    const graph = resolvePortfolioGraph([
+      {
+        ...synthetic("site"),
+        references: {
+          actions: [{ ref: "acme/workflows", evidence: ev("site") }],
+          terraform: [],
+          submodules: [],
+        },
+      },
+      synthetic("workflows", {
+        remoteUrl: "https://github.com/acme/workflows",
+      }),
+      synthetic("workflows-copy", {
+        remoteUrl: "https://github.com/acme/workflows",
+      }),
+    ]);
+
+    expect(graph.edges).toEqual([]);
+    expect(graph.ambiguous).toEqual([
+      expect.objectContaining({
+        from: "site",
+        candidates: ["workflows", "workflows-copy"],
+      }),
+    ]);
+  });
 });

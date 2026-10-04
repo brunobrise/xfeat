@@ -69,4 +69,22 @@ describe("Portfolio evidence hashes", () => {
     );
     expect((await reader.text("huge.txt")).length).toBe(0);
   });
+
+  it("marks evidence in files above the size limit as unverifiable", async () => {
+    await fs.writeFile(
+      path.join(root, "openapi.json"),
+      "x".repeat(1024 * 1024 + 1),
+    );
+    const reader = evidenceReader(root, "web");
+    const evidence = await reader.cite("openapi.json", 1);
+
+    expect(evidence).toMatchObject({
+      file: "openapi.json",
+      line: 1,
+      hash: null,
+    });
+    expect(await checkEvidence(root, evidence)).toEqual({
+      state: "unverifiable",
+    });
+  });
 });

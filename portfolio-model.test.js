@@ -59,7 +59,11 @@ describe("Portfolio model", () => {
       value: "production",
       label: "source",
     });
-    expect(repo("ledger").status.value).toBe("deprecated");
+    expect(repo("ledger").status).toMatchObject({
+      value: "deprecated",
+      label: "source",
+      evidence: expect.objectContaining({ file: "README.md", line: 3 }),
+    });
     expect(repo("platform-workflows").status).toMatchObject({
       value: "dormant",
       label: "derived",
@@ -71,6 +75,7 @@ describe("Portfolio model", () => {
     const codes = (slug) => repo(slug).gaps.map((gap) => gap.code);
 
     expect(codes("ui-kit")).toEqual(["no-owner", "no-ci"]);
+    expect(codes("sync-worker")).toContain("no-readme");
     expect(codes("sync-worker")).toEqual(
       expect.arrayContaining([
         "no-test-command",

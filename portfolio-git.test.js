@@ -234,4 +234,19 @@ describe("Portfolio git metadata", () => {
       "https://github.com/acme/lib",
     );
   });
+
+  it("treats an untracked folder inside an unrelated repository as non-git", async () => {
+    git(root, ["init", "-q", "-b", "main"]);
+    await fs.writeFile(path.join(root, ".bashrc"), "export X=1\n");
+    git(root, ["add", ".bashrc"]);
+    git(root, ["commit", "-q", "-m", "dotfiles"]);
+    await fs.mkdir(path.join(root, "notes"), { recursive: true });
+    await fs.writeFile(path.join(root, "notes", "todo.md"), "- x\n");
+
+    expect(gitInfo(path.join(root, "notes"))).toMatchObject({
+      isRepo: false,
+      head: "",
+      remoteUrl: "",
+    });
+  });
 });

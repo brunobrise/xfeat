@@ -237,6 +237,15 @@ describe("xfeat portfolio end to end", () => {
     });
 
     expect(result.removed).toContain("repos/sync-worker.md");
+    const withoutLedger = await scanPortfolio({
+      paths: repos.filter((repo) => !repo.endsWith("ledger")),
+      out: outDir,
+      cwd: root,
+    });
+    expect(withoutLedger.gaps).toBeGreaterThan(0);
+    expect(await readOut(outDir, "gaps.md")).toMatch(
+      /sync-worker.*unresolved-dependency.*\.\.\/ledger/,
+    );
     await expect(
       fs.stat(path.join(outDir, "handwritten.md")),
     ).resolves.toBeTruthy();
@@ -288,6 +297,31 @@ describe("xfeat portfolio end to end", () => {
       scanPortfolio({ paths: repos, out: outDir, cwd: root }),
     ).rejects.toThrow(/outside the output folder/);
     expect(await fs.readdir(elsewhere)).toEqual([]);
+  });
+
+  it("fails verify when the portfolio manifest changes after a scan", async () => {
+    const manifest = path.join(root, "xfeat.portfolio.json");
+    await fs.writeFile(
+      manifest,
+      JSON.stringify({
+        name: "Acme",
+        output: "portfolio-out",
+        repos: repos.map((repo) => ({ path: path.relative(root, repo) })),
+      }),
+    );
+    await scanPortfolio({ manifest, cwd: root });
+    expect((await verifyPortfolio({ manifest, cwd: root })).ok).toBe(true);
+
+    const data = JSON.parse(await fs.readFile(manifest, "utf8"));
+    data.repos[0].owner = "@acme/new-owner";
+    await fs.writeFile(manifest, JSON.stringify(data));
+    const result = await verifyPortfolio({ manifest, cwd: root });
+    await fs.rm(manifest);
+
+    expect(result.ok).toBe(false);
+    expect(result.findings).toEqual([
+      expect.objectContaining({ type: "changed-manifest" }),
+    ]);
   });
 
   it("initializes a manifest from a parent folder and scans it by default", async () => {
