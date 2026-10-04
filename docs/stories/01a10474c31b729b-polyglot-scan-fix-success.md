@@ -151,7 +151,7 @@ reproduction shows the fix costs more than the error.
 
 - Public API rules are static. They do not follow a Rust file declared as a
   private module from another file, they count `pub` items in binary crates,
-  and Python constants count only when written in `UPPER_CASE`.
+  and Python constants count only when written in upper case.
 - Workspace members are read from npm and Cargo only; `go.work` and Python
   workspace tools are not read.
 - How-to guides still come only from root `package.json` scripts.
