@@ -41,6 +41,11 @@ refuses to produce.
 | Citations raise trust even when they are wrong           | Random citations still increased user trust. [arXiv 2501.01303](https://arxiv.org/abs/2501.01303)                                                                                                                                                                                                                                                                                    | reported |
 | Baseline `xfeat scan` misreads a polyglot Rust workspace | Running on a 24-file Rust workspace produced "No package metadata detected" (Cargo ignored), one `crates` component instead of one per crate, 0 public APIs (only JS `export` counts), and a README summary cut mid-sentence because wrapped lines were not joined. `scan` also writes into the target repository unconditionally, so it would overwrite hand-written `docs/` pages. | verified |
 
+The baseline `xfeat scan` row is fixed: `scan` now reads every supported
+manifest, splits workspaces into member components, detects public APIs per
+language, joins wrapped README lines, and skips files it did not generate. See
+the [polyglot scan fix story](../stories/01a10474c31b729b-polyglot-scan-fix-success.md).
+
 ## Success Patterns
 
 | Pattern                                                  | Evidence                                                                                                                                                                                                                         | Status   |
