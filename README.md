@@ -170,7 +170,7 @@ Create a reviewable selection from a parent folder of git repositories:
 npx @brunobrise/xfeat portfolio init --from ~/code/acme --exclude "legacy-*"
 ```
 
-This writes `xfeat.portfolio.json`, which can be edited to add owners, systems, lifecycle, and notes:
+This writes `xfeat.portfolio.json`, or the path given with `--manifest`, creating missing folders. Paths in the manifest, including `--out`, are stored relative to the manifest. The manifest can be edited to add owners, systems, lifecycle, and notes:
 
 ```json
 {

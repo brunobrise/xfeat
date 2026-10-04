@@ -17,7 +17,8 @@ evidence_links:
 Building the learning path and checks surfaced seven defects. Three were found
 by reading the rendered fixture page, three only by running on real
 repositories, and one in the evaluation harness itself. The fixture tests were
-green for all of them. All but one are fixed on `feat/block-model-curriculum`.
+green for all of them. The dogfood setup also exposed two older defects in
+`portfolio init`. All are fixed on `feat/block-model-curriculum`.
 
 ## Impact
 
@@ -56,8 +57,13 @@ green for all of them. All but one are fixed on `feat/block-model-curriculum`.
 8. Evaluation: the 0.5667 score. Fixed the test to give one value for one-of
    questions, added a test that a hedged list is wrong, and documented the
    rule in the README and spec.
-9. Open: `portfolio init --manifest <path>` fails with ENOENT when the folder
-   does not exist. Pre-existing; not fixed in this branch.
+9. Dogfood setup: `portfolio init --manifest <path>` failed with ENOENT when
+   the folder did not exist. Pre-existing. Fixed: `init` creates the folder.
+10. Review of that fix: `init --out portfolio-out --manifest nested/x.json`
+    stored `portfolio-out` as written, which later resolved against the
+    manifest folder, while every other `--out` is relative to the working
+    folder. Pre-existing. Fixed: `init` stores `--out` relative to the
+    manifest, like repository paths.
 
 ## Contributing Factors
 
@@ -82,7 +88,8 @@ green for all of them. All but one are fixed on `feat/block-model-curriculum`.
 | Prefer a testable focus; trace any edge           | TBD   | done   | [portfolio-learn.test.js](../../portfolio-learn.test.js)               |
 | Skip giveaway program questions                   | TBD   | done   | [portfolio-checks.test.js](../../portfolio-checks.test.js)             |
 | Answer one-of questions with one value in tests   | TBD   | done   | [portfolio-grade.test.js](../../portfolio-grade.test.js)               |
-| Create the manifest folder in `portfolio init`    | TBD   | open   | this story, timeline step 9                                            |
+| Create the manifest folder in `portfolio init`    | TBD   | done   | [portfolio-docs.test.js](../../portfolio-docs.test.js)                 |
+| Store `init --out` relative to the manifest       | TBD   | done   | [portfolio-docs.test.js](../../portfolio-docs.test.js)                 |
 | Run a paired agent evaluation on a real portfolio | TBD   | open   | [success story](./01a10804fd337dd6-portfolio-learning-path-success.md) |
 
 ## Prevention Guidance
