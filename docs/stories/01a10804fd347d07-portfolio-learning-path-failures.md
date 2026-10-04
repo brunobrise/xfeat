@@ -106,6 +106,52 @@ scan that combined `--manifest` with extra paths reported every check of the
 extra repositories as stale. The rebuild now always passes the stored
 repository paths as well, and a test covers the combined case.
 
+## Multi-Hop Follow-Up
+
+Adding multi-hop questions and repeating the evaluation surfaced six more
+problems. None was caught by the fixture suite.
+
+| #   | Defect                                                                                                                                                                                                      | Found by                                       | Fix                                                                                                                                           |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | CI command extraction kept shell conditions (`test -f dist/app`), variable assignments, multi-line message strings, and Python and Node scripts embedded in heredocs; some were classified as test commands | Dogfood on 75 repositories                     | Heredoc bodies, multi-line strings, the `test` builtin, and bare assignments are dropped; 537 lines on 410 repositories, no real command lost |
+| 2   | The first heredoc rule treated `echo "log<<EOF"` as a heredoc and swallowed every command after it                                                                                                          | Diff of extracted commands on 410 repositories | `<<` inside a quoted string no longer opens a heredoc                                                                                         |
+| 3   | Test-command joins were guessable: answering `npm run test` to every one was right 6 times out of 6                                                                                                         | A guess baseline written for the evaluation    | `grade` reports a baseline; sibling joins, which cannot be guessed, were added                                                                |
+| 4   | The first baseline leaked answers: a question that was the only one of its kind was "guessed" from its own answer                                                                                           | Inspecting the baseline answers                | The baseline leaves the question itself out                                                                                                   |
+| 5   | The grader drifted again: the new join kind skipped the `npm test` = `npm run test` rule and case rules, so a correct agent scored 10/12                                                                    | Grading the first repositories-only run        | Normalization follows what the answer names, read from the check's format                                                                     |
+| 6   | The local corpora cannot test dependency multi-hop: 396 repositories hold 2 declared cross-repository edges and no chain                                                                                    | Scanning every local repository                | Transitive questions are tested on fixtures; the limit is stated in the spec and the success story                                            |
+
+Defect 5 is the third grading bias in this feature, and the second in the same
+rule. Each time, a correct answer in different words was graded wrong, and each
+time the bias favoured the arm that read xfeat's own wording.
+
+### Second Independent Review
+
+A second read-only reviewer reproduced 14 findings on the multi-hop branch
+before merge. One (the grader drift above) was already fixed. The other 13 are
+fixed with tests:
+
+| #   | Severity | Defect                                                                                                                     | Fix                                                                                                  |
+| --- | -------- | -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| 1   | high     | A `"` inside single quotes (`tr -d '"'`, `sed 's/"//g'`) opened a fake string and dropped every later command in the block | CI blocks are read by a small quote-aware scanner that tracks single and double quotes and escapes   |
+| 2   | high     | `RUSTFLAGS="-D warnings" cargo test` and other env prefixes with quoted values were dropped as bare assignments            | A line is noise only when nothing but assignments remains after reading each value as one shell word |
+| 4   | medium   | The baseline guessed a question from join copies of its own answer                                                         | Every question about the same repository is left out of the guess                                    |
+| 5   | medium   | The baseline split votes between `npm test` and `npm run test` and never guessed a multi-value set                         | Votes are normalized like grading, one per repository, and set questions are guessed as whole sets   |
+| 6   | medium   | Joins crowded the focus repository's own test question out of the Run step and repeated a shown owner in Orient            | Single lookups come first, one per kind, and a join is dropped when its single-hop twin is shown     |
+| 7   | medium   | A scoped npm package's string `bin` was named `@acme/fmt`; npm installs it as `fmt`                                        | The scope is removed from string `bin` names                                                         |
+| 8   | low-med  | A package-name shortcut made a one-hop dependency look two hops away and produced a transitive question                    | Hops are measured over every dependency xfeat saw                                                    |
+| 9   | low      | Here-strings, `$((1<<N))`, comments mentioning `<<EOF`, and `<<\EOF` started fake heredocs; `bash <<EOF` bodies were lost  | The scanner ignores those forms and keeps commands fed to a shell                                    |
+| 10  | low      | `test/run-integration.sh` and `test.sh` were dropped as the `test` builtin                                                 | Only `test` followed by a space or the end of the line is the builtin                                |
+| 11  | low      | A quote opened on a backslash-continued line glued the next command to it                                                  | Continuations and open quotes join into one logical line                                             |
+| 12  | low      | `verify` failed after an xfeat upgrade because the new `hops` field changed every check                                    | Only a changed question, answer, or citation blocks; metadata changes are a warning                  |
+| 13  | low      | A join relying on a manifest-declared owner cited only the program line                                                    | The answer also cites the portfolio manifest                                                         |
+| 14  | low      | The spec said "longest path" where the code uses the longest shortest chain, and did not say cycles exclude the subject    | Spec reworded                                                                                        |
+
+Findings 1, 2, 9, and 10 were regressions introduced by this branch's own fix
+for junk CI commands, caught before merge. Re-extracting commands for all 410
+local repositories after the scanner rewrite removed 617 lines, all of them
+assignments, the `test` builtin, embedded scripts and JSON, or heredoc bodies,
+and recovered complete multi-line commands such as `mypy ... | sed -E '...'`.
+
 ## Contributing Factors
 
 - The fixture was built for the portfolio spec, where every repository has at
@@ -153,6 +199,13 @@ repository paths as well, and a test covers the combined case.
   sentence for a claim xfeat cannot verify.
 - Re-run dogfood on the `brunobrise/` folder: it is the selection with a
   declared cross-repository edge.
+- Report the guess baseline beside every evaluation score. A question that a
+  reader can answer without reading cannot show understanding.
+- When adding a check kind, grade one correct answer in different words, such
+  as `npm test` for `npm run test`, before trusting any score.
+- When changing command extraction, diff the extracted commands on the whole
+  local tree before and after, and read every removed line that had a
+  category.
 
 ## Follow-Up Validation
 

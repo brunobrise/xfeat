@@ -135,6 +135,21 @@ describe("xfeat portfolio checks and learning path", () => {
     expect(verify.findings).toEqual([]);
   });
 
+  it("only warns when checks.json comes from an older xfeat with the same answers", async () => {
+    await scan();
+    const data = await readJson("checks.json");
+    for (const item of data.checks) delete item.hops;
+    await fs.writeFile(
+      path.join(outDir, "checks.json"),
+      `${JSON.stringify(data, null, 2)}\n`,
+    );
+    const verify = await verifyPortfolio({ out: outDir });
+    expect(verify.ok).toBe(true);
+    expect(verify.warnings).toContainEqual(
+      expect.objectContaining({ type: "checks-metadata-changed" }),
+    );
+  });
+
   it("reports malformed checks.json as a finding instead of crashing", async () => {
     await scan();
     for (const checks of [[null], [{ id: "owner:x", claims: "abc" }]]) {
@@ -177,7 +192,9 @@ describe("xfeat portfolio checks and learning path", () => {
     expect(verify.findings).toContainEqual(
       expect.objectContaining({
         type: "changed-manifest",
-        checks: ["owner:sync-worker"],
+        // sync-worker provides acme-sync, so the two-hop owner question
+        // relies on the same manifest owner.
+        checks: ["owner:sync-worker", "program-owner:acme-sync"],
       }),
     );
   });

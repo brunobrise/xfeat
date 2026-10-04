@@ -5,6 +5,7 @@ const {
   normalizePackageName,
 } = require("./lib/portfolio-manifests");
 const { tempRoot } = require("./test_files/portfolio-fixture");
+const { readPackageJson } = require("./lib/portfolio-manifest-readers");
 
 async function write(root, file, body) {
   await fs.mkdir(path.dirname(path.join(root, file)), { recursive: true });
@@ -350,5 +351,20 @@ describe("Portfolio manifest reader", () => {
       ["tui", 6],
       ["state", 8],
     ]);
+  });
+});
+
+describe("npm program names", () => {
+  it("names a string bin after the package without its scope, as npm installs it", () => {
+    const scoped = readPackageJson(
+      "package.json",
+      '{"name":"@acme/fmt","bin":"fmt.js"}',
+    );
+    const plain = readPackageJson(
+      "package.json",
+      '{"name":"fmt","bin":"a.js"}',
+    );
+    expect(scoped.bins.map((bin) => bin.name)).toEqual(["fmt"]);
+    expect(plain.bins.map((bin) => bin.name)).toEqual(["fmt"]);
   });
 });
