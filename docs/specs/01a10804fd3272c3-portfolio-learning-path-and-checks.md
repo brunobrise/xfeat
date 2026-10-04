@@ -1,6 +1,6 @@
 ---
 date: 2026-10-04
-status: draft
+status: implemented
 owner: TBD
 related_research:
   - ../research/01a10804fd3079f7-explorable-docs-curriculum-research.md
