@@ -248,6 +248,31 @@ describe("buildChecks on synthetic models", () => {
     });
   });
 
+  it("asks which other programs the providing repository ships", () => {
+    const m = model(
+      [],
+      [
+        { repo: "tools", name: "acme-cli" },
+        { repo: "tools", name: "acme-lint" },
+        // Named like its repository: no question of its own, but still a
+        // sibling, or a correct answer would be marked wrong.
+        { repo: "tools", name: "tools" },
+        { repo: "solo", name: "acme-solo" },
+      ],
+    );
+    expect(find(m, "program-siblings:acme-cli")).toMatchObject({
+      step: "orient",
+      subject: "tools",
+      hops: 2,
+      question:
+        "Which other programs does the repository that provides the program `acme-cli` provide?",
+      format: "list of program names",
+      answer: { type: "set", values: ["acme-lint", "tools"] },
+      claims: ["tools:bin:acme-cli", "tools:bin:acme-lint", "tools:bin:tools"],
+    });
+    expect(ids(m)).not.toContain("program-siblings:acme-solo");
+  });
+
   it("skips joins that give the repository away or lack the second fact", () => {
     const m = model(
       [],

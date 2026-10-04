@@ -94,6 +94,29 @@ describe("gradeAnswers", () => {
     });
   });
 
+  it("reports the score of always guessing the most common answer", () => {
+    const testCheck = (subject, values) => ({
+      ...check(`test-command:${subject}`, "test-command", "one-of", values),
+      subject,
+    });
+    const portfolio = [
+      testCheck("a", ["npm run test"]),
+      testCheck("b", ["npm run test", "make test"]),
+      testCheck("c", ["npm run test"]),
+      testCheck("d", ["cargo test"]),
+      check("owner:a", "owner", "set", ["@acme/a"]),
+    ];
+    const report = gradeAnswers(portfolio, {});
+    // Leaving each question out, "npm run test" is still the most common
+    // answer for a, b, c, and d; it is right for a, b, and c. The only owner
+    // question has no other owner to guess from.
+    expect(report.baseline).toEqual({
+      score: 0.6,
+      correct: 3,
+      byHops: { 1: { correct: 3, total: 5 } },
+    });
+  });
+
   it("marks a hedged list of several answers to a one-of question wrong", () => {
     const report = gradeAnswers(checks, {
       "test-command:api": ["make test", "go test ./..."],

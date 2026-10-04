@@ -158,6 +158,7 @@ gets Orient, Run, and Change.
 | `owner`                   | Who owns `{repo}`?                                                                          | `set`       | orient | 1    |
 | `binary`                  | Which repository provides the program `{name}`?                                             | `value`     | orient | 1    |
 | `program-owner`           | Who owns the repository that provides the program `{name}`?                                 | `set`       | orient | 2    |
+| `program-siblings`        | Which other programs does the repository that provides the program `{name}` provide?        | `set`       | orient | 2    |
 | `test-command`            | Which declared command runs the tests of `{repo}`?                                          | `one-of`    | run    | 1    |
 | `program-test-command`    | Which declared command runs the tests of the repository that provides the program `{name}`? | `one-of`    | run    | 2    |
 | `dependencies`            | Which selected repositories does `{repo}` depend on?                                        | `set`       | trace  | 1    |
@@ -203,6 +204,14 @@ and agents that understand the portfolio from those that only search well.
   that provides it, then to that repository's owner or test command. They are
   skipped when the program name gives the repository away, when several
   repositories provide the name, or when the second fact has no evidence.
+- `program-siblings` joins a program to the other programs its repository
+  provides, as a set. Every cited program of that repository counts, including
+  ones with no question of their own. A set of names cannot be guessed the way
+  `npm run test` can.
+- Test-command answers are guessable in JavaScript-heavy portfolios: on the
+  75-repository dogfood set, answering `npm run test` to every test-command
+  join was right 6 times out of 6. `grade` therefore reports a baseline (see
+  Grading).
 - `transitive-dependencies` is the forward closure over declared edges. It is
   generated only when the closure reaches past the direct dependencies, and
   skipped under the same completeness rule as `dependencies`.
@@ -242,8 +251,12 @@ xfeat's wording, which biased an evaluation toward agents that read the docs.
 | `set`       | The answer set equals the expected set.                                                 |
 
 The report lists `score`, `correct`, `total`, `byHops` (correct and total per
-hop count, so multi-hop accuracy is visible apart from lookups), and one result
-per check: `correct`, `wrong`, or `missing`, with the expected answer. Unknown
+hop count, so multi-hop accuracy is visible apart from lookups), a `baseline`,
+and one result per check: `correct`, `wrong`, or `missing`, with the expected
+answer. The baseline is the score of answering, for each question, the value
+that most other questions of the same kind expect, leaving the question itself
+out. Joins share a pool with their single-hop kind. A reader or agent that does
+not beat the baseline has not shown it knows the portfolio. Unknown
 ids are listed separately. Exit code is 0 unless `--min-score` is set and the score is
 below it.
 
