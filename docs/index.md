@@ -14,9 +14,10 @@ date: 2026-10-04
 
 ## Research
 
-| Document                                                                                                    | Description                                                                                                                           |
-| ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| [Multi-Repository Documentation Research](./research/01a103e77ce2751b-multi-repo-documentation-research.md) | Sourced successes and failures of AI doc generators, developer portals, and doc frameworks; open it before changing portfolio output. |
+| Document                                                                                                      | Description                                                                                                                              |
+| ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| [Multi-Repository Documentation Research](./research/01a103e77ce2751b-multi-repo-documentation-research.md)   | Sourced successes and failures of AI doc generators, developer portals, and doc frameworks; open it before changing portfolio output.    |
+| [Explorable Docs and Curriculum Research](./research/01a10804fd3079f7-explorable-docs-curriculum-research.md) | Sourced evidence on ASD-STE100, code maps, and docs as a curriculum for people and agents; open it before adding maps, paths, or checks. |
 
 ## Stories
 
