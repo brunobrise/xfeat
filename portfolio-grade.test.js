@@ -94,6 +94,38 @@ describe("gradeAnswers", () => {
     });
   });
 
+  it("normalizes join and closure answers like the single-hop kind they extend", () => {
+    const join = (id, kind, type, values) => ({
+      ...check(id, kind, type, values),
+      hops: 2,
+    });
+    const report = gradeAnswers(
+      [
+        join("program-test-command:cli", "program-test-command", "one-of", [
+          "npm run test",
+        ]),
+        join("program-owner:cli", "program-owner", "set", ["@acme/tools"]),
+        join("program-siblings:cli", "program-siblings", "set", ["acme-lint"]),
+        join("transitive-dependencies:web", "transitive-dependencies", "set", [
+          "api",
+          "ledger",
+        ]),
+      ],
+      {
+        "program-test-command:cli": "npm test",
+        "program-owner:cli": "@ACME/tools",
+        "program-siblings:cli": ["Acme-Lint"],
+        "transitive-dependencies:web": "Ledger, API",
+      },
+    );
+    expect(report.results.map((r) => r.result)).toEqual([
+      "correct",
+      "correct",
+      "correct",
+      "correct",
+    ]);
+  });
+
   it("reports the score of always guessing the most common answer", () => {
     const testCheck = (subject, values) => ({
       ...check(`test-command:${subject}`, "test-command", "one-of", values),

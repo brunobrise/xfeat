@@ -234,8 +234,10 @@ a comma-separated string counts as a list.
 ```
 
 Normalization before comparison: trim, remove surrounding backticks, collapse
-whitespace, compare repository names and owners case-insensitively, and remove
-a leading `./` from file paths. A leading `{repo}/` is removed from the answer
+whitespace, compare owners, repository names, and program names
+case-insensitively, and remove a leading `./` from file paths. Rules follow
+what the answer names, read from the check's `format`, so a join or closure is
+graded like the single-hop kind it extends. A leading `{repo}/` is removed from the answer
 only, because an expected path may itself start with a folder named like the
 repository. An empty `--min-score` is rejected. Test commands that run the same
 script compare equal: `npm test`, `npm t`, `npm run-script test`, and
