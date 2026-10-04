@@ -6,13 +6,22 @@ const links = {
   evidence: (e) => `[\`${e.repo}:${e.file}:${e.line}\`](${e.file}#L${e.line})`,
 };
 
-function repo(slug, { test = false, cwd = ".", remote = true } = {}) {
+function repo(
+  slug,
+  { test = false, cwd = ".", remote = true, bins = [], owner = null } = {},
+) {
   const evidence = { repo: slug, file: "Makefile", line: 2, hash: "h" };
   return {
     slug,
     status: { value: "active" },
-    ownership: null,
-    bins: [],
+    // A manifest-declared owner has no line evidence.
+    ownership: owner
+      ? { value: owner, label: "manifest", evidence: null }
+      : null,
+    bins: bins.map((name) => ({
+      name,
+      evidence: { repo: slug, file: "package.json", line: 3, hash: "h" },
+    })),
     git: { remoteUrl: remote ? `git@github.com:acme/${slug}.git` : "" },
     commands: test
       ? [{ category: "test", cwd, command: "make test", evidence }]
@@ -44,6 +53,12 @@ function model(repos, edges) {
       id: `edge:${edge.id}:consumer`,
       evidence: edge.consumer,
     })),
+    ...repos.flatMap((item) =>
+      item.bins.map((bin) => ({
+        id: `${item.slug}:bin:${bin.name}`,
+        evidence: bin.evidence,
+      })),
+    ),
   ];
   return {
     repos,
@@ -71,6 +86,44 @@ describe("renderLearn", () => {
     expect(text).toContain("In `c`, run `make test`.");
     expect(text).toContain("It did not run them.");
     expect(longSentences(text)).toEqual([]);
+  });
+
+  it("keeps the focus repository's own questions ahead of joins that repeat them", () => {
+    const text = render(
+      model(
+        [
+          repo("tools", {
+            test: true,
+            bins: ["acme-a", "acme-b", "acme-c"],
+            owner: "@acme/tools",
+          }),
+        ],
+        [],
+      ),
+    );
+    const step = (name) =>
+      text.split(/^## /m).find((section) => section.includes(name));
+    const run = step("Run `tools`");
+    expect(run).toContain("Which declared command runs the tests of `tools`?");
+    expect(run).not.toContain("the repository that provides the program");
+    const orient = step("Orient");
+    expect(orient).toContain("Who owns `tools`?");
+    expect(orient).not.toContain("Who owns the repository that provides");
+  });
+
+  it("cites the portfolio manifest when a join relies on it", () => {
+    const m = model(
+      [repo("tools", { bins: ["acme-a"], owner: "@acme/tools" })],
+      [],
+    );
+    const join = buildChecks(m).checks.find(
+      (c) => c.id === "program-owner:acme-a",
+    );
+    // Render only the join to see its answer text.
+    const text = renderLearn(m, { focus: "tools", checks: [join] }, links);
+    expect(text).toMatch(
+      /Source: \[`tools:package.json:3`\][^\n]*the portfolio manifest\./,
+    );
   });
 
   it("asks the multi-hop dependency question in the trace step", () => {

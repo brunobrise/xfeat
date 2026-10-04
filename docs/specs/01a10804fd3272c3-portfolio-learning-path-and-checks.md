@@ -185,7 +185,12 @@ Rules:
   question that contains its answer cannot tell a reader who knows the code
   from one who does not. Program names that are not strings are ignored.
 - Run and impact steps only show checks about their own subject. Orientation
-  fills up with other repositories after the focus.
+  fills up with other repositories after the focus. Within a step, single
+  lookups come before joins, one question per kind comes before a second of
+  the same kind, and a join is left out when its single-hop twin (`owner` for
+  `program-owner`, `test-command` for `program-test-command`) is already shown.
+  An answer that relies on a manifest-declared owner cites the portfolio
+  manifest beside the program line.
 - Impact is the reverse transitive closure over declared edges, excluding the
   subject.
 - Check ids are stable for unchanged repositories, so answers from one run can
