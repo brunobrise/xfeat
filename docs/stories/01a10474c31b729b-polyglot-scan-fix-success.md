@@ -65,9 +65,10 @@ Node.js sidecar (98 tracked files):
 | Crate dependency flows | 0                                           | 8, each citing the line that declares the dependency     |
 | Hand-written pages     | would be overwritten at generated paths     | skipped and reported in `skipped`                        |
 
-Other real runs: `brunobrise/tf-drift` (Go) reports its module and 61 exported
-identifiers; `getzep/graphiti` (Python) splits into 4 packages with 385 public
-names; `sherlock-project/sherlock` reads its `pyproject.toml` description.
+Other real runs: `getzep/graphiti` (Python) splits into 4 packages with 380
+public names; `sherlock-project/sherlock` reads its `pyproject.toml`
+description; `brunobrise/tf-drift` (Go) reports its module and 0 public APIs,
+which is correct because all of its code is in `internal/` or `package main`.
 
 Tests: [polyglot](../../professional-docs-polyglot.test.js),
 [exports](../../professional-docs-exports.test.js), and
@@ -125,9 +126,9 @@ existing npm workspace suite, all pass.
 
 ## Limits
 
-- Public API rules are line-based. A `pub fn` inside a private module or a
-  `#[cfg(test)]` block still counts, and Python constants count only when
-  written in `UPPER_CASE`.
+- Public API rules are static. They do not follow a Rust file declared as a
+  private module from another file, they count `pub` items in binary crates,
+  and Python constants count only when written in `UPPER_CASE`.
 - Workspace members are read from npm and Cargo only; `go.work` and Python
   workspace tools are not read.
 - How-to guides still come only from root `package.json` scripts.
