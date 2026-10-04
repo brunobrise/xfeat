@@ -124,7 +124,14 @@ describe("xfeat portfolio end to end", () => {
     expect(gaps).toContain("ledger, platform-workflows");
     expect(start.indexOf("ledger")).toBeLessThan(start.indexOf("## 4."));
     expect(start).toContain("git clone https://github.com/acme/ui-kit");
-    expect((await readOut(outDir, "llms.txt")).length).toBeLessThan(8192);
+    const llms = await readOut(outDir, "llms.txt");
+    expect(Buffer.byteLength(llms)).toBeLessThan(8192);
+    expect(llms).toContain("- [billing-api](repos/billing-api.md)");
+    expect(llms).not.toContain("Customer-facing billing portal");
+    expect(api).toContain("| Entry point | `cmd/api/main.go` |");
+    expect(
+      await readOut(outDir, "integrations/billing-web--platform-workflows.md"),
+    ).toContain("matched remote https://github.com/acme/platform-workflows");
     expect(index.split("\n").length).toBeLessThan(150);
     expect(index.indexOf("### billing")).toBeLessThan(
       index.indexOf("### Ungrouped"),
@@ -186,6 +193,70 @@ describe("xfeat portfolio end to end", () => {
         expect.objectContaining({ type: "missing-repo", repo: "ledger" }),
       ]),
     );
+  });
+
+  it("encodes link paths and reports undecodable links instead of crashing", async () => {
+    const adr = path.join(repos[2], "docs", "adr", "0002 use queues.md");
+    await fs.writeFile(adr, "# Use queues\n");
+    await scanPortfolio({ paths: repos, out: outDir, cwd: root });
+    const decisions = await readOut(outDir, "decisions.md");
+    expect(decisions).toContain("0002%20use%20queues.md");
+    expect((await ciPortfolio({ out: outDir, cwd: root })).links.ok).toBe(true);
+
+    await fs.appendFile(path.join(outDir, "gaps.md"), "\n[bad](bad%zz.md)\n");
+    const result = await ciPortfolio({ out: outDir, cwd: root });
+    expect(result.ok).toBe(false);
+    expect(result.links.brokenLinks).toEqual([
+      expect.objectContaining({ file: "gaps.md", target: "bad%zz.md" }),
+    ]);
+  });
+
+  it("references the SVG only when plantuml actually rendered it", async () => {
+    const bin = path.join(root, "fake-bin");
+    await fs.mkdir(bin, { recursive: true });
+    const fake = path.join(bin, "plantuml");
+    const savedPath = process.env.PATH;
+    process.env.PATH = `${bin}${path.delimiter}${savedPath}`;
+    try {
+      await fs.writeFile(
+        fake,
+        '#!/bin/sh\n[ "$1" = "-version" ] && exit 0\nexit 3\n',
+        { mode: 0o755 },
+      );
+      const failed = await scanPortfolio({
+        paths: repos,
+        out: outDir,
+        cwd: root,
+        renderDiagrams: true,
+      });
+      expect(failed.warnings).toEqual(
+        expect.arrayContaining([expect.stringMatching(/failed to render/)]),
+      );
+      expect(await readOut(outDir, "landscape.md")).not.toContain(
+        "landscape.svg",
+      );
+
+      await fs.writeFile(
+        fake,
+        '#!/bin/sh\n[ "$1" = "-version" ] && exit 0\nout="${2%.puml}.svg"\nprintf \'<svg style="background:#FFFFFF;"><defs/></svg>\' > "$out"\n',
+        { mode: 0o755 },
+      );
+      const rendered = await scanPortfolio({
+        paths: repos,
+        out: outDir,
+        cwd: root,
+        renderDiagrams: true,
+      });
+      expect(rendered.documents).toContain("diagrams/landscape.svg");
+      expect(await readOut(outDir, "landscape.md")).toContain(
+        "![Landscape](diagrams/landscape.svg)",
+      );
+      expect(await readOut(outDir, "diagrams/landscape.svg")).toContain(
+        "data-xfeat-white-canvas",
+      );
+    } finally {
+      process.env.PATH = savedPath;
+    }
   });
 
   it("passes the CI gate with valid internal links", async () => {
