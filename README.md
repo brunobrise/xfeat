@@ -202,9 +202,11 @@ npx @brunobrise/xfeat portfolio verify
 npx @brunobrise/xfeat portfolio ci
 ```
 
-`verify` re-reads every cited line. It fails when a cited line changed, a cited file or repository disappeared, or a generated page is missing, and it warns when a cited line only moved. `ci` adds a check of relative links inside the output. Both print JSON and exit nonzero on blocking findings.
+`verify` re-reads every cited line. It fails when a cited line changed, a cited file or repository disappeared, a generated page is missing, or `xfeat.portfolio.json` was edited after the scan, and it warns when a cited line only moved. `ci` adds a check of relative links inside the output. Both print JSON and exit nonzero on blocking findings. Options a command does not use are rejected rather than ignored.
 
-The output exposes internal package names, owners, and hosts. Treat it as internal documentation. Git remote credentials are always removed.
+The output exposes internal package names, owners, and hosts. Treat it as internal documentation. Credentials in git remotes and dependency URLs are always removed.
+
+The output folder must resolve outside every selected repository. `scan` never writes through symlinks, and on a rescan it removes only pages it generated earlier. Hand-written files in the output folder are kept.
 
 ## Development Tooling
 

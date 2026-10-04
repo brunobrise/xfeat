@@ -22,6 +22,12 @@ real-repository run is the reason the fixes exist: the fixture suite was green
 while the output still missed a real dependency and filled onboarding pages
 with CI noise.
 
+A pre-merge review with three independent reviewers and a parallel session
+found more than a dozen further defects. Two were destructive: `scan` could
+write or delete outside its output folder, and the test fixture corrupted the
+shared repository configuration when it ran inside a git hook. Both are fixed
+and covered by regression tests.
+
 ## Impact
 
 - One real cross-repository dependency was missing from the landscape. The
@@ -35,6 +41,13 @@ with CI noise.
   the most dangerous defect class.
 - The pre-commit audit gate failed on `main` before any change, blocking every
   commit.
+- Fixture tests running inside a linked worktree's pre-commit hook set
+  `core.bare = true` in the shared `.git/config`. Every checkout then failed
+  with "fatal: this operation must be run in a work tree" until the value was
+  restored. Fixture files were also staged in the enclosing repository index.
+  No commit was affected.
+- A symlinked output subfolder, or a stale `portfolio.json`, could make `scan`
+  delete files outside the output folder, including hand-written files.
 
 ## Timeline
 
@@ -69,6 +82,38 @@ with CI noise.
    usage in one cell. Fixed by listing packages once, joining binary paths with
    the manifest folder, omitting empty columns, grouping usages by version,
    and showing one command per purpose in `getting-started.md`.
+10. Pre-merge review: `scan` followed symlinks when writing and deleting, and
+    created the output folder before checking whether it resolved into a member
+    repository. Fixed with real-path containment checked before the first
+    `mkdir`, refusal to write through symlinks, and deletion limited to files
+    carrying the xfeat generator marker.
+11. Pre-merge review: concurrent test runs in one checkout shared fixture
+    folders inside the repository, so a failed `git init` let `git add` reach
+    the enclosing repository. Inside a linked worktree's pre-commit hook the
+    inherited `GIT_DIR` made the fixture's `git init` rewrite the shared config
+    as bare. Reproduced on a throwaway repository, then fixed with fixtures in
+    `os.tmpdir()`, every `GIT_*` variable removed from test git commands, a
+    toplevel guard, and repository-locating variables removed from production
+    git calls. Jest and ESLint now skip agent worktrees, anchored to
+    `<rootDir>` so tests still run inside a worktree.
+12. Pre-merge review: the TOML reader accepted `__proto__` keys (prototype
+    pollution); one malformed manifest could abort the scan; npm git specs
+    carried tokens into dependency versions; manifests sorted by locale; and
+    dotted keys such as `serde.workspace = true` cited line 1. The last one was
+    found by the parallel session's dogfood run on a real Cargo workspace.
+13. Pre-merge review: Go requirements matched the first module path instead of
+    the longest; shared remotes and module paths resolved silently; path
+    dependencies cited the wrong provider manifest; evidence in files over
+    1 MB always verified as fresh; edits to `xfeat.portfolio.json` were
+    invisible to `verify`; link paths were not encoded, and a `%` crashed `ci`;
+    `landscape.md` embedded an SVG even after a failed render; `llms.txt`
+    carried prose; and CLI options a command ignores were accepted silently.
+14. Pre-merge review: on macOS every CLI command piped through `| cat` or
+    `| jq` emitted only the first 512 bytes of its JSON, because the CLI called
+    `process.exit()` while asynchronous pipe writes were pending. Linux CI
+    never shows it. The bug predates this branch. Fixed by setting
+    `process.exitCode`; a test pipes `portfolio scan` through a shell and fails
+    at exactly 512 bytes with the old code.
 
 ## Contributing Factors
 
@@ -90,6 +135,12 @@ with CI noise.
 
 | Action                                                           | Owner | Status | Evidence                                                                               |
 | ---------------------------------------------------------------- | ----- | ------ | -------------------------------------------------------------------------------------- |
+| Keep scan writes and deletes inside the real output folder       | TBD   | done   | [portfolio-docs.test.js](../../portfolio-docs.test.js)                                 |
+| Run test git without inherited GIT\_\* hook variables            | TBD   | done   | [portfolio-git.test.js](../../portfolio-git.test.js)                                   |
+| Reject prototype keys and strip credentials from specs           | TBD   | done   | [portfolio-manifests.test.js](../../portfolio-manifests.test.js)                       |
+| Resolve Go modules by longest path; report shared remotes        | TBD   | done   | [portfolio-edges.test.js](../../portfolio-edges.test.js)                               |
+| Fail verify on edited manifests; skip unverifiable evidence      | TBD   | done   | [portfolio-docs.test.js](../../portfolio-docs.test.js)                                 |
+| Encode link paths; embed SVGs only after a successful render     | TBD   | done   | [portfolio-docs.test.js](../../portfolio-docs.test.js)                                 |
 | Resolve relative submodule URLs                                  | TBD   | done   | [portfolio-edges.test.js](../../portfolio-edges.test.js)                               |
 | Filter release workflows, expressions, fragments, and installers | TBD   | done   | [portfolio-commands.test.js](../../portfolio-commands.test.js)                         |
 | Cite description lines for purpose claims                        | TBD   | done   | [portfolio-model.test.js](../../portfolio-model.test.js)                               |
@@ -107,6 +158,13 @@ with CI noise.
   replacement matched.
 - Treat CI files as orchestration. Only extract lines a developer could run
   locally.
+- Never let tests spawn git with the inherited environment. Git hooks export
+  `GIT_DIR` and `GIT_INDEX_FILE`, and any test run from a hook inherits them.
+- Check containment on real paths before creating anything, and never follow a
+  symlink when writing or deleting generated output.
+- Treat every URL-like string from a manifest as possibly secret.
+- Run tests from a fresh temporary folder, never from fixed folders inside the
+  repository, so parallel runs cannot share state.
 
 ## Follow-Up Validation
 

@@ -22,13 +22,18 @@ else (yes)
   :For each evidence file;
   if (file exists?) then (no)
     :missing-source finding;
-  elseif (sha256 matches?) then (no)
-    :stale-evidence finding;
+  elseif (hash recorded?) then (no)
+    :unverifiable (over 1 MB);
+  elseif (line hash matches?) then (no)
+    :changed-evidence finding\n(moved line: warning only);
   else (yes)
     :fresh;
   endif
 endif
 :Check generated pages exist;
+if (portfolio manifest hash matches?) then (no)
+  :changed-manifest finding;
+endif
 :Exit 0 when no findings, else 1;
 stop
 @enduml
