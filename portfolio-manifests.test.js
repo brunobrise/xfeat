@@ -335,4 +335,20 @@ describe("Portfolio manifest reader", () => {
       "packages/aa",
     ]);
   });
+
+  it("cites dotted Cargo dependency keys on their own line", async () => {
+    await write(
+      root,
+      "Cargo.toml",
+      '[package]\nname = "discord"\n\n[dependencies]\nprotocol.workspace = true\ntui = { path = "../tui" }\n\n[dependencies.state]\npath = "../state"\n',
+    );
+
+    const [manifest] = await readRepoManifests(root);
+
+    expect(manifest.dependencies.map((d) => [d.name, d.line])).toEqual([
+      ["protocol", 5],
+      ["tui", 6],
+      ["state", 8],
+    ]);
+  });
 });
