@@ -114,13 +114,13 @@ and covered by regression tests.
     never shows it. The bug predates this branch. Fixed by setting
     `process.exitCode`; a test pipes `portfolio scan` through a shell and fails
     at exactly 512 bytes with the old code.
-15. Review tooling: reviewers that symlinked `node_modules` from a working
-    checkout into scratch clones emptied the real dependency folder when the
-    clones were cleaned up. A recursive delete through a link, such as
-    `rm -rf clone/node_modules/` with a trailing slash, removes the target's
-    contents. It happened in the main checkout and in a parallel session's
-    worktree, and the next pre-commit hook broke mid-commit. Recovered with
-    `npm ci --ignore-scripts`, and the links were removed.
+15. Review tooling: the `node_modules` folders of the main checkout and of a
+    parallel session's worktree were emptied at about the same time, and the
+    next pre-commit hook broke mid-commit. The cause is unconfirmed. Review
+    clones had symlinked those folders, and a recursive delete through a link
+    (such as `rm -rf clone/node_modules/` with a trailing slash) empties the
+    target. A concurrent disk-cleanup session was also running. Recovered with
+    `npm ci --ignore-scripts`, and every scratch link was removed.
 
 ## Contributing Factors
 
