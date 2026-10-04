@@ -151,12 +151,54 @@ describe("Professional docs scan file ownership", () => {
 
       expect(await fs.readdir(outside)).toEqual([]);
       expect(scan.skipped.map((item) => item.path)).toEqual([
+        "docs/reference",
         "docs/reference/claims.md",
         "docs/reference/files.md",
         "docs/reference/import-graph.md",
         "docs/reference/symbols.md",
       ]);
       expect(scan.skipped[0].reason).toBe("resolves outside the repository");
+    } finally {
+      await fs.rm(outside, { recursive: true, force: true });
+    }
+  });
+
+  it("never writes scan state or folders through links that leave the repository", async () => {
+    const outside = await fs.mkdtemp(path.join(os.tmpdir(), "xfeat-outside-"));
+    const secret = path.join(outside, "bashrc");
+    await fs.writeFile(secret, "export PATH=/usr/bin\n");
+    await fs.mkdir(path.join(workspace, ".xfeat"), { recursive: true });
+    await fs.symlink(secret, path.join(workspace, ".xfeat", "status.json"));
+    await fs.symlink(
+      path.join(outside, "config.yml"),
+      path.join(workspace, ".xfeat.yml"),
+    );
+    await fs.mkdir(path.join(outside, "docs"));
+    await fs.symlink(path.join(outside, "docs"), path.join(workspace, "docs"));
+
+    try {
+      const scan = await scanProfessionalDocs(workspace);
+
+      expect(await fs.readFile(secret, "utf8")).toBe("export PATH=/usr/bin\n");
+      expect(await fs.readdir(outside)).toEqual(["bashrc", "docs"]);
+      expect(await fs.readdir(path.join(outside, "docs"))).toEqual([]);
+      expect(scan.documents).toEqual([]);
+      expect(scan.skipped).toEqual(
+        expect.arrayContaining([
+          {
+            path: ".xfeat/status.json",
+            reason: "resolves outside the repository",
+          },
+          {
+            path: "docs/architecture",
+            reason: "resolves outside the repository",
+          },
+          {
+            path: "docs/architecture/overview.md",
+            reason: "resolves outside the repository",
+          },
+        ]),
+      );
     } finally {
       await fs.rm(outside, { recursive: true, force: true });
     }

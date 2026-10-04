@@ -251,8 +251,11 @@ before changing which files `scan` writes or how it detects its own output.
   [scan](../../lib/professional-docs.js),
   [tests](../../professional-docs-ownership.test.js).
 
-`.xfeat/status.json` is always rewritten because `.xfeat/` belongs to xfeat.
-`.xfeat.yml` is still only created when missing.
+`.xfeat/status.json` and every folder `init` creates get the same containment
+check: state is rewritten only when it is missing or a regular file inside the
+repository, and folders are created only when they resolve inside it. Refused
+paths appear in `skipped`. `.xfeat.yml` is created only when nothing exists at
+that path, not even a dangling symlink.
 
 ## Acceptance Criteria
 
