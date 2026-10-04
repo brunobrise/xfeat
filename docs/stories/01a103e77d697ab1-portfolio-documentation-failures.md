@@ -153,7 +153,7 @@ and covered by regression tests.
 | Cite description lines for purpose claims                        | TBD   | done   | [portfolio-model.test.js](../../portfolio-model.test.js)                               |
 | Scope git metadata for nested folders                            | TBD   | done   | [portfolio-git.test.js](../../portfolio-git.test.js)                                   |
 | Compact repository, dependency, and onboarding pages             | TBD   | done   | [portfolio-docs.test.js](../../portfolio-docs.test.js)                                 |
-| Fix single-repository `scan` for Cargo workspaces and READMEs    | TBD   | open   | [research baseline](../research/01a103e77ce2751b-multi-repo-documentation-research.md) |
+| Fix single-repository `scan` for Cargo workspaces and READMEs    | TBD   | done   | [single-repository scan fix evidence](./01a10474c31b729b-polyglot-scan-fix-success.md) |
 
 ## Prevention Guidance
 
