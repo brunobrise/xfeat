@@ -177,7 +177,9 @@ describe("xfeat portfolio checks and learning path", () => {
     expect(verify.findings).toContainEqual(
       expect.objectContaining({
         type: "changed-manifest",
-        checks: ["owner:sync-worker"],
+        // sync-worker provides acme-sync, so the two-hop owner question
+        // relies on the same manifest owner.
+        checks: ["owner:sync-worker", "program-owner:acme-sync"],
       }),
     );
   });

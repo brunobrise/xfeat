@@ -77,6 +77,23 @@ describe("gradeAnswers", () => {
     expect(report.unknown).toEqual(["nope:id"]);
   });
 
+  it("reports accuracy per hop count so joins are visible apart from lookups", () => {
+    const join = {
+      ...check("program-test-command:cli", "test-command", "one-of", [
+        "make test",
+      ]),
+      hops: 2,
+    };
+    const report = gradeAnswers([...checks, join], {
+      "owner:api": ["group:core", "@acme/payments"],
+      "program-test-command:cli": "make test",
+    });
+    expect(report.byHops).toEqual({
+      1: { correct: 1, total: 5 },
+      2: { correct: 1, total: 1 },
+    });
+  });
+
   it("marks a hedged list of several answers to a one-of question wrong", () => {
     const report = gradeAnswers(checks, {
       "test-command:api": ["make test", "go test ./..."],

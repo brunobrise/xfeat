@@ -73,6 +73,22 @@ describe("renderLearn", () => {
     expect(longSentences(text)).toEqual([]);
   });
 
+  it("asks the multi-hop dependency question in the trace step", () => {
+    const text = render(
+      model(
+        [repo("web", { test: true }), repo("api"), repo("ledger")],
+        [
+          ["web", "api"],
+          ["api", "ledger"],
+        ],
+      ),
+    );
+    const trace = text.split(/^## /m).find((s) => s.startsWith("3. Trace"));
+    expect(trace).toContain(
+      "Which selected repositories does `web` depend on, directly or through others?",
+    );
+  });
+
   it("does not mention copied commands when no command is listed", () => {
     const text = render(model([repo("a"), repo("b")], [["a", "b"]]));
     expect(headings(text)).toContain("## 2. Run `a`");

@@ -162,13 +162,32 @@ describe("buildChecks on synthetic models", () => {
       ...extra,
     };
   }
-  function model(edges, bins = []) {
-    const slugs = [...new Set(edges.flatMap((e) => [e.from, e.to]))];
-    const repos = [...slugs, ...bins.map((b) => b.repo)].map((slug) => ({
+  // `facts` adds declared test commands and cited owners per repository.
+  function model(edges, bins = [], facts = {}) {
+    const slugs = [
+      ...new Set([
+        ...edges.flatMap((e) => [e.from, e.to]),
+        ...bins.map((b) => b.repo),
+        ...Object.keys(facts.tests || {}),
+        ...Object.keys(facts.owners || {}),
+      ]),
+    ];
+    const repos = slugs.map((slug) => ({
       slug,
       status: { value: "active" },
-      ownership: null,
-      commands: [],
+      ownership: facts.owners?.[slug]
+        ? {
+            value: facts.owners[slug],
+            label: "source",
+            evidence: evidence(slug, "CODEOWNERS"),
+          }
+        : null,
+      commands: (facts.tests?.[slug] || []).map((command) => ({
+        category: "test",
+        cwd: ".",
+        command,
+        evidence: evidence(slug, "Makefile", 2),
+      })),
       bins: bins.filter((b) => b.repo === slug).map((b) => ({ name: b.name })),
     }));
     const claims = [
@@ -177,10 +196,105 @@ describe("buildChecks on synthetic models", () => {
         { id: `edge:${e.id}:provider` },
       ]),
       ...bins.map((b) => ({ id: `${b.repo}:bin:${b.name}` })),
+      ...repos.flatMap((r) =>
+        r.commands.map((c) => ({ id: `${r.slug}:command:.:${c.command}` })),
+      ),
+      ...repos
+        .filter((r) => r.ownership)
+        .map((r) => ({ id: `${r.slug}:owner:default` })),
     ];
     return { repos, claims, graph: { edges, ambiguous: [] } };
   }
   const ids = (m) => buildChecks(m).checks.map((c) => c.id);
+  const find = (m, id) => buildChecks(m).checks.find((c) => c.id === id);
+
+  it("records how many facts each question joins", () => {
+    const m = model(
+      [edge("api", "ledger", "github.com/acme/money")],
+      [{ repo: "tools", name: "acme-cli" }],
+      { tests: { tools: ["make test"] }, owners: { tools: "@acme/tools" } },
+    );
+    for (const item of buildChecks(m).checks) {
+      expect(Number.isInteger(item.hops)).toBe(true);
+    }
+    expect(find(m, "binary:acme-cli").hops).toBe(1);
+    expect(find(m, "test-command:tools").hops).toBe(1);
+    expect(find(m, "dependencies:api").hops).toBe(1);
+  });
+
+  it("joins a program to its repository's test command and owner", () => {
+    const m = model([], [{ repo: "tools", name: "acme-cli" }], {
+      tests: { tools: ["make test", "make check"] },
+      owners: { tools: "@acme/tools" },
+    });
+    expect(find(m, "program-test-command:acme-cli")).toMatchObject({
+      step: "run",
+      subject: "tools",
+      hops: 2,
+      question:
+        "Which declared command runs the tests of the repository that provides the program `acme-cli`?",
+      answer: { type: "one-of", values: ["make check", "make test"] },
+      claims: [
+        "tools:bin:acme-cli",
+        "tools:command:.:make check",
+        "tools:command:.:make test",
+      ],
+    });
+    expect(find(m, "program-owner:acme-cli")).toMatchObject({
+      step: "orient",
+      hops: 2,
+      answer: { type: "set", values: ["@acme/tools"] },
+      claims: ["tools:bin:acme-cli", "tools:owner:default"],
+    });
+  });
+
+  it("skips joins that give the repository away or lack the second fact", () => {
+    const m = model(
+      [],
+      [
+        { repo: "tools", name: "tools" },
+        { repo: "lint", name: "acme-lint" },
+      ],
+      { tests: { tools: ["make test"] } },
+    );
+    expect(ids(m)).not.toContain("program-test-command:tools");
+    expect(ids(m)).not.toContain("program-test-command:acme-lint");
+    expect(ids(m)).not.toContain("program-owner:acme-lint");
+  });
+
+  it("asks for transitive dependencies only when the closure goes past direct ones", () => {
+    const m = model([
+      edge("web", "api", "github.com/acme/api-client"),
+      edge("api", "ledger", "github.com/acme/money"),
+    ]);
+    expect(find(m, "transitive-dependencies:web")).toMatchObject({
+      step: "trace",
+      hops: 2,
+      question:
+        "Which selected repositories does `web` depend on, directly or through others?",
+      answer: { type: "set", values: ["api", "ledger"] },
+    });
+    expect(ids(m)).not.toContain("transitive-dependencies:api");
+    expect(find(m, "impact:ledger")).toMatchObject({
+      hops: 2,
+      answer: { type: "set", values: ["api", "web"] },
+    });
+    expect(find(m, "impact:api").hops).toBe(1);
+  });
+
+  it("skips transitive dependencies a name match would make incomplete", () => {
+    const nameMatch = {
+      ...edge("api", "ui", "@acme/ui"),
+      kind: "package-name",
+      confidence: "name-match",
+    };
+    const m = model([
+      edge("web", "api", "github.com/acme/api-client"),
+      edge("api", "ledger", "github.com/acme/money"),
+      nameMatch,
+    ]);
+    expect(ids(m)).not.toContain("transitive-dependencies:web");
+  });
 
   it("asks which repository provides a module whose path does not name it", () => {
     expect(
