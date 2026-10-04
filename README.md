@@ -196,19 +196,20 @@ npx @brunobrise/xfeat portfolio scan
 npx @brunobrise/xfeat portfolio scan --render-diagrams
 ```
 
-| Output                     | Content                                                                                  |
-| -------------------------- | ---------------------------------------------------------------------------------------- |
-| `index.md`                 | Repository table grouped by system: purpose, owner, status, languages, verified commit.  |
-| `getting-started.md`       | Clone order with providers first, and declared commands per repository.                  |
-| `landscape.md`             | Cross-repository dependencies and a PlantUML landscape diagram.                          |
-| `repos/{slug}.md`          | One page per repository: ownership, modules, interfaces, commands, dependencies, gaps.   |
-| `integrations/{a}--{b}.md` | One page per connected pair, with consumer and provider evidence.                        |
-| `gaps.md`                  | Coverage of owners, purpose, test commands, CI, and licenses, plus ambiguous names.      |
-| `dependencies.md`          | Shared external dependencies with version drift, and shared protobuf contracts.          |
-| `packages.md`              | Which repository defines each package or module name.                                    |
-| `decisions.md`             | Architecture decision records found across repositories.                                 |
-| `llms.txt`                 | A link index for coding agents, under 8 KB.                                              |
-| `portfolio.json`           | The complete model, including every claim with its source line hash and repository SHAs. |
+| Output                     | Content                                                                                   |
+| -------------------------- | ----------------------------------------------------------------------------------------- |
+| `index.md`                 | Repository table grouped by system: purpose, owner, status, languages, verified commit.   |
+| `getting-started.md`       | Clone order with providers first, and declared commands per repository.                   |
+| `landscape.md`             | Cross-repository dependencies and a PlantUML landscape diagram.                           |
+| `repos/{slug}.md`          | One page per repository: ownership, modules, interfaces, commands, dependencies, gaps.    |
+| `integrations/{a}--{b}.md` | One page per connected pair, with consumer and provider evidence.                         |
+| `gaps.md`                  | Coverage of owners, purpose, test commands, CI, and licenses, plus ambiguous names.       |
+| `dependencies.md`          | Shared external dependencies with version drift, and shared protobuf contracts.           |
+| `packages.md`              | Which repository defines each package or module name.                                     |
+| `decisions.md`             | Architecture decision records found across repositories.                                  |
+| `llms.txt`                 | A link index for coding agents, under 8 KB.                                               |
+| `portfolio.json`           | The complete model, including every claim with its source line hash and repository SHAs.  |
+| `checks.json`              | Questions with answers computed from declared facts, each citing the claims it relies on. |
 
 Evidence links point to commit permalinks on GitHub, GitLab, and Bitbucket when the repository is clean, and to local files otherwise. Re-running `scan` on unchanged repositories produces byte-identical output.
 
@@ -221,7 +222,7 @@ npx @brunobrise/xfeat portfolio verify
 npx @brunobrise/xfeat portfolio ci
 ```
 
-`verify` re-reads every cited line. It fails when a cited line changed, a cited file or repository disappeared, a generated page is missing, or `xfeat.portfolio.json` was edited after the scan, and it warns when a cited line only moved. `ci` adds a check of relative links inside the output. Both print JSON and exit nonzero on blocking findings. Options a command does not use are rejected rather than ignored.
+`verify` re-reads every cited line. It fails when a cited line changed, a cited file or repository disappeared, a generated page is missing, or `xfeat.portfolio.json` was edited after the scan, and it warns when a cited line only moved. Findings for a changed or missing line list the checks in `checks.json` that rely on it. `ci` adds a check of relative links inside the output. Both print JSON and exit nonzero on blocking findings. Options a command does not use are rejected rather than ignored.
 
 The output exposes internal package names, owners, and hosts. Treat it as internal documentation. Credentials in git remotes and dependency URLs are always removed.
 
