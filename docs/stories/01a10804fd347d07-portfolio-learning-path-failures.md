@@ -100,6 +100,12 @@ Finding 2 repeated a defect this story already claimed to have fixed (timeline
 step 2). The first fix replaced a wrong sentence with a narrower wrong
 sentence, because it reused the declared-only edge list.
 
+The fix for finding 4 introduced a defect of its own, caught by self-review
+before merge: `verify` rebuilt the selection from the manifest alone, so a
+scan that combined `--manifest` with extra paths reported every check of the
+extra repositories as stale. The rebuild now always passes the stored
+repository paths as well, and a test covers the combined case.
+
 ## Contributing Factors
 
 - The fixture was built for the portfolio spec, where every repository has at

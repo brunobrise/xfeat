@@ -118,6 +118,23 @@ describe("xfeat portfolio checks and learning path", () => {
     ).toEqual([]);
   });
 
+  it("rebuilds the same selection when a scan combined a manifest and paths", async () => {
+    const manifest = path.join(root, "xfeat.portfolio.json");
+    const [first, ...rest] = repos;
+    await fs.writeFile(
+      manifest,
+      JSON.stringify({
+        name: "Acme",
+        output: "portfolio-out",
+        repos: [{ path: path.relative(root, first) }],
+      }),
+    );
+    await scanPortfolio({ manifest, paths: rest, cwd: root });
+    const verify = await verifyPortfolio({ manifest, cwd: root });
+    await fs.rm(manifest);
+    expect(verify.findings).toEqual([]);
+  });
+
   it("reports malformed checks.json as a finding instead of crashing", async () => {
     await scan();
     for (const checks of [[null], [{ id: "owner:x", claims: "abc" }]]) {
