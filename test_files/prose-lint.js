@@ -4,33 +4,51 @@
 //
 // Only xfeat's own prose is checked. Tables, headings, code, HTML comments,
 // link targets, and blockquotes are skipped: blockquotes hold quoted source
-// text, which xfeat must not rewrite. Inline code counts as one word.
+// text, which xfeat must not reword. Inline code counts as one word.
 
-const PASSIVE =
-  /\b(?:am|is|are|was|were|be|been|being)\s+(?:not\s+)?(?:\w+ly\s+)?(?:\w+ed|built|made|run|set|kept|read|found|shown|known|written|given|taken|done|seen|sent|held|left|put|bound|drawn|chosen)\b/i;
+// A form of "be" or "get", an optional adverb, then a past participle that is
+// not the start of a hyphenated adjective such as "read-only" or "built-in".
+const PARTICIPLE =
+  "(?:\\w{3,}ed|used|built|made|run|set|kept|read|found|shown|known|written|rewritten|overwritten|given|taken|done|seen|sent|held|left|put|bound|drawn|chosen|hidden|broken|driven|forgotten|thrown|caught|brought|thought|told|meant|lost)";
+// "Getting started" is an idiom, not a get passive.
+const PASSIVE = new RegExp(
+  `\\b(?:am|is|are|was|were|be|been|being|get|gets|got|getting)\\s+(?:\\w+ly\\s+|(?:also|never|not|always|now|still|only|then|already|often)\\s+)?(?!started\\b)${PARTICIPLE}(?![-\\w])` +
+    // A fragment such as "Required by web." or "documented by xfeat".
+    `|(?:^|\\s)(?:\\w{3,}ed|built|made|written|run)\\s+by\\b`,
+  "i",
+);
 const CONTRACTION =
-  /\b\w+n['’]t\b|\b(?:it|that|there|what|here|who|let)['’]s\b|\b\w+['’](?:re|ve|ll|d|m)\b/i;
+  /\b\w+n['’ʼ]t\b|\b(?:it|that|there|what|here|who|let|he|she|where|how|why|when)['’ʼ]s\b|\b\w+['’ʼ](?:re|ve|ll|d|m)\b/i;
+// Two actions in one step: ", then", "and then", or "and" followed by a
+// common instruction verb.
+const CHAINED =
+  /,\s+then\b|\band then\b|\band (?:run|clone|open|read|check|install|change|verify|copy|edit|create|delete|add|remove|update|commit|push|rerun|restart)\b/i;
+const MARKER = /^\s*(?:[-*+]|\d+[.)])\s+/;
+const NUMBERED = /^\s*\d+[.)]\s+/;
+// Abbreviations whose period does not end a sentence.
+const ABBREVIATIONS = /\b(e\.g|i\.e|etc|vs|cf)\./gi;
 
 function clean(raw) {
   return raw
     .replace(/<[^>]+>/g, " ")
     .replace(/`[^`]*`/g, "CODE")
     .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
-    .replace(/^\s*(?:[-*]|\d+\.)\s+/, "")
+    .replace(MARKER, "")
     .trim();
 }
 
 // Splits a page into prose blocks: a paragraph is consecutive plain lines,
-// and each list item is its own block. A numbered item that is not a
-// question is a step, the procedural writing that rules 5.1 and 5.2 cover.
+// and each list item is its own block, including indented continuation
+// lines. A numbered item that is not a question is a step, the procedural
+// writing that rules 5.1 and 5.2 cover.
 function proseBlocks(markdown) {
   const body = markdown.replace(/^---\n[\s\S]*?\n---\n/, "");
   const blocks = [];
-  let paragraph = null;
+  let open = null;
   let fenced = false;
   const close = () => {
-    if (paragraph) blocks.push(paragraph);
-    paragraph = null;
+    if (open) blocks.push(open);
+    open = null;
   };
   for (const raw of body.split("\n")) {
     if (/^\s*```/.test(raw)) {
@@ -44,22 +62,33 @@ function proseBlocks(markdown) {
     }
     const text = clean(raw);
     if (!text) continue;
-    if (/^\s*(?:[-*]|\d+\.)\s+/.test(raw)) {
+    if (MARKER.test(raw)) {
       close();
-      const numbered = /^\s*\d+\.\s+/.test(raw);
-      blocks.push({ text, step: numbered && !text.endsWith("?") });
-      continue;
+      open = { text, item: true, numbered: NUMBERED.test(raw) };
+    } else if (open?.item && /^\s+/.test(raw)) {
+      open.text = `${open.text} ${text}`;
+    } else if (open && !open.item) {
+      open.text = `${open.text} ${text}`;
+    } else {
+      close();
+      open = { text, item: false, numbered: false };
     }
-    paragraph = paragraph
-      ? { text: `${paragraph.text} ${text}`, step: false }
-      : { text, step: false };
   }
   close();
-  return blocks;
+  return blocks.map((block) => ({
+    text: block.text,
+    step: block.numbered && !block.text.endsWith("?"),
+  }));
 }
 
+// Only ".", "?", and "!" end a sentence; a colon introduces a list or a
+// label, so it does not.
 function sentencesOf(text) {
-  return text.split(/(?<=[.?!:])\s+/).filter(Boolean);
+  return text
+    .replace(ABBREVIATIONS, (m) => m.replace(/\./g, "\u0000"))
+    .split(/(?<=[.?!])\s+/)
+    .map((s) => s.replace(/\u0000/g, "."))
+    .filter(Boolean);
 }
 
 // Returns one finding per rule broken, with the sentence or block that broke
@@ -69,11 +98,7 @@ function proseFindings(markdown, { allow = [] } = {}) {
   const add = (rule, text) => findings.push({ rule, text });
   for (const block of proseBlocks(markdown)) {
     const sentences = sentencesOf(block.text);
-    // A colon introduces, it does not end a sentence, so "(evidence: x)"
-    // stays one instruction. ", then" and "and then" chain a second one.
-    const full = block.text.split(/(?<=[.?!])\s+/).filter(Boolean);
-    const chained = /,\s+then\b|\band then\b/i.test(block.text);
-    if (block.step && (full.length > 1 || chained)) {
+    if (block.step && (sentences.length > 1 || CHAINED.test(block.text))) {
       add("one-instruction", block.text);
     }
     if (!block.step && sentences.length > 6) {

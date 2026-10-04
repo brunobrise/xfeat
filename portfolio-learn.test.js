@@ -152,7 +152,7 @@ describe("renderLearn", () => {
     const text = render(model([repo("solo")], []));
     expect(headings(text)).toEqual(["## 1. Orient", "## 2. Run `solo`"]);
     expect(text).toContain(
-      "No checks could be generated from declared, cited facts.",
+      "xfeat found no declared, cited facts to build checks from.",
     );
     expect(text).toContain("[gaps.md](gaps.md)");
     expect(text).toContain("Each answer cites the source it comes from.");
@@ -209,6 +209,12 @@ describe("renderLearn", () => {
       ),
     );
     expect(longSentences(text)).toEqual([]);
+    expect(proseFindings(text)).toEqual([]);
     expect(text).toContain("and 20 more in `checks.json`");
+    // The retest step names ten dependents in a nested list.
+    expect(text).toContain("   - `app-0`");
+    expect(text).toContain(
+      "   - 20 more, listed on [landscape.md](landscape.md)",
+    );
   });
 });

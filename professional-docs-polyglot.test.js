@@ -205,8 +205,12 @@ describe("Professional docs scan on polyglot repositories", () => {
     expect(core).toContain(
       "| `crates/ledger-core/src/lib.rs` | package source entrypoint |",
     );
+    // The manifest description is quoted verbatim under its citation.
     expect(core).toContain(
-      "- Owns Double-entry ledger primitives for account balances. Evidence: [`crates/ledger-core/Cargo.toml:4`]",
+      "- Owns the `ledger-core` package, as its manifest describes it (evidence: [`crates/ledger-core/Cargo.toml:4`]",
+    );
+    expect(core).toContain(
+      "  > Double-entry ledger primitives for account balances\n",
     );
     expect(cli).toContain(
       "- Owns the `ledger-cli` package under `crates/ledger-cli`. Its manifest declares no description. Evidence: [`crates/ledger-cli/Cargo.toml:2`]",
@@ -245,7 +249,8 @@ describe("Professional docs scan on polyglot repositories", () => {
       "- Billing API, as its README describes it (evidence: [`README.md:3`]",
     );
     expect(overview).toContain(
-      "  > Creates invoices and reports payment status for the billing portal.",
+      // Verbatim: the README line has no final period, so the quote has none.
+      "  > Creates invoices and reports payment status for the billing portal\n",
     );
     for (const name of ["create_invoice", "Invoice", "MAX_LINES"]) {
       expect(component).toContain(`| \`${name}\` |`);
