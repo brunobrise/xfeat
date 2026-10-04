@@ -302,6 +302,106 @@ describe("Professional documentation workflow", () => {
     );
   });
 
+  it("ignores links and code references inside fenced code blocks", async () => {
+    await scanProfessionalDocs(workspace);
+    await fs.writeFile(
+      path.join(workspace, "docs", "manual.md"),
+      [
+        "```text",
+        "See [links](...) and `FencedOnlyAdapter`.",
+        "```",
+        "~~~~",
+        "~~~",
+        "[report](/home/user/report.md)",
+        "~~~~",
+        "After the fences: `RemovedBillingAdapter` and [missing](./missing.md).",
+        "",
+        "```",
+        "Unclosed fence: [dangling](./dangling.md)",
+        "",
+      ].join("\n"),
+    );
+
+    const audit = await auditProfessionalDocs(workspace);
+
+    expect(audit.brokenLinks).toEqual([
+      { file: "docs/manual.md", target: "./missing.md", line: 8 },
+    ]);
+    expect(audit.staleReferences).toEqual([
+      { file: "docs/manual.md", token: "RemovedBillingAdapter", line: 8 },
+    ]);
+  });
+
+  it("follows CommonMark fence rules for CRLF, indentation, and blockquotes", async () => {
+    await scanProfessionalDocs(workspace);
+    await fs.writeFile(
+      path.join(workspace, "docs", "crlf.md"),
+      "Intro\r\n```md\r\n[inside](./inside.md)\r\n```\r\n[outside](./outside.md)\r\n",
+    );
+    await fs.writeFile(
+      path.join(workspace, "docs", "indented.md"),
+      [
+        "Example:",
+        "",
+        "    ```",
+        "    indented code, not a fence",
+        "",
+        "Prose links to [gone](./gone.md) and mentions `GoneThing`.",
+        "",
+        "> ```md",
+        "> [quoted](./quoted.md)",
+        "> ```",
+        "",
+      ].join("\n"),
+    );
+
+    const audit = await auditProfessionalDocs(workspace);
+
+    expect(audit.brokenLinks).toEqual([
+      { file: "docs/crlf.md", target: "./outside.md", line: 5 },
+      { file: "docs/indented.md", target: "./gone.md", line: 6 },
+    ]);
+    expect(audit.staleReferences).toEqual([
+      { file: "docs/indented.md", token: "GoneThing", line: 6 },
+    ]);
+  });
+
+  it("finds code references that occur inside longer source identifiers", async () => {
+    await scanProfessionalDocs(workspace);
+    await fs.writeFile(
+      path.join(workspace, "docs", "manual.md"),
+      "Billing starts in `BillingServ` and `chargeCust`, not `MissingBilling`.\n",
+    );
+
+    const audit = await auditProfessionalDocs(workspace);
+
+    expect(audit.staleReferences.map((ref) => ref.token)).toEqual([
+      "MissingBilling",
+    ]);
+  });
+
+  it("keeps a fresh scan ci-clean when source comments contain link syntax", async () => {
+    await fs.writeFile(
+      path.join(workspace, "src", "billing.js"),
+      `// Captions used to show literal [links](...) and [report](/home/user/report.md).
+export class BillingService {
+  chargeCustomer(customerId, amount) {
+    return amount + customerId.length;
+  }
+}
+`,
+    );
+    await scanProfessionalDocs(workspace);
+
+    const result = await runProfessionalCommand(["ci", workspace], {
+      stdout: () => {},
+      stderr: () => {},
+    });
+
+    expect(result.audit.brokenLinks).toEqual([]);
+    expect(result.exitCode).toBe(0);
+  });
+
   it("returns nonzero CI result when audit findings are blocking", async () => {
     await scanProfessionalDocs(workspace);
     await fs.writeFile(

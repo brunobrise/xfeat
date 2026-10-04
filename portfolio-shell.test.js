@@ -40,8 +40,8 @@ describe("CI shell block reading", () => {
     ],
     [
       "here-strings",
-      [`grep -q main <<< "main dev"`, `read -r a b <<< "$LINE"`, "npm test"],
-      [`grep -q main <<< "main dev"`, `read -r a b <<< "$LINE"`, "npm test"],
+      [`grep -q main <<< "main dev"`, `tr a-z A-Z <<< "$LINE"`, "npm test"],
+      [`grep -q main <<< "main dev"`, `tr a-z A-Z <<< "$LINE"`, "npm test"],
     ],
     [
       "scripts that start with test",
