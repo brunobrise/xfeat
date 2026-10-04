@@ -439,5 +439,21 @@ describe("xfeat portfolio end to end", () => {
       exitCode: 0,
       edges: 4,
     });
+
+    // Through a shell pipe, stdout is asynchronous on macOS; exiting early
+    // used to truncate the JSON at the pipe buffer size.
+    const quoted = [process.execPath, path.join(__dirname, "index.js")]
+      .concat(["portfolio", "scan", ...repos, "--out", outDir])
+      .map((arg) => `'${arg}'`)
+      .join(" ");
+    const piped = spawnSync("sh", ["-c", `${quoted} | cat`], {
+      cwd: root,
+      encoding: "utf8",
+    });
+    expect(piped.stdout.length).toBeGreaterThan(512);
+    expect(JSON.parse(piped.stdout)).toMatchObject({
+      command: "portfolio scan",
+      exitCode: 0,
+    });
   });
 });
