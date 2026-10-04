@@ -1,0 +1,26 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam activity {
+  BorderColor #486581
+  FontColor #102A43
+  BackgroundColor #F0F4F8
+}
+skinparam arrowColor #334E68
+
+start
+:Pick focus repository\n(active, most declared edges, has test command);
+:1. Orient\nread index, ownership checks;
+:2. Run focus\nclone providers first, test command check;
+if (focus has a declared edge?) then (yes)
+  :3. Trace one edge\nconsumer and provider lines;
+endif
+if (any repository has dependents?) then (yes)
+  :4. Assess impact\ncited dependency paths;
+endif
+if (focus has a test command?) then (yes)
+  :5. Change focus\nedit, test, re-test dependents;
+endif
+stop
+@enduml
