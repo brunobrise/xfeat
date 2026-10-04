@@ -124,6 +124,34 @@ Defect 5 is the third grading bias in this feature, and the second in the same
 rule. Each time, a correct answer in different words was graded wrong, and each
 time the bias favoured the arm that read xfeat's own wording.
 
+### Second Independent Review
+
+A second read-only reviewer reproduced 14 findings on the multi-hop branch
+before merge. One (the grader drift above) was already fixed. The other 13 are
+fixed with tests:
+
+| #   | Severity | Defect                                                                                                                     | Fix                                                                                                  |
+| --- | -------- | -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| 1   | high     | A `"` inside single quotes (`tr -d '"'`, `sed 's/"//g'`) opened a fake string and dropped every later command in the block | CI blocks are read by a small quote-aware scanner that tracks single and double quotes and escapes   |
+| 2   | high     | `RUSTFLAGS="-D warnings" cargo test` and other env prefixes with quoted values were dropped as bare assignments            | A line is noise only when nothing but assignments remains after reading each value as one shell word |
+| 4   | medium   | The baseline guessed a question from join copies of its own answer                                                         | Every question about the same repository is left out of the guess                                    |
+| 5   | medium   | The baseline split votes between `npm test` and `npm run test` and never guessed a multi-value set                         | Votes are normalized like grading, one per repository, and set questions are guessed as whole sets   |
+| 6   | medium   | Joins crowded the focus repository's own test question out of the Run step and repeated a shown owner in Orient            | Single lookups come first, one per kind, and a join is dropped when its single-hop twin is shown     |
+| 7   | medium   | A scoped npm package's string `bin` was named `@acme/fmt`; npm installs it as `fmt`                                        | The scope is removed from string `bin` names                                                         |
+| 8   | low-med  | A package-name shortcut made a one-hop dependency look two hops away and produced a transitive question                    | Hops are measured over every dependency xfeat saw                                                    |
+| 9   | low      | Here-strings, `$((1<<N))`, comments mentioning `<<EOF`, and `<<\EOF` started fake heredocs; `bash <<EOF` bodies were lost  | The scanner ignores those forms and keeps commands fed to a shell                                    |
+| 10  | low      | `test/run-integration.sh` and `test.sh` were dropped as the `test` builtin                                                 | Only `test` followed by a space or the end of the line is the builtin                                |
+| 11  | low      | A quote opened on a backslash-continued line glued the next command to it                                                  | Continuations and open quotes join into one logical line                                             |
+| 12  | low      | `verify` failed after an xfeat upgrade because the new `hops` field changed every check                                    | Only a changed question, answer, or citation blocks; metadata changes are a warning                  |
+| 13  | low      | A join relying on a manifest-declared owner cited only the program line                                                    | The answer also cites the portfolio manifest                                                         |
+| 14  | low      | The spec said "longest path" where the code uses the longest shortest chain, and did not say cycles exclude the subject    | Spec reworded                                                                                        |
+
+Findings 1, 2, 9, and 10 were regressions introduced by this branch's own fix
+for junk CI commands, caught before merge. Re-extracting commands for all 410
+local repositories after the scanner rewrite removed 617 lines, all of them
+assignments, the `test` builtin, embedded scripts and JSON, or heredoc bodies,
+and recovered complete multi-line commands such as `mypy ... | sed -E '...'`.
+
 ## Contributing Factors
 
 - The fixture was built for the portfolio spec, where every repository has at
