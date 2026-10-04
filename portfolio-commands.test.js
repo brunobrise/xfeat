@@ -101,10 +101,60 @@ describe("Portfolio command extraction", () => {
     expect(categorizeCommand("npm run dev > dev.log 2>&1")).toBe("run");
   });
 
-  it("categorizes check commands as lint, except cargo check", () => {
+  it("categorizes check commands as lint, make check as test, cargo check as build", () => {
     expect(categorizeCommand("npm run check")).toBe("lint");
-    expect(categorizeCommand("make check")).toBe("lint");
+    expect(categorizeCommand("just check")).toBe("lint");
+    expect(categorizeCommand("make check")).toBe("test");
+    expect(categorizeCommand("/usr/bin/make -j4 check")).toBe("test");
+    expect(categorizeCommand("make check-omlx-latest")).toBe("lint");
     expect(categorizeCommand("cargo check --workspace")).toBe("build");
+  });
+
+  it.each([
+    // Arguments, flag values, quoted data, and later pipeline stages never count.
+    ["bash scripts/install.sh --branch ci-under-test --commit $sha", "other"],
+    ['docker tag "${IMAGE_NAME}:test" "${IMAGE_NAME}:latest"', "other"],
+    ['docker image inspect "${IMAGE_NAME}:test" > /tmp/inspect.json', "other"],
+    ["docker run --name test app", "other"],
+    ["python -m scripts.ci.python_packages pytest==9.1.1 packaging", "other"],
+    ["./deploy.sh test", "other"],
+    ["npm ci && npm test", "setup"],
+    ["DIFF_COUNT=$(find test-results -name '*-diff.png' | wc -l)", "other"],
+    ["EXTRA_ARGS+=(--ignore-glob='*test_desktop_*.py')", "other"],
+    ["(cd tests && pytest)", "other"],
+    ["tool sync --format json", "other"],
+    // The head names the intent.
+    ["HERMES_TEST_WORKERS=$(nproc) scripts/run_tests.sh tests/docker/", "test"],
+    ["bash scripts/run_tests.sh tests/scripts/test_install.py -q", "test"],
+    [
+      'xvfb-run -a --server-args="-screen 0 1280x1024x24" npx playwright test -c e2e',
+      "test",
+    ],
+    ["python3 -m pytest -q", "test"],
+    ["uv run pytest tests/unit", "test"],
+    ["poetry run ruff check .", "lint"],
+    ["python3 scripts/check-case-collisions.py", "lint"],
+    ["node scripts/build.js", "build"],
+    ["npx tauri build --target x86_64-pc-windows-msvc", "build"],
+    ['bash -c "npm run lint -- --fix"', "lint"],
+    ["npm --prefix web test", "test"],
+    ["pnpm --filter web run test:unit", "test"],
+    ["make -C services/api test", "test"],
+    ["go mod download -x", "setup"],
+    ["python -m pip install -e .", "setup"],
+    ["cargo +nightly test --all", "test"],
+    ["./gradlew test", "test"],
+    ["/usr/local/bin/pytest -x", "test"],
+    ["dist build --output-format=json", "build"],
+    ["docker compose up -d", "other"],
+    ["npm run dev > dev.log 2>&1", "run"],
+    ["uvicorn app.main:app --reload", "run"],
+    // Corpus regressions: value flags between subcommands, `+` in script names.
+    ["python3 -m unittest discover -s tests -p 'test_*.py'", "test"],
+    ["docker compose -f swarm-config.yml build", "build"],
+    ["npm run desktop:build+install:macos", "build"],
+  ])("categorizes %s as %s", (command, category) => {
+    expect(categorizeCommand(command)).toBe(category);
   });
 
   it("picks the package runner from lockfiles", () => {

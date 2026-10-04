@@ -58,12 +58,42 @@ defects. `scan` and `verify` finished in seconds, but:
 - R7. Categories are matched against command words only: redirection targets
   do not count, so `>/dev/null` is not a `run` command. Other absolute paths
   still count, because `/usr/local/bin/pytest` is a test command.
-- R8. A command named `check` (such as `npm run check` or `make check`) is
-  categorized as `lint`. `cargo check` stays `build`.
+- R8. A command named `check` (such as `npm run check` or `just check`) is
+  categorized as `lint`. `make check` is `test`, because the GNU Coding
+  Standards define the `check` target as "Perform self-tests". `cargo check`
+  stays `build`.
+- R9. Categories come from the command head, not from its arguments. The
+  head is the program and the subcommand words that follow it:
+  - leading `NAME=value` assignments, redirections, and anything after the
+    first `&&`, `||`, `|` or `;` are ignored;
+  - wrappers are unwrapped: `bash`, `sh`, `env`, `time`, `xvfb-run`, `npx`,
+    `bunx`, `uv run`, `poetry run`, `pipenv run`, `pnpm exec`, interpreters
+    running a script (`python`, `node`, `ruby`, `perl`), and `python -m`;
+    `bash -c "..."` and `sh -c "..."` categorize the quoted script;
+  - a program given as a script path (`scripts/run_tests.sh`, `tool.py`)
+    has no subcommands, so its arguments never count;
+  - a named program (`npm`, `make`, `docker`, `go`) takes up to two plain
+    words as subcommands. Flags before the first subcommand are skipped, and
+    the values of `--prefix`, `--filter`, `--workspace`, `-C`, `-f` and
+    similar flags are skipped with them. A flag after a subcommand ends the
+    head;
+  - `_`, `-`, `.`, `/` and `:` separate words inside the head, so
+    `run_tests.sh` and `test:unit` are test commands.
+
+  So `bash scripts/install.sh --branch ci-under-test`,
+  `docker tag "${IMAGE}:test" ...` and
+  `python -m scripts.ci.python_packages pytest==9.1.1` are no longer test
+  commands, while `HERMES_TEST_WORKERS=4 scripts/run_tests.sh tests/` and
+  `xvfb-run -a npx playwright test` are. This matters beyond getting-started:
+  the learning path accepts any `test` command as the answer to "which
+  command runs the tests", and a repository without one is reported as a gap.
 
 ## Acceptance
 
-- Unit tests cover R1, R3, R5-R8.
+- Unit tests cover R1, R3, R5-R9.
+- On the 146-repository dogfood corpus (`brunobrise`, `chainsona`,
+  `MaikersHQ`), every command whose category changes is reviewed, and no
+  repository loses its only correct `test` command.
 - `xfeat scan` then `xfeat ci` on hermes-agent exits 0 in well under a
   minute.
 - hermes-agent getting-started shows none of the three junk commands from the
