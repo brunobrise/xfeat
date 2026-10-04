@@ -132,6 +132,16 @@ All are fixed and tested:
 - Same-named packages merged into one component, and `docs/requirements.txt`
   produced an empty component page.
 
+A second review confirmed those fixes and found two more, now fixed: npm
+`@acme/core` and Cargo `acme-core` wrote the same page (also `Ledger` and
+`ledger` on case-insensitive filesystems), and `init` on a new folder below a
+symlinked parent, such as macOS `/tmp`, refused every path and still exited 0.
+Refusals for paths outside the repository now fail the command. Its smaller
+findings are fixed too: a plain folder no longer merges into a same-named
+package, Rust integration tests and `#[cfg(test)]` items, Go comments and raw
+strings, and Python `_private/` packages no longer count as public, and `scan`
+no longer reads source files through links that leave the repository.
+
 Lesson: the spec listed the Rust limitation as acceptable, and the reviewer
 showed it was cheap to fix. Treat a documented limitation as a defect until a
 reproduction shows the fix costs more than the error.
