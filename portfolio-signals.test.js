@@ -151,4 +151,15 @@ repeatable benchmark scaffolds.
       line: 6,
     });
   });
+
+  it("ends the summary paragraph where a list or heading starts", () => {
+    expect(
+      readmeSummary(
+        "# Tool\n\nThis tool does several things:\n- parses input files\n- renders output\n",
+      ).summary,
+    ).toBe("This tool does several things:");
+    expect(
+      readmeSummary("# Tool\n\nShips invoices.\n## Install\nnpm i\n").summary,
+    ).toBe("Ships invoices.");
+  });
 });
