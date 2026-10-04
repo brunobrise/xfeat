@@ -259,10 +259,14 @@ xfeat's wording, which biased an evaluation toward agents that read the docs.
 The report lists `score`, `correct`, `total`, `byHops` (correct and total per
 hop count, so multi-hop accuracy is visible apart from lookups), a `baseline`,
 and one result per check: `correct`, `wrong`, or `missing`, with the expected
-answer. The baseline is the score of answering, for each question, the value
-that most other questions of the same kind expect, leaving the question itself
-out. Joins share a pool with their single-hop kind. A reader or agent that does
-not beat the baseline has not shown it knows the portfolio. Unknown
+answer. The baseline is the score of answering each question with the answer
+most other repositories give to questions of its kind. Joins share a pool with
+their single-hop kind. Every question about the same repository is left out,
+because a join repeats the fact of its single-hop question. Each repository
+votes once, answers are normalized like the grader does, and a set question is
+guessed as a whole set. A reader or agent that does not beat the baseline has
+not shown it knows the portfolio. On the 75-repository dogfood set, the
+baseline answers 43% of all checks and 50% of the multi-hop ones. Unknown
 ids are listed separately. Exit code is 0 unless `--min-score` is set and the score is
 below it.
 

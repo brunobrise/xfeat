@@ -149,6 +149,70 @@ describe("gradeAnswers", () => {
     });
   });
 
+  describe("guess baseline", () => {
+    const about = (id, kind, type, values, subject, hops = 1) => ({
+      ...check(id, kind, type, values, subject),
+      format: kind.includes("owner") ? "list of owners" : "command",
+      hops,
+    });
+    const baselineResults = (portfolio) => {
+      const graded = gradeAnswers(portfolio, {});
+      return graded.baseline.correct;
+    };
+
+    it("does not guess a repository's answer from copies of the same fact", () => {
+      const owner = (id, value, subject, hops) =>
+        about(id, id.split(":")[0], "set", [value], subject, hops);
+      const portfolio = [
+        owner("owner:tools", "@acme/tools", "tools"),
+        owner("program-owner:p1", "@acme/tools", "tools", 2),
+        owner("program-owner:p2", "@acme/tools", "tools", 2),
+        owner("program-owner:p3", "@acme/tools", "tools", 2),
+        owner("owner:api", "@acme/core", "api"),
+        owner("owner:web", "@acme/core", "web"),
+      ];
+      const report = gradeAnswers(portfolio, {});
+      // Only api and web share an owner; tools' owner appears nowhere else.
+      expect(report.baseline.byHops).toEqual({
+        1: { correct: 2, total: 3 },
+        2: { correct: 0, total: 3 },
+      });
+    });
+
+    it("counts equivalent answers as one vote", () => {
+      const test = (subject, value) =>
+        about(
+          `test-command:${subject}`,
+          "test-command",
+          "one-of",
+          [value],
+          subject,
+        );
+      const portfolio = [
+        test("a", "npm test"),
+        test("b", "npm run test"),
+        test("c", "npm run test"),
+        test("d", "make test"),
+        test("e", "cargo test"),
+      ];
+      // A constant `npm run test` answer is right for a, b, and c.
+      expect(baselineResults(portfolio)).toBe(3);
+    });
+
+    it("guesses a whole set when many repositories share it", () => {
+      const portfolio = ["a", "b", "c", "d"].map((subject) =>
+        about(
+          `owner:${subject}`,
+          "owner",
+          "set",
+          ["@acme/platform", "@acme/security"],
+          subject,
+        ),
+      );
+      expect(baselineResults(portfolio)).toBe(4);
+    });
+  });
+
   it("marks a hedged list of several answers to a one-of question wrong", () => {
     const report = gradeAnswers(checks, {
       "test-command:api": ["make test", "go test ./..."],
