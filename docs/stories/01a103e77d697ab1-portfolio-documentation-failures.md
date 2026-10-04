@@ -114,6 +114,13 @@ and covered by regression tests.
     never shows it. The bug predates this branch. Fixed by setting
     `process.exitCode`; a test pipes `portfolio scan` through a shell and fails
     at exactly 512 bytes with the old code.
+15. Review tooling: reviewers that symlinked `node_modules` from a working
+    checkout into scratch clones emptied the real dependency folder when the
+    clones were cleaned up. A recursive delete through a link, such as
+    `rm -rf clone/node_modules/` with a trailing slash, removes the target's
+    contents. It happened in the main checkout and in a parallel session's
+    worktree, and the next pre-commit hook broke mid-commit. Recovered with
+    `npm ci --ignore-scripts`, and the links were removed.
 
 ## Contributing Factors
 
@@ -165,6 +172,9 @@ and covered by regression tests.
 - Treat every URL-like string from a manifest as possibly secret.
 - Run tests from a fresh temporary folder, never from fixed folders inside the
   repository, so parallel runs cannot share state.
+- Never symlink dependency folders into scratch clones. Install them per clone
+  with `npm ci --ignore-scripts`, and remove a symlink with `rm <link>`, without
+  a trailing slash.
 
 ## Follow-Up Validation
 
