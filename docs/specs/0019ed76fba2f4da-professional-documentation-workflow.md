@@ -261,7 +261,12 @@ before changing which files `scan` writes or how it detects its own output.
 check: state is rewritten only when it is missing or a regular file inside the
 repository, and folders are created only when they resolve inside it. Refused
 paths appear in `skipped`. `.xfeat.yml` is created only when nothing exists at
-that path, not even a dangling symlink.
+that path, not even a dangling symlink. The repository root itself is resolved
+through its nearest existing folder, so `init` on a new folder below a
+symlinked parent (macOS `/tmp`) works. `init` and `scan` print one stderr line
+listing every skipped path, and exit with code 1 when any path resolves
+outside the repository, because the output is then incomplete for a reason
+the user must look at.
 
 ## Acceptance Criteria
 
