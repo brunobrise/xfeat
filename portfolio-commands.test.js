@@ -143,6 +143,48 @@ describe("Portfolio command extraction", () => {
     );
   });
 
+  it("drops heredoc bodies, shell conditions, and bare assignments", () => {
+    const workflow = `jobs:
+  test:
+    steps:
+      - run: |
+          FAILS=$(jq -r '.tests[] | .name' "$f" 2>/dev/null || echo "none")
+          cat >> summary.md <<EOF
+          **\${PASSED}/\${TOTAL}** tests passed
+          npm test
+          EOF
+          test -f dist/app || (echo "MISSING: app" && exit 1)
+          RESULT=ok
+          BODY="## Evals
+
+          **\${PASSED}/\${TOTAL}** tests passed
+          npm test
+          done"
+          CI=true npm test
+          bun run test
+`;
+    expect(
+      ciCommands(".github/workflows/ci.yml", workflow).map((c) => c.command),
+    ).toEqual(["CI=true npm test", "bun run test"]);
+  });
+
+  it("does not treat << inside a quoted string as a heredoc", () => {
+    const workflow = `jobs:
+  sync:
+    steps:
+      - run: |
+          echo "log<<EOF" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+          python - << 'PY'
+          import sys
+          PY
+          npm test
+`;
+    expect(
+      ciCommands(".github/workflows/ci.yml", workflow).map((c) => c.command),
+    ).toEqual(["python - << 'PY'", "npm test"]);
+  });
+
   it("ignores flags when categorizing", () => {
     expect(categorizeCommand("dist build --output-format=json")).toBe("build");
     expect(categorizeCommand("tool sync --format json")).toBe("other");
