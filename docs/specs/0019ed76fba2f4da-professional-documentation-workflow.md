@@ -165,7 +165,10 @@ a generated component map groups files unexpectedly.
   their folder component instead of collapsing into `root`. Unnamed manifests such as a nested `requirements.txt` name their component
   after the folder path (`services/api`), two packages that share a name get
   their folder appended (`billing (web)`), and an unnamed manifest with no
-  source files (`docs/requirements.txt`) gets no component page.
+  source files (`docs/requirements.txt`) gets no component page. Page file names
+  are unique even on case-insensitive filesystems: npm `@acme/core` and Cargo
+  `acme-core` both slug to `acme-core`, so the second page gets its folder
+  appended (`acme-core-rust`), and how-to pages follow the same rule.
 - References: [manifest adapter](../../lib/professional-docs-manifests.js),
   [shared readers](../../lib/portfolio-manifest-readers.js),
   [semantic model](../../lib/professional-docs-semantics.js),

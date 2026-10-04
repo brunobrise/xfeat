@@ -303,6 +303,37 @@ describe("Professional docs scan on polyglot repositories", () => {
     expect(scan.documents).not.toContain("docs/components/docs.md");
   });
 
+  it("gives every component its own page when names share a file name", async () => {
+    await writeTree(workspace, {
+      "js/package.json": JSON.stringify({ name: "@acme/core" }),
+      "js/index.js": "export function bind() {}\n",
+      "rust/Cargo.toml": '[package]\nname = "acme-core"\nversion = "0.1.0"\n',
+      "rust/src/lib.rs": "pub fn native() {}\n",
+      "ui/package.json": JSON.stringify({ name: "Ledger" }),
+      "ui/index.js": "export function render() {}\n",
+      "engine/Cargo.toml": '[package]\nname = "ledger"\nversion = "0.1.0"\n',
+      "engine/src/lib.rs": "pub fn post() {}\n",
+    });
+
+    const scan = await scanProfessionalDocs(workspace);
+    const pages = scan.documents.filter((doc) =>
+      doc.startsWith("docs/components/"),
+    );
+    const titles = [];
+    for (const page of pages) {
+      titles.push((await read(workspace, page)).split("\n")[2]);
+    }
+
+    expect(pages).toHaveLength(4);
+    expect(new Set(pages.map((page) => page.toLowerCase())).size).toBe(4);
+    expect(titles.sort()).toEqual([
+      "# Component: @acme/core",
+      "# Component: Ledger",
+      "# Component: acme-core",
+      "# Component: ledger",
+    ]);
+  });
+
   it("keeps fresh docs audit-clean when package names contain underscores", async () => {
     await writeTree(workspace, {
       "Cargo.toml": '[package]\nname = "ledger_tools"\nversion = "0.1.0"\n',
