@@ -277,13 +277,41 @@ below it.
 
 ## Writing Rules (STE-lite)
 
-Generated learning pages follow these rules, checked by tests:
+Every page that `xfeat portfolio scan` and `xfeat scan` write follows a subset
+of ASD-STE100 Issue 9 (2025-01-15). The rules below are paraphrased, not
+reproduced, and were checked against the Issue 9 text, not against summaries
+that circulate with it. Tests render every page from the fixtures and fail on
+any finding.
 
-- Sentences have 25 words or fewer. Inline code counts as one word.
-- One goal per step, written as a sentence that starts with a verb.
-- Identifiers stay verbatim in backticks.
-- No ASD-STE100 dictionary and no STE compliance claim. The research records
-  why.
+| Issue 9 rule | What xfeat checks                                                                                                                                         |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 6.3          | A descriptive sentence has 25 words or fewer.                                                                                                             |
+| 5.1          | A step, meaning a numbered list item, has 20 words or fewer.                                                                                              |
+| 5.2          | A step is one sentence, so it carries one instruction.                                                                                                    |
+| 6.6          | A paragraph has six sentences or fewer.                                                                                                                   |
+| 8.1          | No semicolons.                                                                                                                                            |
+| 3.6          | Active voice. A pattern flags a form of "be" followed by a past participle; each allowed match is listed in the test with the reason the doer is unknown. |
+| 4.2          | No contractions such as `don't` or `it's`.                                                                                                                |
+| 8.6          | Inline code, such as a command or identifier, counts as one word and stays verbatim in backticks.                                                         |
+
+Not checked: rule 2.1 (noun stacks of three words or fewer) and rule 9.3 (no
+phrasal verbs). Both need part-of-speech tagging or the STE dictionary, so
+templates are reviewed for them by hand.
+
+Exempt from the checks:
+
+- Quoted source text: README summaries, manifest notes, and README
+  deprecation lines. They render as Markdown blockquotes, which also marks them
+  as quotations for readers. xfeat does not rewrite them, because a rewritten
+  quote no longer matches its cited line.
+- Tables, headings, code blocks, HTML comments such as the `xfeat scan`
+  generated-file marker, and link targets.
+- The legacy LLM-written `FEATURES.md`, which is not template text.
+
+No STE dictionary and no STE compliance claim. The dictionary cannot be
+embedded under its licence, and it bans core software verbs such as `run` and
+`return`. The research records the evidence, including Andrej Karpathy's
+October 2026 recommendation and its reception.
 
 ## Edge Cases
 
