@@ -159,9 +159,18 @@ Rules:
 - A check is generated only when every answer value has evidence: a claim with
   a line hash, or the hashed portfolio manifest.
 - Dependency, file, provider, and impact checks use `declared` edges only.
+- A dependency, file, provider, or impact check is skipped when a
+  package-name match, an ambiguous name, or an uncited edge touches it. A
+  `package.json` entry matched by name is still declared by its author, so a
+  declared-only answer would mark a correct reader wrong.
+- A file check is skipped when the same dependency is declared in more than
+  one file. Edges keep the first declaration as evidence and list the others
+  in `alsoDeclaredIn`.
 - A binary check is generated only when one repository provides that name,
-  and the name differs from the repository name. A question that contains its
-  answer cannot tell a reader who knows the code from one who does not.
+  and the name differs from the repository name. A provider check is skipped
+  when the module path ends in the repository name, ignoring a `/vN` suffix. A
+  question that contains its answer cannot tell a reader who knows the code
+  from one who does not. Program names that are not strings are ignored.
 - Run and impact steps only show checks about their own subject. Orientation
   fills up with other repositories after the focus.
 - Impact is the reverse transitive closure over declared edges, excluding the

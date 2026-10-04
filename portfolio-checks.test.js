@@ -95,13 +95,10 @@ describe("Portfolio checks", () => {
   });
 
   it("builds dependency questions from declared edges only", () => {
-    expect(check("dependencies:billing-web")).toMatchObject({
+    expect(check("dependencies:billing-api")).toMatchObject({
       step: "trace",
-      answer: { type: "set", values: ["platform-workflows"] },
+      answer: { type: "set", values: ["ledger"] },
     });
-    expect(check("dependencies:billing-web").answer.values).not.toContain(
-      "ui-kit",
-    );
     expect(check("dependency-file:billing-api->ledger")).toMatchObject({
       question:
         "Which file in `billing-api` declares its dependency on `ledger`?",
@@ -110,15 +107,19 @@ describe("Portfolio checks", () => {
         "edge:billing-api->ledger:go-module:github.com/acme/ledger:consumer",
       ],
     });
-    expect(check("package-provider:github.com/acme/ledger")).toMatchObject({
-      answer: { type: "value", values: ["ledger"] },
-      claims: [
-        "edge:billing-api->ledger:go-module:github.com/acme/ledger:provider",
-      ],
-    });
-    expect(
-      result.checks.filter((item) => item.kind === "package-provider"),
-    ).toHaveLength(1);
+  });
+
+  it("skips dependency questions that a name match or ambiguous name would make incomplete", () => {
+    // billing-web also depends on ui-kit through a package-name match.
+    expect(check("dependencies:billing-web")).toBeUndefined();
+    // sync-worker uses acme-common, which ledger and platform-workflows share.
+    expect(check("dependencies:sync-worker")).toBeUndefined();
+    expect(check("dependency-file:sync-worker->ledger")).toBeUndefined();
+    expect(check("impact:platform-workflows")).toBeUndefined();
+  });
+
+  it("skips provider questions whose module path names the repository", () => {
+    expect(check("package-provider:github.com/acme/ledger")).toBeUndefined();
   });
 
   it("answers impact with the reverse closure over declared edges", () => {
@@ -143,6 +144,70 @@ describe("Portfolio checks", () => {
     expect(ids).toEqual([...ids].sort());
     expect(new Set(ids).size).toBe(ids.length);
     expect(JSON.stringify(buildChecks(model))).toBe(JSON.stringify(result));
+  });
+});
+
+describe("buildChecks on synthetic models", () => {
+  const evidence = (repo, file, line = 1) => ({ repo, file, line, hash: "h" });
+  function edge(from, to, dependency, extra = {}) {
+    return {
+      id: `${from}->${to}:go-module:${dependency}`,
+      from,
+      to,
+      kind: "go-module",
+      dependency,
+      confidence: "declared",
+      consumer: evidence(from, "go.mod", 3),
+      provider: evidence(to, "go.mod", 1),
+      ...extra,
+    };
+  }
+  function model(edges, bins = []) {
+    const slugs = [...new Set(edges.flatMap((e) => [e.from, e.to]))];
+    const repos = [...slugs, ...bins.map((b) => b.repo)].map((slug) => ({
+      slug,
+      status: { value: "active" },
+      ownership: null,
+      commands: [],
+      bins: bins.filter((b) => b.repo === slug).map((b) => ({ name: b.name })),
+    }));
+    const claims = [
+      ...edges.flatMap((e) => [
+        { id: `edge:${e.id}:consumer` },
+        { id: `edge:${e.id}:provider` },
+      ]),
+      ...bins.map((b) => ({ id: `${b.repo}:bin:${b.name}` })),
+    ];
+    return { repos, claims, graph: { edges, ambiguous: [] } };
+  }
+  const ids = (m) => buildChecks(m).checks.map((c) => c.id);
+
+  it("asks which repository provides a module whose path does not name it", () => {
+    expect(
+      ids(model([edge("api", "ledger", "github.com/acme/money")])),
+    ).toContain("package-provider:github.com/acme/money");
+    expect(
+      ids(model([edge("api", "ledger", "github.com/acme/ledger/v2")])),
+    ).not.toContain("package-provider:github.com/acme/ledger/v2");
+  });
+
+  it("skips the declaring-file question when several files declare the dependency", () => {
+    const repeated = edge("api", "ledger", "github.com/acme/money", {
+      alsoDeclaredIn: ["tools/go.mod:4"],
+    });
+    expect(ids(model([repeated]))).not.toContain("dependency-file:api->ledger");
+    expect(ids(model([repeated]))).toContain("dependencies:api");
+  });
+
+  it("ignores program names that are not strings instead of crashing", () => {
+    const m = model(
+      [edge("api", "ledger", "github.com/acme/money")],
+      [
+        { repo: "tools", name: 123 },
+        { repo: "tools", name: "acme-cli" },
+      ],
+    );
+    expect(ids(m)).toContain("binary:acme-cli");
   });
 });
 

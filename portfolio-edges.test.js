@@ -4,6 +4,7 @@ const { collectRepoFacts } = require("./lib/portfolio-repo-facts");
 const { resolvePortfolioGraph } = require("./lib/portfolio-edges");
 const {
   createPortfolioFixture,
+  fixtureGit,
   tempRoot,
 } = require("./test_files/portfolio-fixture");
 
@@ -321,5 +322,41 @@ describe("Portfolio cross-repository graph", () => {
         candidates: ["workflows", "workflows-copy"],
       }),
     ]);
+  });
+});
+
+describe("Portfolio edges declared in several files", () => {
+  const root = tempRoot("portfolio-edges-repeat");
+
+  afterAll(async () => {
+    await fs.rm(root, { recursive: true, force: true });
+  });
+
+  it("keeps the first declaration as evidence and lists the others", async () => {
+    const dirs = await createPortfolioFixture(root);
+    const web = dirs.find((dir) => path.basename(dir) === "billing-web");
+    await fs.writeFile(
+      path.join(web, ".github/workflows/lint.yml"),
+      "on: [push]\njobs:\n  lint:\n    uses: acme/platform-workflows/.github/workflows/node.yml@v1\n",
+    );
+    fixtureGit(web, ["add", "."]);
+    fixtureGit(web, ["commit", "-qm", "add lint workflow"]);
+    const facts = [];
+    for (const dir of dirs) {
+      const name = path.basename(dir);
+      facts.push(
+        await collectRepoFacts({
+          name,
+          slug: name,
+          path: await fs.realpath(dir),
+          tags: [],
+        }),
+      );
+    }
+    const edge = resolvePortfolioGraph(facts).edges.find(
+      (item) => item.from === "billing-web" && item.to === "platform-workflows",
+    );
+    expect(edge.consumer.file).toBe(".github/workflows/ci.yml");
+    expect(edge.alsoDeclaredIn).toEqual([".github/workflows/lint.yml:4"]);
   });
 });
