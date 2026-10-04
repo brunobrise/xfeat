@@ -1,6 +1,6 @@
 const { buildChecks } = require("./lib/portfolio-checks");
 const { renderLearn } = require("./lib/portfolio-learn");
-const { longSentences } = require("./test_files/prose-lint");
+const { longSentences, proseFindings } = require("./test_files/prose-lint");
 
 const links = {
   evidence: (e) => `[\`${e.repo}:${e.file}:${e.line}\`](${e.file}#L${e.line})`,
@@ -185,9 +185,11 @@ describe("renderLearn", () => {
         [["api", "lib"]],
       ),
     );
-    expect(text).toContain("Get `lib` from its owner. It has no git remote.");
-    expect(text).toContain("1. Get `lib`");
+    expect(text).toContain(
+      "1. Get `lib` from its owner, because it has no git remote.",
+    );
     expect(text).toContain("2. Clone `api`.");
+    expect(proseFindings(text)).toEqual([]);
   });
 
   it("only promises a provider line when the edge has provider evidence", () => {

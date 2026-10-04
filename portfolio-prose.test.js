@@ -135,11 +135,23 @@ describe("generated pages follow the STE-lite rules", () => {
       const copy = path.join(root, "scan", name);
       await fs.cp(path.join(root, "repos", name), copy, { recursive: true });
       await scanProfessionalDocs(copy);
-      const pages = await fg(["docs/**/*.md", "xfeat-report.md"], {
+      // Only pages xfeat wrote, marked as generated; a repository's own docs
+      // belong to its authors.
+      const pages = [];
+      for (const page of await fg(["docs/**/*.md", "xfeat-report.md"], {
         cwd: copy,
-      });
+      })) {
+        const text = await fs.readFile(path.join(copy, page), "utf8");
+        if (text.startsWith("<!-- xfeat:generated")) pages.push(page);
+      }
       expect(pages.length).toBeGreaterThan(3);
       expect(await findingsIn(copy, pages)).toEqual([]);
+      // The README summary is quoted, not rewritten into xfeat's sentence.
+      const overview = await fs.readFile(
+        path.join(copy, "docs/architecture/overview.md"),
+        "utf8",
+      );
+      expect(overview).toMatch(/^ {2}> \S/m);
     }
   });
 });

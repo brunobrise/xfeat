@@ -221,8 +221,12 @@ describe("Professional docs scan on polyglot repositories", () => {
     await scanProfessionalDocs(workspace);
     const overview = await read(workspace, "docs/architecture/overview.md");
 
+    // The wrapped README summary is joined and quoted under its citation.
     expect(overview).toContain(
-      "- Ledger Workspace: Ledger Workspace records double-entry accounting events for finance teams and exposes them through a command-line interface. Balances stay consistent across every service that posts entries. Evidence: [`README.md:3`]",
+      "- Ledger Workspace, as its README describes it (evidence: [`README.md:3`]",
+    );
+    expect(overview).toContain(
+      "  > Ledger Workspace records double-entry accounting events for finance teams and exposes them through a command-line interface. Balances stay consistent across every service that posts entries.",
     );
   });
 
@@ -238,7 +242,10 @@ describe("Professional docs scan on polyglot repositories", () => {
       "- Package metadata identifies this repository as `billing-api` (Python). Evidence: [`pyproject.toml:2`]",
     );
     expect(overview).toContain(
-      "- Billing API: Creates invoices and reports payment status for the billing portal. Evidence: [`README.md:3`]",
+      "- Billing API, as its README describes it (evidence: [`README.md:3`]",
+    );
+    expect(overview).toContain(
+      "  > Creates invoices and reports payment status for the billing portal.",
     );
     for (const name of ["create_invoice", "Invoice", "MAX_LINES"]) {
       expect(component).toContain(`| \`${name}\` |`);
