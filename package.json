@@ -22,8 +22,8 @@
   },
   "jest": {
     "testPathIgnorePatterns": [
-      "/node_modules/",
-      "/\\.claude/"
+      "<rootDir>/node_modules/",
+      "<rootDir>/\\.claude/"
     ]
   },
   "lint-staged": {
