@@ -5,7 +5,10 @@ const fg = require("fast-glob");
 const ignore = require("ignore");
 const { Parser, Language } = require("web-tree-sitter");
 const { Listr } = require("listr2");
-require("dotenv").config({ path: path.join(process.cwd(), ".env") });
+require("dotenv").config({
+  path: path.join(process.cwd(), ".env"),
+  quiet: true,
+});
 const { Anthropic } = require("@anthropic-ai/sdk");
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || "",
@@ -728,7 +731,10 @@ async function extractGlobalArchitecture(componentSummaries) {
 
 // Main Runner
 async function main() {
-  require("dotenv").config({ path: path.join(process.cwd(), ".env") });
+  require("dotenv").config({
+    path: path.join(process.cwd(), ".env"),
+    quiet: true,
+  });
 
   await initTreeSitter();
   const targetDir = process.argv[2] || process.cwd();
@@ -1223,7 +1229,10 @@ async function main() {
 }
 
 if (require.main === module) {
-  main().catch(console.error);
+  const { exitWith, subcommandRunner } = require("./lib/cli-router");
+  const run = subcommandRunner(process.argv.slice(2));
+  if (run) exitWith(run());
+  else main().catch(console.error);
 }
 
 module.exports = {

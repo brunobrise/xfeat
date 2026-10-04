@@ -1,0 +1,39 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam activity {
+  BorderColor #486581
+  FontColor #102A43
+  BackgroundColor #F0F4F8
+}
+skinparam arrowColor #334E68
+
+start
+:Load portfolio.json;
+if (status file present?) then (no)
+  :missing-status finding;
+  stop
+endif
+:For each repo in status;
+if (repo path exists?) then (no)
+  :missing-repo finding;
+else (yes)
+  :For each evidence file;
+  if (file exists?) then (no)
+    :missing-source finding;
+  elseif (hash recorded?) then (no)
+    :unverifiable (over 1 MB);
+  elseif (line hash matches?) then (no)
+    :changed-evidence finding\n(moved line: warning only);
+  else (yes)
+    :fresh;
+  endif
+endif
+:Check generated pages exist;
+if (portfolio manifest hash matches?) then (no)
+  :changed-manifest finding;
+endif
+:Exit 0 when no findings, else 1;
+stop
+@enduml

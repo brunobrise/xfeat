@@ -1,0 +1,30 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam rectangle {
+  BorderColor #486581
+  FontColor #102A43
+  BackgroundColor #F0F4F8
+}
+skinparam arrowColor #334E68
+skinparam ArrowThickness 1.2
+skinparam nodesep 40
+skinparam ranksep 50
+
+rectangle "index.md\nrepo table, routes" as index
+rectangle "getting-started.md\nclone order, commands" as start
+rectangle "landscape.md\ndeclared edges" as landscape
+rectangle "repos/{slug}.md\none per repository" as repo
+rectangle "integrations/{a}--{b}.md\none per repo pair" as integration
+rectangle "gaps.md\ncoverage, unknowns" as gaps
+rectangle "reference pages\ndependencies, packages,\ndecisions" as reference
+
+index --> start
+index --> landscape
+index --> repo
+index --> gaps
+index --> reference
+landscape --> integration
+repo --> integration
+@enduml

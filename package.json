@@ -20,6 +20,12 @@
     "build": "echo 'No build step required for this Node.js script'",
     "prepare": "husky"
   },
+  "jest": {
+    "testPathIgnorePatterns": [
+      "<rootDir>/node_modules/",
+      "<rootDir>/\\.claude/"
+    ]
+  },
   "lint-staged": {
     "*.{js,jsx}": [
       "eslint --fix",
@@ -37,7 +43,7 @@
       "brace-expansion": "1.1.15"
     },
     "@semantic-release/npm": {
-      "npm": "11.16.0"
+      "npm": "11.21.0"
     },
     "conventional-changelog-writer": {
       "handlebars": "4.7.9"

@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-18.x-green.svg)](https://nodejs.org/)
 
-**@brunobrise/xfeat** is an automated, AI-driven CLI engine that deeply analyzes your codebase to extract product-level features, component architectures, and global system scopes. By combining precise AST-based structural parsing (via `web-tree-sitter`) with the reasoning capabilities of Anthropic's Claude Sonnet 4.6, this tool auto-generates comprehensive, human-readable documentation of what your code _actually_ does.
+**@brunobrise/xfeat** is a documentation CLI for codebase understanding. It can generate AI-assisted architecture and feature maps, and it now includes a deterministic professional documentation workflow for source-grounded docs, freshness audits, and CI verification.
 
 ## Key Features
 
@@ -12,6 +12,9 @@
 - **Automated Mermaid Diagrams:** Visually maps out how files interact at macro and global architecture levels.
 - **Structured Markdown Deliverables:** Produces a neat, hierarchical `FEATURES.md` report encompassing everything from the executive summary to granular file logic.
 - **Smart Directory Traversal:** Adheres to your local `.gitignore` and optional custom `.xfeatignore` rules to avoid processing build artifacts and generic dependencies.
+- **Source-Grounded Professional Docs:** Generates deterministic Diátaxis-style `docs/` pages with claim evidence, source files, symbols, package metadata, runtime flow, and line numbers.
+- **Documentation Audit & CI Gate:** Detects stale code references, broken relative Markdown links, missing generated docs, and missing source evidence without requiring an LLM API key.
+- **Multi-Repository Portfolio Docs:** Documents a selection of repositories as one system: owners, status, clone order, declared commands, cross-repository dependencies with typed confidence, and gaps, with every statement pinned to a source line and commit.
 
 ## How It Works
 
@@ -74,7 +77,157 @@ npx @brunobrise/xfeat
 npx @brunobrise/xfeat /path/to/your/custom/project
 ```
 
-### Development Tooling
+## Professional Documentation Workflow
+
+Use these commands when you need documentation that can run in onboarding, pull requests, and CI without interactive prompts.
+
+### Initialize Documentation Policy
+
+```bash
+npx @brunobrise/xfeat init
+```
+
+This creates `.xfeat.yml`, `.xfeat/`, and the professional documentation folders if they do not already exist.
+
+### Generate Source-Grounded Docs
+
+```bash
+npx @brunobrise/xfeat scan
+```
+
+The scan command reads package metadata, README content, source excerpts, public
+symbols, local imports, scripts, and tests. It writes:
+
+- `docs/architecture/overview.md`
+- `docs/components/*.md`
+- `docs/onboarding.md`
+- `docs/how-to/*.md`
+- `docs/reference/*.md`
+- `docs/adr-index.md`
+- `.xfeat/status.json`
+- `xfeat-report.md`
+
+The generated documentation follows Diátaxis roles:
+
+- Architecture overview: explanation of system purpose, component map, runtime flow, and important public APIs.
+- Component pages: reference docs for responsibilities, public APIs, important files, data flow, and source excerpts.
+- Onboarding: a practical first reading path and first commands inferred from repository metadata.
+- How-to guides: task guides inferred from package scripts and test files.
+- Reference appendices: complete generated inventories for claims, files, exported symbols, and import/dependency edges.
+
+Package metadata comes from `package.json`, `Cargo.toml`, `pyproject.toml`,
+`requirements.txt`, `go.mod`, and `composer.json`, so polyglot repositories are
+documented across ecosystems. Each workspace member (npm `workspaces`, Cargo
+`workspace.members`) becomes its own component, and runtime dependencies between
+packages appear as dependency flows. Public APIs follow each language's
+visibility rules: JavaScript and TypeScript `export`, Rust `pub` items (not
+`pub(crate)`), exported Go identifiers, and Python module-level names or
+`__all__`. The README summary is the first prose paragraph, with wrapped lines
+joined.
+
+`scan` never overwrites a file it did not generate. Every generated page starts
+with an `<!-- xfeat:generated ... -->` marker line. An existing file at a
+generated path without that marker, a symbolic link, or a path that resolves
+outside the repository is left untouched and listed under `skipped` in the JSON
+output and in `xfeat-report.md`. Delete the marker line from a generated page to
+keep manual edits; later scans then skip it. Pages written by earlier xfeat
+versions, before the marker existed, are recognized by their opening lines and
+updated. `scan` also prints one warning line on stderr when it skips files.
+
+### Audit Documentation Freshness
+
+```bash
+npx @brunobrise/xfeat audit --changed
+```
+
+The audit command reports stale backticked code references and broken relative Markdown links. The `--changed` flag is accepted for CI compatibility; the current MVP audits all Markdown files.
+
+### Verify Generated Evidence
+
+```bash
+npx @brunobrise/xfeat verify
+```
+
+The verify command checks that generated documents exist and that every claim in `.xfeat/status.json` points to a current source file.
+
+### Run CI Gate
+
+```bash
+npx @brunobrise/xfeat ci --changed
+```
+
+The CI command runs audit and verify together, prints a JSON report, and exits nonzero when blocking findings exist.
+
+## Portfolio Documentation
+
+`xfeat portfolio` documents a selection of repositories as one system. It reads each repository without modifying it and writes a separate output folder. No API key is required. Design decisions and their evidence are recorded in [the research](docs/research/01a103e77ce2751b-multi-repo-documentation-research.md) and [the spec](docs/specs/01a103e77d0e706f-portfolio-documentation.md).
+
+### Select Repositories
+
+Create a reviewable selection from a parent folder of git repositories:
+
+```bash
+npx @brunobrise/xfeat portfolio init --from ~/code/acme --exclude "legacy-*"
+```
+
+This writes `xfeat.portfolio.json`, which can be edited to add owners, systems, lifecycle, and notes:
+
+```json
+{
+  "name": "Billing Platform",
+  "output": "xfeat-portfolio",
+  "repos": [
+    {
+      "path": "../billing-api",
+      "system": "billing",
+      "owner": "@acme/payments"
+    },
+    { "path": "../billing-web" }
+  ]
+}
+```
+
+Repository paths can also be passed directly: `xfeat portfolio scan ../billing-api ../billing-web --out portfolio-docs`.
+
+### Generate Portfolio Docs
+
+```bash
+npx @brunobrise/xfeat portfolio scan
+npx @brunobrise/xfeat portfolio scan --render-diagrams
+```
+
+| Output                     | Content                                                                                  |
+| -------------------------- | ---------------------------------------------------------------------------------------- |
+| `index.md`                 | Repository table grouped by system: purpose, owner, status, languages, verified commit.  |
+| `getting-started.md`       | Clone order with providers first, and declared commands per repository.                  |
+| `landscape.md`             | Cross-repository dependencies and a PlantUML landscape diagram.                          |
+| `repos/{slug}.md`          | One page per repository: ownership, modules, interfaces, commands, dependencies, gaps.   |
+| `integrations/{a}--{b}.md` | One page per connected pair, with consumer and provider evidence.                        |
+| `gaps.md`                  | Coverage of owners, purpose, test commands, CI, and licenses, plus ambiguous names.      |
+| `dependencies.md`          | Shared external dependencies with version drift, and shared protobuf contracts.          |
+| `packages.md`              | Which repository defines each package or module name.                                    |
+| `decisions.md`             | Architecture decision records found across repositories.                                 |
+| `llms.txt`                 | A link index for coding agents, under 8 KB.                                              |
+| `portfolio.json`           | The complete model, including every claim with its source line hash and repository SHAs. |
+
+Evidence links point to commit permalinks on GitHub, GitLab, and Bitbucket when the repository is clean, and to local files otherwise. Re-running `scan` on unchanged repositories produces byte-identical output.
+
+Cross-repository edges are detected only from declarations: path and git dependencies, Go module paths, git submodules, GitHub Actions `uses:`, and Terraform module sources. A dependency that only matches a package name provided by another selected repository is labeled `name-match`, because the registry it resolves from is not verified. Runtime calls through HTTP, queues, or service registries are not detected.
+
+### Verify Portfolio Freshness
+
+```bash
+npx @brunobrise/xfeat portfolio verify
+npx @brunobrise/xfeat portfolio ci
+```
+
+`verify` re-reads every cited line. It fails when a cited line changed, a cited file or repository disappeared, a generated page is missing, or `xfeat.portfolio.json` was edited after the scan, and it warns when a cited line only moved. `ci` adds a check of relative links inside the output. Both print JSON and exit nonzero on blocking findings. Options a command does not use are rejected rather than ignored.
+
+The output exposes internal package names, owners, and hosts. Treat it as internal documentation. Credentials in git remotes and dependency URLs are always removed.
+
+The output folder must resolve outside every selected repository. `scan` never writes through symlinks, and on a rescan it removes only pages it generated earlier. Hand-written files in the output folder are kept.
+
+## Development Tooling
 
 For developers contributing to this tool, standard npm scripts are available:
 
@@ -89,6 +242,8 @@ The script concludes by generating a structured `FEATURES.md` record at your exe
 1. **Global Architecture Overview** _(Executive Summary, Application Pillars, Main System Diagram)_
 2. **Component Breakdown** _(Directory-by-Directory Insights, Narrow Context Diagrams)_
 3. **File-Level Details** _(Deeply granular feature lists)_
+
+The professional workflow writes source-grounded docs under `docs/` and machine-readable verification metadata under `.xfeat/status.json`.
 
 ## Supported Languages
 

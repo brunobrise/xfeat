@@ -1,0 +1,40 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam rectangle {
+  BorderColor #486581
+  FontColor #102A43
+  BackgroundColor #F0F4F8
+}
+skinparam database {
+  BorderColor #486581
+  FontColor #102A43
+  BackgroundColor #D9E2EC
+}
+skinparam arrowColor #334E68
+skinparam ArrowThickness 1.2
+skinparam nodesep 60
+skinparam ranksep 60
+
+left to right direction
+
+rectangle "Repository\n(source, docs, git metadata)" as repo
+rectangle "xfeat init\n(.xfeat.yml)" as init
+rectangle "xfeat scan\n(symbols + claims)" as scan
+database "docs/\nprofessional markdown" as docs
+database ".xfeat/status.json\nclaim evidence" as status
+rectangle "xfeat audit\nstale refs + links" as audit
+rectangle "xfeat verify / ci\nnoninteractive gate" as ci
+
+repo --> init
+repo --> scan
+init --> scan
+scan --> docs
+scan --> status
+docs --> audit
+status --> audit
+audit --> ci
+status --> ci
+ci --> repo : "PR signal"
+@enduml
