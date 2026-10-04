@@ -162,8 +162,10 @@ a generated component map groups files unexpectedly.
   remaining files to their top-level folder, or `root` for top-level files. 5. Rank workspace members first in the component map.
 - Edge paths: a virtual workspace root (a `Cargo.toml` with `[workspace]` and
   no `[package]`) declares members but owns no files, so loose scripts keep
-  their folder component instead of collapsing into `root`. Unnamed manifests
-  such as a nested `requirements.txt` name their component after the folder.
+  their folder component instead of collapsing into `root`. Unnamed manifests such as a nested `requirements.txt` name their component
+  after the folder path (`services/api`), two packages that share a name get
+  their folder appended (`billing (web)`), and an unnamed manifest with no
+  source files (`docs/requirements.txt`) gets no component page.
 - References: [manifest adapter](../../lib/professional-docs-manifests.js),
   [shared readers](../../lib/portfolio-manifest-readers.js),
   [semantic model](../../lib/professional-docs-semantics.js),
@@ -172,8 +174,8 @@ a generated component map groups files unexpectedly.
 Rules:
 
 - Workspace members come from npm `workspaces` and Cargo `workspace.members`.
-  Globs (`*`, `**`) and npm negations (`!path`) are resolved against manifest
-  folders. Members rank before other components.
+  Globs (`*`, `**`), npm negations (`!path`), and Cargo `workspace.exclude`
+  are resolved against manifest folders. Members rank before other components.
 - The architecture overview states package metadata for each root manifest:
   the package name with its name line, or, for a virtual workspace, the member
   count with the `members` line. "No package metadata detected." appears only
