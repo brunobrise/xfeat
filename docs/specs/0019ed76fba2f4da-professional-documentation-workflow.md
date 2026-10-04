@@ -227,23 +227,26 @@ GitHub does not render a metadata table at the top of each scan page:
 This diagram shows the write-or-skip decision for each generated path. Read it
 before changing which files `scan` writes or how it detects its own output.
 
-- Main entities: the previous `.xfeat/status.json` records which pages the
-  last scan wrote and whether that scan wrote markers. The marker line is the
-  durable ownership signal inside each page.
-- Flow: 1. Read the previous status, if any. 2. For each generated path that
-  resolves inside the repository, write
-  it when it does not exist, when its first line is the marker, or when a
-  legacy status (written before markers existed) lists it. 3. Otherwise skip
-  it. 4. Record written pages in `status.documents` and skipped paths in the
-  result.
+- Main entities: the marker line is the ownership signal inside each page.
+  Pages written before markers existed are recognized by their exact opening:
+  the title followed by one of the intro sentences those scans always wrote
+  (for the report, `# xfeat Report` followed by `- Source files:`). Current
+  pages use different intro sentences. `.xfeat/status.json` is never trusted
+  for ownership, because it can be stale, missing after a fresh clone, or
+  edited.
+- Flow: 1. For each generated path that resolves inside the repository, write
+  it when it does not exist, when its first line is the marker, or when it
+  opens like a pre-marker page. 2. Otherwise skip it. 3. Record written pages
+  in `status.documents` and skipped paths in the result, in `xfeat-report.md`,
+  and as one warning line on stderr.
 - Edge paths: directories and symbolic links at a generated path are skipped
   (`not a regular file`), and a path whose parent folder resolves outside the
   repository, for example a symlinked `docs/reference`, is skipped
   (`resolves outside the repository`). `scan` never writes outside the
-  repository through a link. A legacy status also covers `xfeat-report.md`, which every
-  earlier scan wrote but never listed. Once a status records the marker,
-  deleting the marker line is how a team takes ownership of a page: later
-  scans skip it. An unreadable status counts as no status.
+  repository through a link. Deleting the marker line is how a team takes
+  ownership of a page: the page no longer starts with the marker and its
+  current intro is not a pre-marker intro, so later scans skip it. A
+  hand-written page stays hand-written even when an old status file lists it.
 - Skipped pages are not added to `status.documents`, so `verify` never treats a
   hand-written page as generated output. Links from generated pages to a
   skipped path still resolve, but point at the hand-written page.
@@ -274,8 +277,8 @@ that path, not even a dangling symlink.
 - Focused tests prove Python and Go public API rules, including `__all__`,
   private names, and Go test files.
 - Focused tests prove `scan` skips hand-written files at generated paths,
-  reports them in `skipped`, overwrites marked and legacy-listed files, and
-  respects a removed marker.
+  reports them in `skipped`, overwrites marked and pre-marker pages, ignores
+  status-file listings, and respects a removed marker.
 - Existing feature-map tests keep passing.
 - Commands are noninteractive.
 - New non-Markdown files stay below 420 lines.

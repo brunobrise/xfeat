@@ -44,10 +44,11 @@ ownership checkable without a second state file.
   each language's own rule: `export`, Rust `pub` without `pub(crate)`, Go
   uppercase identifiers outside `_test.go`, Python module-level names or
   `__all__`.
-- **Marker plus legacy status.** Pages start with
-  `<!-- xfeat:generated ... -->`. A status written before markers existed still
-  vouches for the pages it lists, so upgrades do not freeze old output.
-  Deleting the marker hands a page to its authors.
+- **Marker plus pre-marker signatures.** Pages start with
+  `<!-- xfeat:generated ... -->`. Pages from earlier scans are recognized by
+  the exact title and intro those scans wrote, so upgrades do not freeze old
+  output and a fresh clone without `.xfeat/` still updates them. Current pages
+  use new intros, so deleting the marker hands a page to its authors.
 - **Dogfooding on real repositories.** Scratch clones of four local
   repositories found two defects the fixtures missed (see below).
 

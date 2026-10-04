@@ -130,7 +130,9 @@ with an `<!-- xfeat:generated ... -->` marker line. An existing file at a
 generated path without that marker, a symbolic link, or a path that resolves
 outside the repository is left untouched and listed under `skipped` in the JSON
 output and in `xfeat-report.md`. Delete the marker line from a generated page to
-keep manual edits; later scans then skip it.
+keep manual edits; later scans then skip it. Pages written by earlier xfeat
+versions, before the marker existed, are recognized by their opening lines and
+updated. `scan` also prints one warning line on stderr when it skips files.
 
 ### Audit Documentation Freshness
 
