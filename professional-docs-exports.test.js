@@ -193,4 +193,92 @@ describe("Public API detection", () => {
       ),
     ).toEqual(["create_invoice", "Invoice"]);
   });
+
+  it("counts Rust items only where callers can reach them", () => {
+    const text = [
+      "pub fn top() {}",
+      "mod hidden {",
+      "    pub fn hidden_fn() {}",
+      "}",
+      "pub mod api {",
+      "    pub fn exposed() {}",
+      "    mod inner { pub fn deep_hidden() {} }",
+      "    pub(crate) mod crate_only { pub fn crate_fn() {} }",
+      "}",
+      "#[cfg(test)]",
+      "mod tests {",
+      "    pub fn helper() {}",
+      "}",
+      "pub fn make() -> impl Iterator<Item = u8> {",
+      "    pub fn nested_in_fn() {}",
+      "    std::iter::empty()",
+      "}",
+      "impl Ledger {",
+      "    pub fn method() {}",
+      "}",
+      'const DOC: &str = r#"',
+      "pub fn in_string() {}",
+      '"#;',
+      "const BRACE: char = '{';",
+      "/* pub fn in_comment() {} } */",
+      "pub struct After;",
+    ].join("\n");
+
+    expect(names("src/lib.rs", text)).toEqual([
+      "top",
+      "api",
+      "exposed",
+      "make",
+      "method",
+      "After",
+    ]);
+    expect(apiNamed("src/lib.rs", text, "After")).toMatchObject({ line: 26 });
+  });
+
+  it("skips Go internal packages, main packages, and unexported receivers", () => {
+    expect(
+      names("internal/ledger/ledger.go", "package ledger\n\nfunc Post() {}\n"),
+    ).toEqual([]);
+    expect(
+      names("cmd/tool/main.go", "package main\n\nfunc Run() {}\n"),
+    ).toEqual([]);
+    const text = [
+      "package payments",
+      "",
+      "type gateway struct{}",
+      "type Set[T any] struct{}",
+      "",
+      "func (g *gateway) Authorize() bool { return true }",
+      "func (s *Set[T]) Add(value T) {}",
+    ].join("\n");
+    expect(names("payments.go", text)).toEqual(["Set", "Add"]);
+  });
+
+  it("skips private Python modules and test helpers and reads every __all__", () => {
+    expect(names("billing/_cache.py", "def warm():\n    pass\n")).toEqual([]);
+    expect(
+      names("tests/helpers.py", "def make_invoice():\n    pass\n"),
+    ).toEqual([]);
+    const text = [
+      '"""Billing helpers.',
+      "",
+      "FAKE = 1",
+      '"""',
+      "",
+      '__all__ = ["create"]',
+      '__all__ += ["refund"]',
+      "",
+      "REAL = 2",
+      "",
+      "def create():",
+      "    pass",
+      "",
+      "def refund():",
+      "    pass",
+    ].join("\n");
+    expect(names("billing/api.py", text)).toEqual(["create", "refund"]);
+    expect(
+      names("billing/constants.py", text.replace(/__all__.*\n/g, "")),
+    ).toEqual(["REAL", "create", "refund"]);
+  });
 });

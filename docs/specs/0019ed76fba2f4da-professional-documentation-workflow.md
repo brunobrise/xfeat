@@ -196,16 +196,17 @@ Rules:
 
 ## Public API Rules
 
-| Language              | Public                                                                                                                                                                     | Not public                                                                                               |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| JavaScript/TypeScript | `export` declarations and `export { }` lists.                                                                                                                              | Everything not exported.                                                                                 |
-| Rust                  | `pub` items: `fn` (including `const`, `async`, `unsafe`, `extern` functions), `struct`, `enum`, `trait`, `type`, `const`, `static`, `mod`, and `pub use` re-exports.       | `pub(crate)`, `pub(super)`, `pub(in path)`, `pub(self)`, private items, glob re-exports.                 |
-| Go                    | Top-level `func`, methods, `type`, `const`, and `var` whose name starts with an uppercase letter, including grouped `const ( )` and `var ( )` blocks.                      | Lowercase identifiers and every symbol in `_test.go` files.                                              |
-| Python                | Module-level `def`, `async def`, `class`, and `UPPER_CASE` constants. When the module declares `__all__`, exactly the listed names (comments inside the list are ignored). | Names starting with `_`, nested definitions, and test modules (`test_*.py`, `*_test.py`, `conftest.py`). |
+| Language              | Public                                                                                                                                                                                                                                           | Not public                                                                                                                                                                                      |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| JavaScript/TypeScript | `export` declarations and `export { }` lists.                                                                                                                                                                                                    | Everything not exported.                                                                                                                                                                        |
+| Rust                  | `pub` items: `fn` (including `const`, `async`, `unsafe`, `extern` functions), `struct`, `enum`, `trait`, `type`, `const`, `static`, `mod`, and `pub use` re-exports, at the top level or inside `pub mod`, `impl`, `trait`, and `extern` blocks. | `pub(crate)`, `pub(super)`, `pub(in path)`, `pub(self)`, private items, glob re-exports, and anything inside a private `mod`, a `#[cfg(test)]` module, a function body, a comment, or a string. |
+| Go                    | Top-level `func`, methods on exported types, `type`, `const`, and `var` whose name starts with an uppercase letter, including grouped `const ( )` and `var ( )` blocks.                                                                          | Lowercase identifiers, methods on unexported types, `_test.go` files, `internal/` packages, and `package main`.                                                                                 |
+| Python                | Module-level `def`, `async def`, `class`, and `UPPER_CASE` constants. When the module declares `__all__` (including later `__all__ +=`), exactly the listed names; comments inside the list are ignored.                                         | Names starting with `_`, nested definitions, text inside triple-quoted strings, `_private.py` modules, `tests/` folders, and test modules (`test_*.py`, `*_test.py`, `conftest.py`).            |
 
-These are static, line-based rules. They can count a `pub fn` inside a private
-module or a `#[cfg(test)]` block. Files under test, example, and script folders
-rank lowest so those cases sink below real entrypoints.
+Comments and strings are blanked before matching, so line numbers stay exact.
+The rules are still static: they do not follow a Rust file declared as a
+private module from another file (`mod internal;`), and they count `pub` items
+in binary crates.
 
 ## Generated File Ownership
 
