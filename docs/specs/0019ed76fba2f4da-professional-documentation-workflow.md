@@ -95,6 +95,9 @@ machine-readable status file that CI can verify.
 ## Error Handling
 
 - Missing docs are reported as verification findings.
+- A missing `.xfeat/status.json` is a `missing-status` finding and an
+  unparseable one is an `invalid-status` finding; neither crashes `verify` or
+  `ci`.
 - Missing source files referenced by claims are reported as verification
   findings.
 - Broken relative Markdown links are audit findings.
@@ -193,12 +196,12 @@ Rules:
 
 ## Public API Rules
 
-| Language              | Public                                                                                                                                                               | Not public                                                                                               |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| JavaScript/TypeScript | `export` declarations and `export { }` lists.                                                                                                                        | Everything not exported.                                                                                 |
-| Rust                  | `pub` items: `fn` (including `const`, `async`, `unsafe`, `extern` functions), `struct`, `enum`, `trait`, `type`, `const`, `static`, `mod`, and `pub use` re-exports. | `pub(crate)`, `pub(super)`, `pub(in path)`, `pub(self)`, private items, glob re-exports.                 |
-| Go                    | Top-level `func`, methods, `type`, `const`, and `var` whose name starts with an uppercase letter, including grouped `const ( )` and `var ( )` blocks.                | Lowercase identifiers and every symbol in `_test.go` files.                                              |
-| Python                | Module-level `def`, `async def`, `class`, and `UPPER_CASE` constants. When the module declares `__all__`, exactly the listed names.                                  | Names starting with `_`, nested definitions, and test modules (`test_*.py`, `*_test.py`, `conftest.py`). |
+| Language              | Public                                                                                                                                                                     | Not public                                                                                               |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| JavaScript/TypeScript | `export` declarations and `export { }` lists.                                                                                                                              | Everything not exported.                                                                                 |
+| Rust                  | `pub` items: `fn` (including `const`, `async`, `unsafe`, `extern` functions), `struct`, `enum`, `trait`, `type`, `const`, `static`, `mod`, and `pub use` re-exports.       | `pub(crate)`, `pub(super)`, `pub(in path)`, `pub(self)`, private items, glob re-exports.                 |
+| Go                    | Top-level `func`, methods, `type`, `const`, and `var` whose name starts with an uppercase letter, including grouped `const ( )` and `var ( )` blocks.                      | Lowercase identifiers and every symbol in `_test.go` files.                                              |
+| Python                | Module-level `def`, `async def`, `class`, and `UPPER_CASE` constants. When the module declares `__all__`, exactly the listed names (comments inside the list are ignored). | Names starting with `_`, nested definitions, and test modules (`test_*.py`, `*_test.py`, `conftest.py`). |
 
 These are static, line-based rules. They can count a `pub fn` inside a private
 module or a `#[cfg(test)]` block. Files under test, example, and script folders
