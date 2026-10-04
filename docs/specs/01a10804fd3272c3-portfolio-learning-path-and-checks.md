@@ -143,6 +143,7 @@ gets Orient, Run, and Change.
       "subject": "billing-api",
       "question": "Which file in `billing-api` declares its dependency on `ledger`?",
       "format": "file path relative to the repository root",
+      "hops": 1,
       "answer": { "type": "one-of", "values": ["go.mod"] },
       "claims": [
         "edge:billing-api->ledger:go-module:github.com/acme/ledger:consumer"
@@ -152,15 +153,18 @@ gets Orient, Run, and Change.
 }
 ```
 
-| Kind               | Question                                                     | Answer type | Step   |
-| ------------------ | ------------------------------------------------------------ | ----------- | ------ |
-| `owner`            | Who owns `{repo}`?                                           | `set`       | orient |
-| `binary`           | Which repository provides the program `{name}`?              | `value`     | orient |
-| `test-command`     | Which declared command runs the tests of `{repo}`?           | `one-of`    | run    |
-| `dependencies`     | Which selected repositories does `{repo}` depend on?         | `set`       | trace  |
-| `dependency-file`  | Which file in `{repo}` declares its dependency on `{to}`?    | `one-of`    | trace  |
-| `package-provider` | Which repository provides `{dependency}`?                    | `value`     | trace  |
-| `impact`           | Which selected repositories can a change in `{repo}` affect? | `set`       | impact |
+| Kind                      | Question                                                                                    | Answer type | Step   | Hops |
+| ------------------------- | ------------------------------------------------------------------------------------------- | ----------- | ------ | ---- |
+| `owner`                   | Who owns `{repo}`?                                                                          | `set`       | orient | 1    |
+| `binary`                  | Which repository provides the program `{name}`?                                             | `value`     | orient | 1    |
+| `program-owner`           | Who owns the repository that provides the program `{name}`?                                 | `set`       | orient | 2    |
+| `test-command`            | Which declared command runs the tests of `{repo}`?                                          | `one-of`    | run    | 1    |
+| `program-test-command`    | Which declared command runs the tests of the repository that provides the program `{name}`? | `one-of`    | run    | 2    |
+| `dependencies`            | Which selected repositories does `{repo}` depend on?                                        | `set`       | trace  | 1    |
+| `transitive-dependencies` | Which selected repositories does `{repo}` depend on, directly or through others?            | `set`       | trace  | 2+   |
+| `dependency-file`         | Which file in `{repo}` declares its dependency on `{to}`?                                   | `one-of`    | trace  | 1    |
+| `package-provider`        | Which repository provides `{dependency}`?                                                   | `value`     | trace  | 1    |
+| `impact`                  | Which selected repositories can a change in `{repo}` affect?                                | `set`       | impact | 1+   |
 
 Rules:
 
@@ -185,6 +189,28 @@ Rules:
   subject.
 - Check ids are stable for unchanged repositories, so answers from one run can
   be graded against the next.
+
+### Multi-hop Checks
+
+A first paired agent evaluation answered every single-hop question correctly
+with and without the docs: looking up one fact in a named repository is easy
+by search. Questions that need two or more facts joined can separate readers
+and agents that understand the portfolio from those that only search well.
+
+- `hops` counts the facts a reader must connect: 1 for a single lookup, 2 for
+  a join, and the longest dependency chain for closures.
+- `program-owner` and `program-test-command` join a program to the repository
+  that provides it, then to that repository's owner or test command. They are
+  skipped when the program name gives the repository away, when several
+  repositories provide the name, or when the second fact has no evidence.
+- `transitive-dependencies` is the forward closure over declared edges. It is
+  generated only when the closure reaches past the direct dependencies, and
+  skipped under the same completeness rule as `dependencies`.
+- `impact` keeps its question; its `hops` is the longest path in the closure.
+- Real portfolios may lack dependency chains. A scan of all 396 readable local
+  repositories found 16 cross-repository edges, of which 2 are declared, and
+  no declared chain of two or more hops. Dependency multi-hop questions are
+  therefore covered by fixtures, and joins carry the real-data evaluation.
 
 ## Grading
 
@@ -215,9 +241,10 @@ xfeat's wording, which biased an evaluation toward agents that read the docs.
 | `one-of`    | The answer is one value equal to any expected value. A list of several values is wrong. |
 | `set`       | The answer set equals the expected set.                                                 |
 
-The report lists `score`, `correct`, `total`, and one result per check:
-`correct`, `wrong`, or `missing`, with the expected answer. Unknown ids are
-listed separately. Exit code is 0 unless `--min-score` is set and the score is
+The report lists `score`, `correct`, `total`, `byHops` (correct and total per
+hop count, so multi-hop accuracy is visible apart from lookups), and one result
+per check: `correct`, `wrong`, or `missing`, with the expected answer. Unknown
+ids are listed separately. Exit code is 0 unless `--min-score` is set and the score is
 below it.
 
 ## Writing Rules (STE-lite)
