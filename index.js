@@ -1229,38 +1229,10 @@ async function main() {
 }
 
 if (require.main === module) {
-  const professionalCommands = new Set([
-    "init",
-    "scan",
-    "audit",
-    "verify",
-    "ci",
-  ]);
-  const firstArg = process.argv[2];
-
-  if (firstArg === "portfolio") {
-    const { runPortfolioCommand } = require("./lib/portfolio-cli");
-    runPortfolioCommand(process.argv.slice(3))
-      .then((result) => {
-        process.exit(result.exitCode || 0);
-      })
-      .catch((err) => {
-        console.error(err.message);
-        process.exit(1);
-      });
-  } else if (professionalCommands.has(firstArg)) {
-    const { runProfessionalCommand } = require("./lib/professional-docs");
-    runProfessionalCommand(process.argv.slice(2))
-      .then((result) => {
-        process.exit(result.exitCode || 0);
-      })
-      .catch((err) => {
-        console.error(err.message);
-        process.exit(1);
-      });
-  } else {
-    main().catch(console.error);
-  }
+  const { exitWith, subcommandRunner } = require("./lib/cli-router");
+  const run = subcommandRunner(process.argv.slice(2));
+  if (run) exitWith(run());
+  else main().catch(console.error);
 }
 
 module.exports = {
