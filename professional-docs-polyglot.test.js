@@ -209,7 +209,7 @@ describe("Professional docs scan on polyglot repositories", () => {
       "- Owns Double-entry ledger primitives for account balances. Evidence: [`crates/ledger-core/Cargo.toml:4`]",
     );
     expect(cli).toContain(
-      "- Owns the `ledger-cli` package under `crates/ledger-cli`; its manifest declares no description. Evidence: [`crates/ledger-cli/Cargo.toml:2`]",
+      "- Owns the `ledger-cli` package under `crates/ledger-cli`. Its manifest declares no description. Evidence: [`crates/ledger-cli/Cargo.toml:2`]",
     );
     expect(onboarding).not.toContain("npm install");
     expect(onboarding).toContain("`Cargo.toml:");
